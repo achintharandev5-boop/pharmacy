@@ -50,7 +50,7 @@ export class SuppliersService {
   async create(dto: CreateSupplierDto) {
     const row = toRow(dto);
     if (row.active === undefined) row.active = true;
-    return unwrapRequired(await this.db.from('suppliers').insert(row).select().single(), 'save the supplier');
+    return unwrapRequired<Record<string, unknown>>(await this.db.from('suppliers').insert(row).select().single(), 'save the supplier');
   }
 
   async update(id: string, dto: UpdateSupplierDto) {
@@ -58,7 +58,7 @@ export class SuppliersService {
     if (Object.keys(row).length === 0) throw new BadRequestException('No supplier fields to update');
     if ('name' in row && !row.name) throw new BadRequestException('Supplier name cannot be empty');
 
-    const updated = unwrap(
+    const updated = unwrap<Record<string, unknown>>(
       await this.db
         .from('suppliers')
         .update({ ...row, updated_at: new Date().toISOString() })

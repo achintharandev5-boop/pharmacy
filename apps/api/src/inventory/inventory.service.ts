@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SupabaseService } from '../supabase/supabase.service';
 import { unwrap, unwrapList } from '../common/db';
@@ -9,6 +9,12 @@ import { countStockLevels, expiryBand, stockLevel, toNumber } from './stock-metr
 export const RANGE_DAYS: Record<string, number> = { '7d': 7, '30d': 30, '90d': 90 };
 
 type Row = Record<string, any>;
+
+function assertIdempotencyKey(key: string | undefined) {
+  if (key !== undefined && !/^[\w.:-]{8,200}$/.test(key)) {
+    throw new BadRequestException({ code: 'INVALID_IDEMPOTENCY_KEY', message: 'Idempotency-Key header is invalid.' });
+  }
+}
 
 /**
  * Inventory reads and stock-changing operations.
@@ -198,6 +204,7 @@ export class InventoryService {
   }
 
   async receiveStock(dto: ReceiveStockDto, userId: string, idempotencyKey?: string) {
+    assertIdempotencyKey(idempotencyKey);
     const payload = {
       supplier_id: dto.supplierId,
       invoice_number: dto.invoiceNumber?.trim() || null,
@@ -235,7 +242,8 @@ export class InventoryService {
     };
   }
 
-  async adjustStock(dto: StockAdjustmentDto, userId: string) {
+  async adjustStock(dto: StockAdjustmentDto, userId: string, idempotencyKey?: string) {
+    assertIdempotencyKey(idempotencyKey);
     const result = unwrap(
       await this.db.rpc('adjust_stock', {
         p_product_id: dto.productId,
@@ -244,6 +252,7 @@ export class InventoryService {
         p_quantity: dto.quantity,
         p_reason: dto.reason.trim(),
         p_user_id: userId,
+        p_idempotency_key: idempotencyKey ?? null,
       }),
       'adjust stock',
     ) as { movement_id: string; stock_before: number; stock_after: number } | null;

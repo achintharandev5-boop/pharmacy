@@ -45,7 +45,7 @@ export class CustomersService {
       if (typeof value === 'string' && value.trim() !== '') row[field] = value.trim();
     }
 
-    return unwrapRequired(await this.db.from('customers').insert(row).select().single(), 'save the patient');
+    return unwrapRequired<Record<string, unknown>>(await this.db.from('customers').insert(row).select().single(), 'save the patient');
   }
 
   async remove(id: string) {

@@ -40,8 +40,12 @@ export class InventoryController {
 
   @Roles(...STOCK_MANAGERS)
   @Post('adjustments')
-  async adjustStock(@Body() dto: StockAdjustmentDto, @CurrentUser() user: AuthUser) {
-    return this.inventoryService.adjustStock(dto, user.id);
+  async adjustStock(
+    @Body() dto: StockAdjustmentDto,
+    @CurrentUser() user: AuthUser,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ) {
+    return this.inventoryService.adjustStock(dto, user.id, idempotencyKey);
   }
 
   @Get('expiry')

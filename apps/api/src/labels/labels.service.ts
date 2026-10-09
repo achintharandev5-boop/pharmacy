@@ -25,6 +25,6 @@ export class LabelsService {
       instructions_json: dto.instructions_json,
       printed_at: dto.printed_at ?? null,
     };
-    return unwrapRequired(await this.supabase.getClient().from('labels').insert(row).select().single(), 'save the label');
+    return unwrapRequired<Record<string, unknown>>(await this.supabase.getClient().from('labels').insert(row).select().single(), 'save the label');
   }
 }
