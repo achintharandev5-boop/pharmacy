@@ -1,52 +1,81 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
-import { Request } from 'express';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import type { UserResponse } from '@supabase/supabase-js';
+import type { Request } from 'express';
 import { SupabaseService } from '../supabase/supabase.service';
+import { IS_PUBLIC_KEY } from './decorators';
+import { parseRole, type AuthUser } from './roles';
 
+/**
+ * Global authentication guard. Fails closed: every route requires a valid Supabase access
+ * token unless it is explicitly marked @Public(). There is no environment-based bypass.
+ *
+ * Tokens are verified by Supabase Auth (`auth.getUser`), which checks the signature, expiry
+ * and whether the session has been revoked.
+ */
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private supabaseService: SupabaseService) {}
+  private readonly logger = new Logger(AuthGuard.name);
+
+  constructor(
+    private readonly supabaseService: SupabaseService,
+    private readonly reflector: Reflector,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<Request>();
-    const path = request.path;
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (isPublic) return true;
 
-    // Skip auth for health endpoints and login
-    if (path.startsWith('/health') || path === '/auth/login') {
-      return true;
-    }
-
-    const token = this.extractTokenFromHeader(request);
-
+    const request = context.switchToHttp().getRequest<Request & { user?: AuthUser }>();
+    const token = extractBearerToken(request);
     if (!token) {
-      if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
-        // Dev mode fallback user
-        (request as any).user = { id: '00000000-0000-0000-0000-000000000000', email: 'dev@pharmacy.local' };
-        return true;
-      }
-      throw new UnauthorizedException('No authorization bearer token found');
+      throw new UnauthorizedException('Authentication required');
     }
 
+    let result: UserResponse;
     try {
-      const { data: { user }, error } = await this.supabaseService.getClient().auth.getUser(token);
-      
-      if (!error && user) {
-        (request as any).user = user;
-        return true;
+      result = await this.supabaseService.getClient().auth.getUser(token);
+    } catch {
+      this.logger.error('Token verification failed: authentication service unreachable');
+      throw new ServiceUnavailableException('Authentication service is unavailable. Please try again.');
+    }
+
+    const { data, error } = result;
+    if (error) {
+      // Network/5xx failures from Supabase Auth are not the caller's fault; report them as such.
+      const status = (error as { status?: number }).status;
+      if (status === undefined || status >= 500) {
+        this.logger.error(`Token verification failed: authentication service error (${status ?? 'network'})`);
+        throw new ServiceUnavailableException('Authentication service is unavailable. Please try again.');
       }
-    } catch (e) {
-      // Failed token verification
+      throw new UnauthorizedException('Invalid or expired token');
+    }
+    if (!data?.user) {
+      throw new UnauthorizedException('Invalid or expired token');
     }
 
-    if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
-      (request as any).user = { id: '00000000-0000-0000-0000-000000000000', email: 'dev@pharmacy.local' };
-      return true;
-    }
-
-    throw new UnauthorizedException('Invalid or expired token');
+    request.user = {
+      id: data.user.id,
+      email: data.user.email ?? null,
+      role: parseRole(data.user.app_metadata?.role),
+    };
+    return true;
   }
+}
 
-  private extractTokenFromHeader(request: Request): string | undefined {
-    const [type, token] = request.headers.authorization?.split(' ') ?? [];
-    return type === 'Bearer' ? token : undefined;
-  }
+export function extractBearerToken(request: Request): string | undefined {
+  const header = request.headers.authorization;
+  if (typeof header !== 'string') return undefined;
+  const [type, token] = header.trim().split(/\s+/);
+  return type?.toLowerCase() === 'bearer' && token ? token : undefined;
 }

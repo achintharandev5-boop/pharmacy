@@ -1,15 +1,8 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Param,
-  Headers,
-  UseGuards,
-  Query,
-} from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpCode, Param, ParseUUIDPipe, Post } from '@nestjs/common';
 import { PrescriptionsService } from './prescriptions.service';
-import { CreatePrescriptionDto } from './dto/create-prescription.dto';
+import { CreatePrescriptionDto, LogSmsDto } from './dto/create-prescription.dto';
+import { CurrentUser } from '../auth/decorators';
+import type { AuthUser } from '../auth/roles';
 
 @Controller('prescriptions')
 export class PrescriptionsController {
@@ -17,10 +10,11 @@ export class PrescriptionsController {
 
   @Post()
   async create(
-    @Body() createPrescriptionDto: CreatePrescriptionDto,
+    @Body() dto: CreatePrescriptionDto,
+    @CurrentUser() user: AuthUser,
     @Headers('idempotency-key') idempotencyKey?: string,
   ) {
-    return this.prescriptionsService.create(createPrescriptionDto, idempotencyKey);
+    return this.prescriptionsService.create(dto, idempotencyKey, user.id);
   }
 
   @Get()
@@ -29,20 +23,19 @@ export class PrescriptionsController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
+  async findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.prescriptionsService.findOne(id);
   }
 
   @Post(':id/print')
-  async logPrint(@Param('id') id: string) {
-    return this.prescriptionsService.logPrint(id);
+  @HttpCode(200)
+  async logPrint(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
+    return this.prescriptionsService.logPrint(id, user.id);
   }
 
   @Post(':id/sms')
-  async logSms(
-    @Param('id') id: string,
-    @Body() body: { recipient: string; message: string },
-  ) {
-    return this.prescriptionsService.logSms(id, body.recipient, body.message);
+  @HttpCode(200)
+  async logSms(@Param('id', ParseUUIDPipe) id: string, @Body() dto: LogSmsDto, @CurrentUser() user: AuthUser) {
+    return this.prescriptionsService.logSms(id, dto, user.id);
   }
 }

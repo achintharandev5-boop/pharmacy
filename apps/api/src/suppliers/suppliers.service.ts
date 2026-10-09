@@ -1,179 +1,73 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
+import { likeTerm, unwrap, unwrapList, unwrapRequired } from '../common/db';
+import { CreateSupplierDto, SUPPLIER_FIELDS, UpdateSupplierDto } from './dto/supplier.dto';
 
-export class CreateSupplierDto {
-  name!: string;
-  contact_person?: string;
-  phone?: string;
-  email?: string;
-  address?: string;
-  registration_number?: string;
-  notes?: string;
-  active?: boolean;
+/** Builds a row from whitelisted fields only; blank optional strings become null. */
+function toRow(dto: CreateSupplierDto | UpdateSupplierDto): Record<string, unknown> {
+  const row: Record<string, unknown> = {};
+  for (const field of SUPPLIER_FIELDS) {
+    const value = dto[field];
+    if (value === undefined) continue;
+    row[field] = typeof value === 'string' ? value.trim() || null : value;
+  }
+  return row;
 }
 
 @Injectable()
 export class SuppliersService {
   constructor(private readonly supabaseService: SupabaseService) {}
 
+  private get db() {
+    return this.supabaseService.getClient();
+  }
+
   async findAll(query?: string) {
-    const supabase = this.supabaseService.getClient();
-
-    try {
-      let q = supabase
-        .from('suppliers')
-        .select('*')
-        .order('name', { ascending: true });
-
-      const { data } = await q;
-
-      if (Array.isArray(data) && data.length > 0) {
-        if (query) {
-          const lower = query.toLowerCase();
-          return data.filter(
-            (s) =>
-              s.name?.toLowerCase().includes(lower) ||
-              s.contact_person?.toLowerCase().includes(lower) ||
-              s.phone?.includes(lower),
-          );
-        }
-        return data;
-      }
-    } catch (e) {
-      // Fallback
-    }
-
-    return [
-      {
-        id: 'sup_1',
-        name: 'State Pharmaceuticals Corporation (SPC)',
-        contact_person: 'Mr. Nimal Perera',
-        phone: '0112345678',
-        email: 'info@spc.lk',
-        address: 'Colombo 01, Sri Lanka',
-        registration_number: 'REG-SPC-001',
-        active: true,
-        created_at: new Date().toISOString(),
-      },
-      {
-        id: 'sup_2',
-        name: 'Sunshine Healthcare Lanka',
-        contact_person: 'Mrs. Dilhani Silva',
-        phone: '0117890123',
-        email: 'sales@sunshine.lk',
-        address: 'Rajagiriya, Sri Lanka',
-        registration_number: 'REG-SHL-002',
-        active: true,
-        created_at: new Date().toISOString(),
-      },
-    ];
+    let q = this.db.from('suppliers').select('*').order('name', { ascending: true });
+    const term = likeTerm(query ?? '');
+    if (term) q = q.or(`name.ilike.%${term}%,contact_person.ilike.%${term}%,phone.ilike.%${term}%`);
+    return unwrapList(await q, 'load suppliers');
   }
 
   async findOne(id: string) {
-    const supabase = this.supabaseService.getClient();
-
-    try {
-      const { data: supplier } = await supabase
-        .from('suppliers')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      const { data: batches } = await supabase
+    const [supplier, batches, receipts] = await Promise.all([
+      this.db.from('suppliers').select('*').eq('id', id).maybeSingle(),
+      this.db
         .from('product_batches')
         .select('*, products(name, barcode)')
         .eq('supplier_id', id)
-        .order('created_at', { ascending: false });
-
-      const { data: receipts } = await supabase
-        .from('stock_receipts')
-        .select('*')
-        .eq('supplier_id', id)
-        .order('created_at', { ascending: false });
-
-      if (supplier) {
-        return {
-          supplier,
-          suppliedBatches: batches || [],
-          receipts: receipts || [],
-        };
-      }
-    } catch (e) {
-      // Fallback
-    }
+        .order('created_at', { ascending: false }),
+      this.db.from('stock_receipts').select('*').eq('supplier_id', id).order('created_at', { ascending: false }),
+    ]);
 
     return {
-      supplier: {
-        id,
-        name: 'State Pharmaceuticals Corporation (SPC)',
-        contact_person: 'Mr. Nimal Perera',
-        phone: '0112345678',
-        email: 'info@spc.lk',
-        address: 'Colombo 01, Sri Lanka',
-        registration_number: 'REG-SPC-001',
-        notes: 'Primary state pharmaceutical supplier',
-        active: true,
-        created_at: new Date().toISOString(),
-      },
-      suppliedBatches: [
-        {
-          id: 'b_1',
-          batch_number: 'SPC-AMX-2026',
-          quantity_available: 450,
-          expiry_date: '2027-12-10',
-          products: { name: 'Amoxicillin 500mg', barcode: '8934002' },
-        },
-      ],
-      receipts: [
-        {
-          id: 'rec_1',
-          receipt_number: 'GRN-20261005-0001',
-          invoice_number: 'INV-SPC-99182',
-          received_date: new Date().toISOString().split('T')[0],
-          total_cost: 12500.0,
-          status: 'COMPLETED',
-        },
-      ],
+      supplier: unwrapRequired(supplier, 'load the supplier'),
+      suppliedBatches: unwrapList(batches, "load the supplier's batches"),
+      receipts: unwrapList(receipts, "load the supplier's receipts"),
     };
   }
 
   async create(dto: CreateSupplierDto) {
-    const supabase = this.supabaseService.getClient();
-
-    try {
-      const { data, error } = await supabase
-        .from('suppliers')
-        .insert([dto])
-        .select()
-        .single();
-
-      if (error) throw new Error(error.message);
-      return data;
-    } catch (e: any) {
-      return {
-        id: `sup_${Date.now()}`,
-        ...dto,
-        active: dto.active !== false,
-        created_at: new Date().toISOString(),
-      };
-    }
+    const row = toRow(dto);
+    if (row.active === undefined) row.active = true;
+    return unwrapRequired(await this.db.from('suppliers').insert(row).select().single(), 'save the supplier');
   }
 
-  async update(id: string, dto: Partial<CreateSupplierDto>) {
-    const supabase = this.supabaseService.getClient();
+  async update(id: string, dto: UpdateSupplierDto) {
+    const row = toRow(dto);
+    if (Object.keys(row).length === 0) throw new BadRequestException('No supplier fields to update');
+    if ('name' in row && !row.name) throw new BadRequestException('Supplier name cannot be empty');
 
-    try {
-      const { data, error } = await supabase
+    const updated = unwrap(
+      await this.db
         .from('suppliers')
-        .update({ ...dto, updated_at: new Date().toISOString() })
+        .update({ ...row, updated_at: new Date().toISOString() })
         .eq('id', id)
         .select()
-        .single();
-
-      if (error) throw new Error(error.message);
-      return data;
-    } catch (e: any) {
-      return { id, ...dto, updated_at: new Date().toISOString() };
-    }
+        .maybeSingle(),
+      'update the supplier',
+    );
+    if (!updated) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Supplier not found.' });
+    return updated;
   }
 }

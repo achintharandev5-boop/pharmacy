@@ -1,120 +1,87 @@
-import { Injectable, NotFoundException, InternalServerErrorException, BadRequestException, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
+import { likeTerm, unwrapList, unwrapRequired } from '../common/db';
 
-const HARDCODED_PRODUCTS = [
-  { id: 'prod_lasix_40', name: "Lasix 40mg Tabs 500's", expiry_date: '8/31/2027', stock_quantity: 2, pack_size: 500, product_type: 'TABLET', batch_number: 'B-LX40', retail_price: 15.0 },
-  { id: 'prod_400_d', name: "400-D", expiry_date: '1/8/2028', stock_quantity: 2, pack_size: 30, product_type: 'CAP', batch_number: 'B-400D', retail_price: 25.0 },
-  { id: 'prod_acemin_200', name: "Acemin Syrup 200ml", expiry_date: '1/1/2028', stock_quantity: 3, pack_size: 1, product_type: 'SYRUP', batch_number: 'B-ACE200', retail_price: 180.0 },
-  { id: 'prod_me_b12', name: "ME-B12 (Co-Methylcobalamin 5mg)", expiry_date: '1/4/2028', stock_quantity: 2, pack_size: 30, product_type: 'TABLET', batch_number: 'B-MEB12', retail_price: 45.0 },
-  { id: 'prod_vitra_az', name: "VITRA A-Z COMPLETE VITAMINS 30's", expiry_date: '1/1/2028', stock_quantity: 2, pack_size: 30, product_type: 'TABLET', batch_number: 'B-VAZ30', retail_price: 60.0 },
-  { id: 'prod_vitra_mama', name: "VITRA MAMA 3x10's", expiry_date: '1/1/2028', stock_quantity: 1, pack_size: 30, product_type: 'TABLET', batch_number: 'B-VMAMA', retail_price: 55.0 },
-  { id: 'prod_aurora_10', name: "Aurora 10mg Tablets 1x10's", expiry_date: '8/31/2027', stock_quantity: 3, pack_size: 10, product_type: 'TABLET', batch_number: 'B-AUR10', retail_price: 32.0 },
-  { id: 'prod_claton_250', name: "Claton 250mg Tablets 3x10's", expiry_date: '7/31/2026', stock_quantity: 1, pack_size: 30, product_type: 'TABLET', batch_number: 'B-CLA250', retail_price: 75.0 },
-  { id: 'prod_rifixa_550', name: "RIFIXA  550mg Tablets 1x10's", expiry_date: '7/31/2027', stock_quantity: 6, pack_size: 10, product_type: 'TABLET', batch_number: 'B-RIF550', retail_price: 120.0 },
-  { id: 'prod_sitagen_100', name: "Sitagen 100mg Tablets 30's", expiry_date: '8/31/2027', stock_quantity: 1, pack_size: 30, product_type: 'TABLET', batch_number: 'B-SIT100', retail_price: 85.0 },
-  { id: 'prod_sitagen_50', name: "Sitagen 50mg Tablets 30's", expiry_date: '8/31/2027', stock_quantity: 2, pack_size: 30, product_type: 'TABLET', batch_number: 'B-SIT50', retail_price: 50.0 },
-  { id: 'prod_glitrol_cr30', name: "Glitrol CR 30mg Capsules 10x10's", expiry_date: '8/31/2027', stock_quantity: 1, pack_size: 100, product_type: 'CAPSULES', batch_number: 'B-GLI30', retail_price: 40.0 },
-  { id: 'prod_glitrol_cr60', name: "Glitrol CR 60mg Capsules 10x10's", expiry_date: '6/30/2027', stock_quantity: 1, pack_size: 100, product_type: 'CAPSULES', batch_number: 'B-GLI60', retail_price: 70.0 },
-  { id: 'prod_alphapress_1', name: "Alphapress 1mg Tablets 100's", expiry_date: '5/31/2028', stock_quantity: 6, pack_size: 100, product_type: 'TABLET', batch_number: 'B-ALP1', retail_price: 28.0 },
-  { id: 'prod_bigmet_500', name: "Bigmet 500mg Tablets 100's", expiry_date: '7/31/2027', stock_quantity: 10, pack_size: 100, product_type: 'TABLET', batch_number: 'B-BIG500', retail_price: 18.0 },
-  { id: 'prod_bigmet_850', name: "Bigmet 850mg Tablets 10x10's", expiry_date: '5/31/2027', stock_quantity: 1, pack_size: 100, product_type: 'TABLET', batch_number: 'B-BIG850', retail_price: 25.0 },
-  { id: 'prod_g35_21', name: "G-35 Tablet 21's", expiry_date: '3/31/2027', stock_quantity: 2, pack_size: 1, product_type: 'TABLET', batch_number: 'B-G35', retail_price: 110.0 },
-  { id: 'prod_luean_r150', name: "Luean R 150mg Capsules 2x6's", expiry_date: '9/30/2027', stock_quantity: 3, pack_size: 12, product_type: 'CAPSULES', batch_number: 'B-LUE150', retail_price: 65.0 },
-  { id: 'prod_neurotone_100', name: "Neurotone Tablets 10x10's", expiry_date: '6/30/2027', stock_quantity: 2, pack_size: 100, product_type: 'TABLET', batch_number: 'B-NEU100', retail_price: 90.0 },
-  { id: 'prod_zithrin_500', name: "Zithrin 500mg Tablets 2x6's", expiry_date: '5/31/2028', stock_quantity: 5, pack_size: 12, product_type: 'TABLET', batch_number: 'B-ZIT500', retail_price: 140.0 },
-  { id: 'prod_zithrine_250', name: "Zithrine 250mg Capsules 2x6's", expiry_date: '7/31/2027', stock_quantity: 2, pack_size: 12, product_type: 'CAPSULES', batch_number: 'B-ZIT250', retail_price: 95.0 },
-];
+/** Fields the label workstation needs. Taken from the product row; missing columns become null. */
+export interface ProductSummary {
+  id: string;
+  name: string;
+  generic_name: string | null;
+  brand_name: string | null;
+  strength: string | null;
+  dosage_form: string | null;
+  barcode: string | null;
+  stock_quantity: number | null;
+  expiry_date: string | null;
+  batch_number: string | null;
+  retail_price: number | null;
+  pack_size: number | null;
+  product_type: string | null;
+  is_active: boolean;
+}
 
+const SEARCH_LIMIT = 25;
+
+function toSummary(row: Record<string, any>): ProductSummary {
+  return {
+    id: row.id,
+    name: row.name,
+    generic_name: row.generic_name ?? null,
+    brand_name: row.brand_name ?? null,
+    strength: row.strength ?? null,
+    dosage_form: row.dosage_form ?? null,
+    barcode: row.barcode ?? null,
+    stock_quantity: row.stock_quantity ?? null,
+    expiry_date: row.expiry_date ?? null,
+    batch_number: row.batch_number ?? null,
+    retail_price: row.retail_price ?? null,
+    pack_size: row.pack_size ?? null,
+    product_type: row.product_type ?? row.dosage_form ?? null,
+    is_active: row.is_active !== false,
+  };
+}
+
+/**
+ * Medicine lookup for the label workstation. Results come only from the database; a database
+ * error is reported as an error, never as "no results".
+ *
+ * `select('*')` is used deliberately so the service works with both the original and the
+ * extended product schema.
+ */
 @Injectable()
 export class ProductsService {
   constructor(private readonly supabaseService: SupabaseService) {}
 
-  async searchByName(q: string) {
-    if (!q) {
-      throw new BadRequestException('Search query "q" is required');
-    }
+  async searchByName(q: string): Promise<ProductSummary[]> {
+    const term = likeTerm(q ?? '');
+    if (!term) throw new BadRequestException('Search query "q" is required');
 
-    const clean = q.trim().toLowerCase();
-    const hardcodedMatches = HARDCODED_PRODUCTS.filter((p) =>
-      p.name.toLowerCase().includes(clean)
-    ).map((p) => ({ id: p.id, name: p.name, stock_quantity: p.stock_quantity, expiry_date: p.expiry_date }));
-
-    let dbMatches: any[] = [];
-    try {
-      const { data, error } = await this.supabaseService
+    const rows = unwrapList(
+      await this.supabaseService
         .getClient()
         .from('products')
-        .select('id, name, stock_quantity, expiry_date, pack_size, product_type')
-        .ilike('name', `%${q}%`);
-
-      if (!error && Array.isArray(data)) {
-        dbMatches = data;
-      } else if (error && process.env.NODE_ENV === 'production') {
-        throw new ServiceUnavailableException({ statusCode: 503, code: 'DATABASE_UNAVAILABLE', message: 'Unable to query product database.' });
-      }
-    } catch (e: any) {
-      if (process.env.NODE_ENV === 'production') {
-        throw new ServiceUnavailableException({ statusCode: 503, code: 'DATABASE_UNAVAILABLE', message: 'Unable to query product database.' });
-      }
-    }
-
-    const merged = [...hardcodedMatches];
-    for (const item of dbMatches) {
-      if (!merged.some((p) => p.name.toLowerCase() === item.name.toLowerCase())) {
-        merged.push(item);
-      }
-    }
-
-    return merged;
+        .select('*')
+        .ilike('name', `%${term}%`)
+        .order('name', { ascending: true })
+        .limit(SEARCH_LIMIT),
+      'search medicines',
+    );
+    return rows.map(toSummary).filter((p) => p.is_active);
   }
 
-  async findByBarcode(barcode: string) {
-    const hardcoded = HARDCODED_PRODUCTS.find((p: any) => p.barcode === barcode);
-    if (hardcoded) {
-      return hardcoded;
-    }
-
-    const { data, error } = await this.supabaseService
-      .getClient()
-      .from('products')
-      .select('id, name, stock_quantity, expiry_date, retail_price, batch_number')
-      .eq('barcode', barcode)
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        throw new NotFoundException(`Product with barcode ${barcode} not found`);
-      }
-      if (process.env.NODE_ENV === 'production') {
-        throw new ServiceUnavailableException({ statusCode: 503, code: 'DATABASE_UNAVAILABLE', message: 'Database error fetching product by barcode.' });
-      }
-    }
-
-    return data || hardcoded || null;
+  async findByBarcode(barcode: string): Promise<ProductSummary> {
+    const row = unwrapRequired<Record<string, any>>(
+      await this.supabaseService.getClient().from('products').select('*').eq('barcode', barcode.trim()).maybeSingle(),
+      'look up the barcode',
+    );
+    return toSummary(row);
   }
 
-  async findById(id: string) {
-    const hardcoded = HARDCODED_PRODUCTS.find((p) => p.id === id);
-    if (hardcoded) {
-      return hardcoded;
-    }
-
-    const { data, error } = await this.supabaseService
-      .getClient()
-      .from('products')
-      .select('id, name, stock_quantity, expiry_date, retail_price, batch_number')
-      .eq('id', id)
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        throw new NotFoundException(`Product with ID ${id} not found`);
-      }
-      if (process.env.NODE_ENV === 'production') {
-        throw new ServiceUnavailableException({ statusCode: 503, code: 'DATABASE_UNAVAILABLE', message: 'Database error fetching product by ID.' });
-      }
-    }
-
-    return data || hardcoded || null;
+  async findById(id: string): Promise<ProductSummary> {
+    const row = unwrapRequired<Record<string, any>>(
+      await this.supabaseService.getClient().from('products').select('*').eq('id', id).maybeSingle(),
+      'load the medicine',
+    );
+    return toSummary(row);
   }
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, BadRequestException, ParseUUIDPipe } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import { ProductsService } from './products.service';
 
 @Controller('products')
@@ -10,11 +10,13 @@ export class ProductsController {
     if (!q || q.trim() === '') {
       throw new BadRequestException('Search query "q" is required');
     }
+    if (q.length > 100) throw new BadRequestException('Search query is too long');
     return this.productsService.searchByName(q);
   }
 
   @Get('barcode/:barcode')
   async getByBarcode(@Param('barcode') barcode: string) {
+    if (!/^[\w-]{1,64}$/.test(barcode)) throw new BadRequestException('Invalid barcode');
     return this.productsService.findByBarcode(barcode);
   }
 

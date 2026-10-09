@@ -1,66 +1,30 @@
 import { Injectable } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
+import { unwrapList, unwrapRequired } from '../common/db';
+import { CreateLabelDto } from './labels.dto';
 
-const SAMPLE_LABELS = [
-  {
-    id: 'lbl_101',
-    customer_name_text: 'Tharun',
-    product_name: 'Paracetamol 500mg',
-    dosage_morning: '1',
-    dosage_lunch: '0',
-    dosage_night: '1',
-    days: '5',
-    additional_instructions: 'Take after food',
-    created_at: new Date(Date.now() - 3600000).toISOString()
-  },
-  {
-    id: 'lbl_102',
-    customer_name_text: 'Achintha',
-    product_name: 'Amoxicillin 250mg',
-    dosage_morning: '1',
-    dosage_lunch: '1',
-    dosage_night: '1',
-    days: '7',
-    additional_instructions: 'Complete full course',
-    created_at: new Date(Date.now() - 7200000).toISOString()
-  }
-];
-
+/** Legacy single-label records (table `labels`). Prescriptions are the primary record. */
 @Injectable()
 export class LabelsService {
   constructor(private readonly supabase: SupabaseService) {}
 
   async findAll() {
-    try {
-      const { data, error } = await this.supabase.getClient()
-        .from('labels')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(20);
-
-      if (!error && Array.isArray(data) && data.length > 0) {
-        return data;
-      }
-    } catch (e) {
-      // Fallback
-    }
-    return SAMPLE_LABELS;
+    return unwrapList(
+      await this.supabase.getClient().from('labels').select('*').order('created_at', { ascending: false }).limit(20),
+      'load labels',
+    );
   }
 
-  async createLabel(data: any) {
-    try {
-      const { data: result, error } = await this.supabase.getClient()
-        .from('labels')
-        .insert([data])
-        .select()
-        .single();
-
-      if (error) {
-        return { id: 'lbl_' + Date.now(), ...data, created_at: new Date().toISOString() };
-      }
-      return result;
-    } catch (e) {
-      return { id: 'lbl_' + Date.now(), ...data, created_at: new Date().toISOString() };
-    }
+  async createLabel(dto: CreateLabelDto) {
+    const row = {
+      customer_id: dto.customer_id ?? null,
+      customer_name_text: dto.customer_name_text.trim(),
+      product_id: dto.product_id ?? null,
+      alternative_product_name: dto.alternative_product_name?.trim() || null,
+      days: dto.days ?? null,
+      instructions_json: dto.instructions_json,
+      printed_at: dto.printed_at ?? null,
+    };
+    return unwrapRequired(await this.supabase.getClient().from('labels').insert(row).select().single(), 'save the label');
   }
 }

@@ -1,135 +1,56 @@
-import { Injectable, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
+import { likeTerm, unwrapList, unwrapRequired } from '../common/db';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 
-const HARDCODED_CUSTOMERS = [
-  { id: 'cust_tharun', name: 'Tharun', phone_number: '07783939393', age: '28', gender: 'Male', address: 'Colombo', medical_notes: 'No known allergies' },
-  { id: 'cust_praveen', name: 'Praveen', phone_number: '07499292292', age: '32', gender: 'Male', address: 'Kandy', medical_notes: 'Penicillin allergy' },
-  { id: 'cust_achintha', name: 'Achintha', phone_number: '0764876719', age: '25', gender: 'Male', address: 'Galle', medical_notes: 'Asthma history' },
-  { id: 'cust_gagana', name: 'Gagana', phone_number: '07618181922', age: '30', gender: 'Male', address: 'Negombo', medical_notes: 'Diabetic' },
-];
+const OPTIONAL_FIELDS = ['age', 'gender', 'address', 'medical_notes', 'allergy_status', 'allergies'] as const;
 
+/** Patients. All results come from the database; there are no built-in records. */
 @Injectable()
 export class CustomersService {
   constructor(private readonly supabaseService: SupabaseService) {}
 
-  async findAll() {
-    let dbCustomers: any[] = [];
-    try {
-      const { data, error } = await this.supabaseService
-        .getClient()
-        .from('customers')
-        .select('*');
-
-      if (!error && Array.isArray(data)) {
-        dbCustomers = data;
-      }
-    } catch (e) {
-      // Fallback
-    }
-
-    const merged = [...HARDCODED_CUSTOMERS];
-    for (const item of dbCustomers) {
-      if (!merged.some((c) => c.phone_number === item.phone_number || c.id === item.id)) {
-        merged.push(item);
-      }
-    }
-    return merged;
+  private get db() {
+    return this.supabaseService.getClient();
   }
 
-  async searchByPhone(phone: string) {
-    if (!phone) {
-      throw new BadRequestException('Phone parameter is required');
-    }
-
-    const clean = phone.replace(/[\s\-]/g, '').toLowerCase();
-    const hardcodedMatches = HARDCODED_CUSTOMERS.filter(
-      (c) => c.phone_number.includes(clean) || c.name.toLowerCase().includes(clean)
+  async findAll() {
+    return unwrapList(
+      await this.db.from('customers').select('*').order('name', { ascending: true }),
+      'load patients',
     );
+  }
 
-    let dbMatches: any[] = [];
-    try {
-      const { data, error } = await this.supabaseService
-        .getClient()
+  async searchByPhone(term: string) {
+    const clean = likeTerm(term ?? '');
+    if (!clean) throw new BadRequestException('Phone parameter is required');
+    return unwrapList(
+      await this.db
         .from('customers')
         .select('*')
-        .or(`phone_number.ilike.%${phone}%,name.ilike.%${phone}%`);
-
-      if (!error && Array.isArray(data)) {
-        dbMatches = data;
-      }
-    } catch (e) {
-      // Supabase connection or table error - fallback to hardcoded
-    }
-
-    // Merge unique
-    const merged = [...hardcodedMatches];
-    for (const item of dbMatches) {
-      if (!merged.some((c) => c.phone_number === item.phone_number || c.id === item.id)) {
-        merged.push(item);
-      }
-    }
-
-    return merged;
+        .or(`phone_number.ilike.%${clean}%,name.ilike.%${clean}%`)
+        .order('name', { ascending: true })
+        .limit(50),
+      'search patients',
+    );
   }
 
-  async create(createCustomerDto: CreateCustomerDto) {
-    try {
-      const insertData: any = {
-        phone_number: createCustomerDto.phone_number,
-        name: createCustomerDto.name,
-      };
-
-      if (createCustomerDto.age) insertData.age = createCustomerDto.age;
-      if (createCustomerDto.gender) insertData.gender = createCustomerDto.gender;
-      if (createCustomerDto.address) insertData.address = createCustomerDto.address;
-      if (createCustomerDto.medical_notes) insertData.medical_notes = createCustomerDto.medical_notes;
-
-      const { data, error } = await this.supabaseService
-        .getClient()
-        .from('customers')
-        .insert([insertData])
-        .select()
-        .single();
-
-      if (error) {
-        console.warn('Supabase insert failed, returning constructed object:', error.message);
-        return {
-          id: 'cust_' + Date.now(),
-          ...insertData,
-          created_at: new Date().toISOString()
-        };
-      }
-
-      return data;
-    } catch (e: any) {
-      return {
-        id: 'cust_' + Date.now(),
-        phone_number: createCustomerDto.phone_number,
-        name: createCustomerDto.name,
-        age: createCustomerDto.age || '',
-        gender: createCustomerDto.gender || '',
-        address: createCustomerDto.address || '',
-        medical_notes: createCustomerDto.medical_notes || '',
-        created_at: new Date().toISOString()
-      };
+  async create(dto: CreateCustomerDto) {
+    const row: Record<string, string> = {
+      phone_number: dto.phone_number.trim(),
+      name: dto.name.trim(),
+    };
+    for (const field of OPTIONAL_FIELDS) {
+      const value = dto[field];
+      if (typeof value === 'string' && value.trim() !== '') row[field] = value.trim();
     }
+
+    return unwrapRequired(await this.db.from('customers').insert(row).select().single(), 'save the patient');
   }
 
   async remove(id: string) {
-    try {
-      const { data, error } = await this.supabaseService
-        .getClient()
-        .from('customers')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        return { success: true, message: 'Customer removed' };
-      }
-      return { success: true, data };
-    } catch (e) {
-      return { success: true, message: 'Customer removed' };
-    }
+    const deleted = unwrapList(await this.db.from('customers').delete().eq('id', id).select('id'), 'delete the patient');
+    if (deleted.length === 0) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Patient not found.' });
+    return { success: true, id };
   }
 }

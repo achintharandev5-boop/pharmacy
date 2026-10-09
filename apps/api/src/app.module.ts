@@ -2,10 +2,11 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { SupabaseModule } from './supabase/supabase.module';
 import { AuthModule } from './auth/auth.module';
 import { AuthGuard } from './auth/auth.guard';
+import { RolesGuard } from './auth/roles.guard';
+import { validateEnv } from './config/env.validation';
 import { CustomersModule } from './customers/customers.module';
 import { ProductsModule } from './products/products.module';
 import { LabelsModule } from './labels/labels.module';
@@ -18,6 +19,7 @@ import { SuppliersModule } from './suppliers/suppliers.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      validate: validateEnv,
     }),
     SupabaseModule,
     AuthModule,
@@ -31,12 +33,9 @@ import { SuppliersModule } from './suppliers/suppliers.module';
   ],
   controllers: [AppController],
   providers: [
-    AppService,
-    {
-      provide: APP_GUARD,
-      useClass: AuthGuard,
-    },
+    // Guards run in registration order: authenticate first, then check roles.
+    { provide: APP_GUARD, useClass: AuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })
 export class AppModule {}
-

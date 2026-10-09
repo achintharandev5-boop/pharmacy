@@ -1,6 +1,8 @@
-import { Controller, Get, Post, Delete, Body, Query, Param, BadRequestException } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
 import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
+import { Roles } from '../auth/decorators';
+import { Role } from '../auth/roles';
 
 @Controller('customers')
 export class CustomersController {
@@ -24,8 +26,10 @@ export class CustomersController {
     return this.customersService.create(createCustomerDto);
   }
 
+  /** Deleting a patient record is restricted to administrators. */
+  @Roles(Role.Admin)
   @Delete(':id')
-  async remove(@Param('id') id: string) {
+  async remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.customersService.remove(id);
   }
 }

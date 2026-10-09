@@ -1,87 +1,54 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { SupabaseService } from '../supabase/supabase.service';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
+import { FakeSupabase } from '../test-utils/fake-supabase';
+
+const ID = '11111111-1111-4111-8111-111111111111';
+
+function serviceFor(db: FakeSupabase) {
+  return new ProductsService({ getClient: () => db.client() } as unknown as SupabaseService);
+}
 
 describe('ProductsService', () => {
-  let service: ProductsService;
-  let supabaseService: SupabaseService;
-
-  const mockSupabaseClient = {
-    from: jest.fn().mockReturnThis(),
-    select: jest.fn().mockReturnThis(),
-    ilike: jest.fn().mockReturnThis(),
-    eq: jest.fn().mockReturnThis(),
-    single: jest.fn(),
-  };
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        ProductsService,
-        {
-          provide: SupabaseService,
-          useValue: {
-            getClient: jest.fn().mockReturnValue(mockSupabaseClient),
-          },
-        },
+  const seed = () =>
+    new FakeSupabase({
+      products: [
+        { id: ID, name: 'Panadol 500mg', barcode: '479100010001', stock_quantity: 40, expiry_date: '2028-12-31' },
+        { id: 'p2', name: 'Panadol Syrup', barcode: '2', stock_quantity: 0, is_active: false },
+        { id: 'p3', name: 'Amoxicillin', barcode: '3', stock_quantity: 5 },
       ],
-    }).compile();
+    });
 
-    service = module.get<ProductsService>(ProductsService);
-    supabaseService = module.get<SupabaseService>(SupabaseService);
+  it('requires a search term', async () => {
+    await expect(serviceFor(seed()).searchByName('')).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
+  it('returns only database matches, excluding inactive products', async () => {
+    const result = await serviceFor(seed()).searchByName('pana');
+    expect(result.map((p) => p.name)).toEqual(['Panadol 500mg']);
+    expect(result[0]).toMatchObject({ id: ID, stock_quantity: 40, expiry_date: '2028-12-31', strength: null });
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  it('returns an empty list when nothing matches', async () => {
+    await expect(serviceFor(seed()).searchByName('NonExistent')).resolves.toEqual([]);
   });
 
-  describe('searchByName', () => {
-    it('should throw BadRequestException if q is empty', async () => {
-      await expect(service.searchByName('')).rejects.toThrow(BadRequestException);
-    });
-
-    it('should return a partial match (text search with partial match)', async () => {
-      const mockData = [{ id: '1', name: 'Panadol' }];
-      mockSupabaseClient.ilike.mockResolvedValueOnce({ data: mockData, error: null });
-
-      const result = await service.searchByName('Pana');
-      
-      expect(result).toBeDefined();
-      expect(mockSupabaseClient.from).toHaveBeenCalledWith('products');
-      expect(mockSupabaseClient.ilike).toHaveBeenCalledWith('name', '%Pana%');
-    });
-
-    it('should return empty array or hardcoded array for no DB results', async () => {
-      mockSupabaseClient.ilike.mockResolvedValueOnce({ data: [], error: null });
-
-      const result = await service.searchByName('NonExistent');
-      
-      expect(result).toBeDefined();
-      expect(mockSupabaseClient.ilike).toHaveBeenCalledWith('name', '%NonExistent%');
-    });
+  it('reports a database failure as an error, not as no results', async () => {
+    await expect(serviceFor(seed().fail('products', 'select')).searchByName('pana')).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
   });
 
-  describe('findByBarcode', () => {
-    it('should return product if barcode found (barcode found)', async () => {
-      const mockData = { id: '1', name: 'Test', barcode: '123', retail_price: 10 };
-      mockSupabaseClient.single.mockResolvedValueOnce({ data: mockData, error: null });
+  it('finds a product by barcode', async () => {
+    await expect(serviceFor(seed()).findByBarcode('479100010001')).resolves.toMatchObject({ id: ID });
+  });
 
-      const result = await service.findByBarcode('123');
-      
-      expect(result).toEqual(mockData);
-      expect(mockSupabaseClient.eq).toHaveBeenCalledWith('barcode', '123');
-      expect(mockSupabaseClient.single).toHaveBeenCalled();
-    });
+  it('returns 404 for an unknown barcode or id', async () => {
+    await expect(serviceFor(seed()).findByBarcode('999')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(serviceFor(seed()).findById('99999999-9999-4999-8999-999999999999')).rejects.toBeInstanceOf(NotFoundException);
+  });
 
-    it('should throw NotFoundException if barcode not found (barcode not found)', async () => {
-      mockSupabaseClient.single.mockResolvedValue({ data: null, error: { code: 'PGRST116' } });
-
-      await expect(service.findByBarcode('999')).rejects.toThrow(NotFoundException);
-    });
+  it('does not answer "not found" when the lookup itself failed', async () => {
+    await expect(serviceFor(seed().fail('products', 'select')).findById(ID)).rejects.toBeInstanceOf(ServiceUnavailableException);
   });
 });

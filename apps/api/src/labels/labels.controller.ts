@@ -1,5 +1,6 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { LabelsService } from './labels.service';
+import { CreateLabelDto } from './labels.dto';
 
 @Controller('labels')
 export class LabelsController {
@@ -11,7 +12,7 @@ export class LabelsController {
   }
 
   @Post()
-  async create(@Body() createLabelDto: any) {
-    return this.labelsService.createLabel(createLabelDto);
+  async create(@Body() dto: CreateLabelDto) {
+    return this.labelsService.createLabel(dto);
   }
 }

@@ -1,5 +1,8 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
-import { InventoryService, ReceiveStockDto, StockAdjustmentDto } from './inventory.service';
+import { Body, Controller, Get, Headers, Post, Query } from '@nestjs/common';
+import { InventoryService } from './inventory.service';
+import { ReceiveStockDto, StockAdjustmentDto } from './dto/inventory.dto';
+import { CurrentUser, Roles } from '../auth/decorators';
+import { STOCK_MANAGERS, type AuthUser } from '../auth/roles';
 
 @Controller('inventory')
 export class InventoryController {
@@ -25,14 +28,20 @@ export class InventoryController {
     return this.inventoryService.getMovements(query, type);
   }
 
+  @Roles(...STOCK_MANAGERS)
   @Post('receipts')
-  async receiveStock(@Body() dto: ReceiveStockDto) {
-    return this.inventoryService.receiveStock(dto);
+  async receiveStock(
+    @Body() dto: ReceiveStockDto,
+    @CurrentUser() user: AuthUser,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ) {
+    return this.inventoryService.receiveStock(dto, user.id, idempotencyKey);
   }
 
+  @Roles(...STOCK_MANAGERS)
   @Post('adjustments')
-  async adjustStock(@Body() dto: StockAdjustmentDto) {
-    return this.inventoryService.adjustStock(dto);
+  async adjustStock(@Body() dto: StockAdjustmentDto, @CurrentUser() user: AuthUser) {
+    return this.inventoryService.adjustStock(dto, user.id);
   }
 
   @Get('expiry')
