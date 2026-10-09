@@ -166,9 +166,9 @@ describe('labelStore Expiry Date Direct Logic', () => {
     useLabelStore.getState().allClear();
   });
 
-  it('populates expiry date from selected product when ADD EXP DATE is toggled without opening modal', () => {
-    // Select product Lasix
-    useLabelStore.getState().setProduct({ id: 'prod_lasix_40', name: "Lasix 40mg Tabs 500's" });
+  it('populates expiry date from the selected product record when ADD EXP DATE is toggled without opening modal', () => {
+    // Select a product whose API record includes an expiry date
+    useLabelStore.getState().setProduct({ id: 'prod_lasix_40', name: "Lasix 40mg Tabs 500's", expiry_date: '8/31/2027' });
 
     // Toggle ADD EXP DATE
     useLabelStore.getState().toggleAdditionalInstruction('ADD EXP DATE');
@@ -181,6 +181,28 @@ describe('labelStore Expiry Date Direct Logic', () => {
     useLabelStore.getState().toggleAdditionalInstruction('ADD EXP DATE');
     expect(useLabelStore.getState().expiryDate).toBeNull();
     expect(useLabelStore.getState().additionalInstructions).not.toContain('ADD EXP DATE');
+  });
+
+  it('never invents an expiry date: asks the pharmacist when the product has no recorded expiry', () => {
+    useLabelStore.setState({ expDateModalVisible: false });
+    useLabelStore.getState().setProduct({ id: 'manual', name: 'Typed medicine name' });
+
+    useLabelStore.getState().toggleAdditionalInstruction('ADD EXP DATE');
+
+    expect(useLabelStore.getState().expDateModalVisible).toBe(true);
+    expect(useLabelStore.getState().expiryDate).toBeNull();
+    expect(useLabelStore.getState().additionalInstructions).not.toContain('ADD EXP DATE');
+  });
+
+  it('does not take an expiry from the old sample product list', () => {
+    useLabelStore.setState({ expDateModalVisible: false });
+    // Same id/name as a sample entry, but no expiry on the product record
+    useLabelStore.getState().setProduct({ id: 'prod_lasix_40', name: "Lasix 40mg Tabs 500's" });
+
+    useLabelStore.getState().toggleAdditionalInstruction('ADD EXP DATE');
+
+    expect(useLabelStore.getState().expiryDate).toBeNull();
+    expect(useLabelStore.getState().expDateModalVisible).toBe(true);
   });
 });
 

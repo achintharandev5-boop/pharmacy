@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { useLabelStore } from '../../store/labelStore';
-import { HARDCODED_PRODUCTS } from '../../constants/products';
 import { Calendar, Check, ChevronLeft, ChevronRight, Minus, Plus } from 'lucide-react';
 
 interface BottomActionBarProps {
@@ -30,19 +29,12 @@ export function BottomActionBar({ onDone }: BottomActionBarProps) {
     if (expiryDate) {
       setExpiryDate(null);
     } else {
-      let foundDate: string | null = null;
-      if (product) {
-        const matched = HARDCODED_PRODUCTS.find(
-          (p) => p.id === product.id || p.name.toLowerCase() === product.name.toLowerCase()
-        );
-        foundDate = matched?.expiry_date || null;
+      // Use the product's recorded expiry; otherwise ask the pharmacist. Never invent a date.
+      if (product?.expiry_date) {
+        setExpiryDate(product.expiry_date);
+      } else {
+        openExpDateModal();
       }
-      if (!foundDate) {
-        const d = new Date();
-        d.setFullYear(d.getFullYear() + 1);
-        foundDate = `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
-      }
-      setExpiryDate(foundDate);
     }
   };
 
@@ -149,7 +141,7 @@ export function BottomActionBar({ onDone }: BottomActionBarProps) {
                   Expiry Date
                 </span>
                 <span className="font-black text-base text-[#0F172A] leading-tight mt-0.5">
-                  {expiryDate || '1/8/2028'}
+                  {expiryDate || <span className="text-[#94A3B8] font-bold">Not set</span>}
                 </span>
               </div>
             </div>

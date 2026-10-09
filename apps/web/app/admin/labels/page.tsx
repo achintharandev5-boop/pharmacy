@@ -1,69 +1,39 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
-import {
-  Printer,
-  FileText,
-  CheckCircle2,
-  RefreshCw,
-  Clock,
-  ArrowRight,
-  ShieldCheck,
-  AlertCircle,
-  Plus,
-} from 'lucide-react';
-import { getAdminLabelLogs, reprintAdminPrescription } from '@/app/actions/admin';
+import React from 'react';
+import { Printer, Clock } from 'lucide-react';
+import { getAdminLabelLogs } from '@/app/actions/admin';
 import PageHeader from '@/components/admin/PageHeader';
 import StatusBadge from '@/components/admin/StatusBadge';
 import EmptyState from '@/components/admin/EmptyState';
+import { ErrorState, LoadingState, MISSING } from '@/components/admin/DataState';
+import { useApiQuery } from '@/lib/useApiQuery';
+import { REPRINT_UNAVAILABLE_REASON } from '@/lib/reprint';
+
+const LOG_LIMIT = 30;
 
 export default function LabelHistoryPage() {
-  const [logs, setLogs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [reprintingId, setReprintingId] = useState<string | null>(null);
-  const [reprintMessage, setReprintMessage] = useState<string | null>(null);
+  const logsQuery = useApiQuery(() => getAdminLabelLogs(LOG_LIMIT), []);
+  const logs = logsQuery.data ?? [];
 
-  useEffect(() => {
-    async function loadLogs() {
-      setLoading(true);
-      try {
-        const data = await getAdminLabelLogs(30);
-        if (Array.isArray(data)) setLogs(data);
-      } catch (err) {
-        console.error('Failed to fetch thermal label logs:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadLogs();
-  }, []);
+  // Counts describe only the events loaded below, not a full day's activity.
+  const printedCount = logs.filter((l) => l.action_type === 'PRINTED').length;
+  const reprintedCount = logs.filter((l) => l.action_type === 'REPRINTED').length;
+  const failedCount = logs.filter((l) => l.action_type === 'FAILED').length;
+  const showCounts = logsQuery.status === 'success';
 
-  const handleReprint = async (rxId: string) => {
-    setReprintingId(rxId);
-    setReprintMessage(null);
-    try {
-      await reprintAdminPrescription(rxId, 'Reprint from Label History');
-      setReprintMessage('Thermal print job dispatched (80mm x 80mm). Print count incremented. Zero stock deduction.');
-      setTimeout(() => setReprintMessage(null), 5000);
-    } catch (e) {
-      setReprintMessage('Failed to trigger label reprint');
-    } finally {
-      setReprintingId(null);
-    }
-  };
-
-  // Compact summary counts
-  const printedToday = logs.filter((l) => l.action_type === 'PRINTED' || !l.action_type).length || 48;
-  const reprintedToday = logs.filter((l) => l.action_type === 'REPRINTED').length || 6;
-  const failedPrints = logs.filter((l) => l.action_type === 'FAILED').length || 0;
+  const summary = [
+    { label: 'Printed', value: printedCount, tone: 'text-[#0F172A]' },
+    { label: 'Reprinted', value: reprintedCount, tone: 'text-amber-600' },
+    { label: 'Failed', value: failedCount, tone: 'text-slate-900' },
+  ];
 
   return (
     <div className="space-y-6 select-none font-sans text-[#0F172A]">
       {/* HEADER */}
       <PageHeader
         title="Label History"
-        subtitle="Review label print history, reprints and printer activity."
+        subtitle="Label print and reprint events recorded by the system."
         icon={Printer}
         actions={[
           {
@@ -74,68 +44,18 @@ export default function LabelHistoryPage() {
         ]}
       />
 
-      {reprintMessage && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs font-bold flex items-center justify-between shadow-xs">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-[#10B981]" />
-            <span>{reprintMessage}</span>
+      {/* SUMMARY CARDS */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {summary.map((card) => (
+          <div
+            key={card.label}
+            className="bg-white/90 backdrop-blur-md p-4 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.02)]"
+          >
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">{card.label}</span>
+            <span className={`text-2xl font-extrabold mt-1 block ${card.tone}`}>{showCounts ? card.value : MISSING}</span>
+            <span className="text-[11px] font-semibold text-slate-500 mt-1 block">In the latest {LOG_LIMIT} events</span>
           </div>
-        </div>
-      )}
-
-      {/* COMPACT SUMMARY CARDS */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white/90 backdrop-blur-md p-4 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.02)]">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-            Printed Today
-          </span>
-          <span className="text-2xl font-extrabold text-[#0F172A] mt-1 block">
-            {printedToday}
-          </span>
-          <span className="text-[11px] font-semibold text-[#10B981] mt-1 block">
-            Normal print jobs
-          </span>
-        </div>
-
-        <div className="bg-white/90 backdrop-blur-md p-4 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.02)]">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-            Reprinted Today
-          </span>
-          <span className="text-2xl font-extrabold text-amber-600 mt-1 block">
-            {reprintedToday}
-          </span>
-          <span className="text-[11px] font-semibold text-amber-700 mt-1 block">
-            Stock-safe re-dispenses
-          </span>
-        </div>
-
-        <div className="bg-white/90 backdrop-blur-md p-4 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.02)]">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-            Failed Prints
-          </span>
-          <span className="text-2xl font-extrabold text-slate-900 mt-1 block">
-            {failedPrints}
-          </span>
-          <span className="text-[11px] font-semibold text-slate-400 mt-1 block">
-            Zero hardware errors
-          </span>
-        </div>
-
-        <div className="bg-white/90 backdrop-blur-md p-4 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.02)]">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-            Printer Status
-          </span>
-          <div className="flex items-center gap-1.5 mt-1.5">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#10B981] opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#10B981]" />
-            </span>
-            <span className="text-sm font-extrabold text-[#10B981]">Ready (80×80mm)</span>
-          </div>
-          <span className="text-[11px] font-semibold text-slate-500 mt-1 block">
-            TSC / Xprinter driver
-          </span>
-        </div>
+        ))}
       </div>
 
       {/* PRINT HISTORY TABLE */}
@@ -145,7 +65,7 @@ export default function LabelHistoryPage() {
             <Clock className="w-4 h-4 text-[#2563EB]" />
             <h2 className="text-sm font-bold text-[#0F172A]">Print History</h2>
           </div>
-          <span className="text-xs font-semibold text-[#64748B]">Showing latest 30 print events</span>
+          <span className="text-xs font-semibold text-[#64748B]">Latest {LOG_LIMIT} print events</span>
         </div>
 
         <div className="overflow-x-auto">
@@ -163,63 +83,49 @@ export default function LabelHistoryPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
-              {loading ? (
+              {logsQuery.status === 'loading' ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400 font-semibold">
-                    <div className="inline-flex items-center gap-2">
-                      <span className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                      <span>Loading thermal print history...</span>
-                    </div>
+                  <td colSpan={8}>
+                    <LoadingState label="Loading print history…" />
+                  </td>
+                </tr>
+              ) : logsQuery.status === 'error' ? (
+                <tr>
+                  <td colSpan={8}>
+                    <ErrorState title="Could not load print history" message={logsQuery.error} onRetry={logsQuery.retry} />
                   </td>
                 </tr>
               ) : logs.length > 0 ? (
-                logs.map((log) => {
-                  const status = log.action_type || 'PRINTED';
-                  const rxNum = log.prescription?.prescription_number || log.prescription_number || 'RX-000000';
-                  const patientName = log.prescription?.customer_name_text || log.customer_name || 'Walk-in';
-                  const product = log.product_name || log.prescription?.prescription_items?.[0]?.product_name || 'Medicine Label';
-                  const count = log.prescription?.print_count || log.print_count || 1;
-                  const reason = log.reason || 'Normal Dispense';
-                  const timeStr = new Date(log.created_at).toLocaleString();
+                logs.map((log, i) => {
+                  const rxNum = log.prescription?.prescription_number || log.prescription_number;
+                  const patientName = log.prescription?.customer_name_text || log.customer_name;
+                  const product = log.product_name || log.prescription?.prescription_items?.[0]?.product_name;
+                  const count = log.prescription?.print_count ?? log.print_count;
 
                   return (
-                    <tr
-                      key={log.id}
-                      className="hover:bg-blue-50/40 transition-colors group cursor-pointer"
-                    >
-                      <td className="py-3.5 px-4">
-                        <StatusBadge status={status} />
-                      </td>
-                      <td className="py-3.5 px-4 font-mono font-bold text-[#2563EB]">
-                        {rxNum}
-                      </td>
-                      <td className="py-3.5 px-4 font-bold text-slate-900">
-                        {patientName}
-                      </td>
+                    <tr key={log.id || i} className="hover:bg-blue-50/40 transition-colors">
+                      <td className="py-3.5 px-4">{log.action_type ? <StatusBadge status={log.action_type} /> : MISSING}</td>
+                      <td className="py-3.5 px-4 font-mono font-bold text-[#2563EB]">{rxNum || MISSING}</td>
+                      <td className="py-3.5 px-4 font-bold text-slate-900">{patientName || MISSING}</td>
                       <td className="py-3.5 px-4 text-slate-700 max-w-[200px] truncate" title={product}>
-                        {product}
+                        {product || MISSING}
                       </td>
-                      <td className="py-3.5 px-4 font-mono font-bold text-center text-slate-800">
-                        {count}
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-500 max-w-[180px] truncate" title={reason}>
-                        {reason}
+                      <td className="py-3.5 px-4 font-mono font-bold text-center text-slate-800">{count ?? MISSING}</td>
+                      <td className="py-3.5 px-4 text-slate-500 max-w-[180px] truncate" title={log.reason}>
+                        {log.reason || MISSING}
                       </td>
                       <td className="py-3.5 px-4 font-mono text-slate-500 text-[11px]">
-                        {timeStr}
+                        {log.created_at ? new Date(log.created_at).toLocaleString() : MISSING}
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <button
                           type="button"
-                          onClick={() => handleReprint(log.prescription_id || log.id)}
-                          disabled={reprintingId === (log.prescription_id || log.id)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-blue-50 text-[#2563EB] border border-blue-200 hover:border-blue-300 font-bold rounded-xl text-xs transition-colors shadow-2xs"
+                          disabled
+                          title={REPRINT_UNAVAILABLE_REASON}
+                          aria-label={`Reprint (${REPRINT_UNAVAILABLE_REASON})`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-400 border border-slate-200 font-bold rounded-xl text-xs cursor-not-allowed"
                         >
-                          {reprintingId === (log.prescription_id || log.id) ? (
-                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Printer className="w-3.5 h-3.5" />
-                          )}
+                          <Printer className="w-3.5 h-3.5" />
                           <span>Reprint</span>
                         </button>
                       </td>
@@ -231,7 +137,7 @@ export default function LabelHistoryPage() {
                   <td colSpan={8}>
                     <EmptyState
                       title="No print records found"
-                      description="No thermal print events have been logged yet. Labels printed from the workstation will appear here automatically."
+                      description="No label print events have been recorded yet. Labels printed from the workstation will appear here."
                       actionText="Open Label Workstation"
                       actionHref="/label"
                     />

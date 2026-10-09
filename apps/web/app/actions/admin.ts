@@ -1,169 +1,77 @@
 'use server';
 
-import { cookies } from 'next/headers';
+import { apiList, apiObject, apiRequest, query } from '@/lib/api/server';
+import type { ApiData, ApiResult } from '@/lib/api/types';
 
-async function fetchAdminApi(endpoint: string) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('sb-access-token')?.value;
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+// All functions return ApiResult. Failures are reported as errors, never replaced with sample data.
 
-  try {
-    const res = await fetch(`${apiUrl}/admin/${endpoint}`, {
-      headers: {
-        'Authorization': `Bearer ${token || ''}`,
-      },
-      cache: 'no-store',
-    });
-
-    if (res.ok) {
-      return await res.json();
-    }
-  } catch (e) {
-    console.error(`Admin API fetch failed for ${endpoint}:`, e);
-  }
-  return null;
+export async function getAdminSummary(): Promise<ApiResult<ApiData>> {
+  return apiObject('admin/dashboard/summary');
 }
 
-export async function getAdminSummary() {
-  const data = await fetchAdminApi('dashboard/summary');
-  return data || {
-    today: {
-      prescriptions: 124,
-      prescriptionsComparison: '+12.4% vs yesterday',
-      labelsPrinted: 186,
-      labelsComparison: '+8.2% vs yesterday',
-      patientsServed: 97,
-      patientsContext: '18 returning patients',
-      itemsDispensed: 312,
-      itemsContext: 'Across active catalog',
-    },
-    inventory: {
-      lowStock: 14,
-      expiring30Days: 8,
-    },
-  };
+export async function getAdminActivity(range = '30d'): Promise<ApiResult<ApiData[]>> {
+  return apiList(`admin/dashboard/activity${query({ range })}`);
 }
 
-export async function getAdminActivity(range = '30d') {
-  const data = await fetchAdminApi(`dashboard/activity?range=${range}`);
-  return data || [];
+export async function getAdminStatusBreakdown(): Promise<ApiResult<ApiData>> {
+  return apiObject('admin/dashboard/status-breakdown');
 }
 
-export async function getAdminStatusBreakdown() {
-  const data = await fetchAdminApi('dashboard/status-breakdown');
-  return data || {
-    status: [
-      { name: 'Completed', value: 142, color: '#16A34A' },
-      { name: 'Draft', value: 8, color: '#4F46E5' },
-      { name: 'Cancelled', value: 3, color: '#DC2626' },
-    ],
-    timeOfDay: [
-      { period: 'Morning (8am-12pm)', count: 68 },
-      { period: 'Afternoon (12pm-5pm)', count: 94 },
-      { period: 'Evening (5pm-9pm)', count: 42 },
-    ],
-  };
+export async function getAdminTopProducts(range = '30d', limit = 5): Promise<ApiResult<ApiData[]>> {
+  return apiList(`admin/dashboard/top-products${query({ range, limit })}`);
 }
 
-export async function getAdminTopProducts(range = '30d', limit = 5) {
-  const data = await fetchAdminApi(`dashboard/top-products?range=${range}&limit=${limit}`);
-  return data || [];
+export async function getAdminAlerts(): Promise<ApiResult<ApiData[]>> {
+  return apiList('admin/dashboard/alerts');
 }
 
-export async function getAdminAlerts() {
-  const data = await fetchAdminApi('dashboard/alerts');
-  return data || [];
+export async function getAdminRecentActivity(limit = 10): Promise<ApiResult<ApiData[]>> {
+  return apiList(`admin/dashboard/recent-activity${query({ limit })}`);
 }
 
-export async function getAdminRecentActivity(limit = 10) {
-  const data = await fetchAdminApi(`dashboard/recent-activity?limit=${limit}`);
-  return data || [];
+export async function getAdminHealth(): Promise<ApiResult<ApiData>> {
+  return apiObject('admin/health');
 }
 
-export async function getAdminHealth() {
-  const data = await fetchAdminApi('health');
-  return data || {
-    api: { status: 'Operational', color: 'green' },
-    database: { status: 'Connected', color: 'green' },
-    smsGateway: { status: 'Operational (Text.lk)', color: 'green' },
-    printing: { status: 'Thermal Printer Ready', color: 'green' },
-  };
+export async function getPatientProfileData(id: string): Promise<ApiResult<ApiData>> {
+  return apiObject(`admin/patients/${encodeURIComponent(id)}`);
 }
 
-export async function getPatientProfileData(id: string) {
-  const data = await fetchAdminApi(`patients/${id}`);
-  return data || null;
+export async function getProductMovementsData(id: string): Promise<ApiResult<ApiData[]>> {
+  return apiList(`admin/products/${encodeURIComponent(id)}/movements`);
 }
 
-export async function getProductMovementsData(id: string) {
-  const data = await fetchAdminApi(`products/${id}/movements`);
-  return data || [];
+export async function getAdminPrescriptions(searchQuery?: string, status?: string): Promise<ApiResult<ApiData[]>> {
+  return apiList(`admin/prescriptions${query({ query: searchQuery, status })}`);
 }
 
-async function postAdminApi(endpoint: string, body?: any) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('sb-access-token')?.value;
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-
-  try {
-    const res = await fetch(`${apiUrl}/admin/${endpoint}`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token || ''}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body || {}),
-      cache: 'no-store',
-    });
-
-    if (res.ok) {
-      return await res.json();
-    }
-  } catch (e) {
-    console.error(`Admin API post failed for ${endpoint}:`, e);
-  }
-  return null;
+export async function getAdminPrescriptionById(id: string): Promise<ApiResult<ApiData>> {
+  return apiObject(`admin/prescriptions/${encodeURIComponent(id)}`);
 }
 
-export async function getAdminPrescriptions(query?: string, status?: string) {
-  const params = new URLSearchParams();
-  if (query) params.append('query', query);
-  if (status) params.append('status', status);
-  const data = await fetchAdminApi(`prescriptions?${params.toString()}`);
-  return data || [];
+export async function reprintAdminPrescription(id: string, reason?: string): Promise<ApiResult<ApiData>> {
+  return apiRequest(`admin/prescriptions/${encodeURIComponent(id)}/reprint`, {
+    method: 'POST',
+    body: { reason },
+  });
 }
 
-export async function getAdminPrescriptionById(id: string) {
-  const data = await fetchAdminApi(`prescriptions/${id}`);
-  return data || null;
+export async function getAdminProducts(
+  searchQuery?: string,
+  category?: string,
+  stockStatus?: string,
+): Promise<ApiResult<ApiData[]>> {
+  return apiList(`admin/products${query({ query: searchQuery, category, stockStatus })}`);
 }
 
-export async function reprintAdminPrescription(id: string, reason?: string) {
-  const data = await postAdminApi(`prescriptions/${id}/reprint`, { reason });
-  return data || { success: true, message: 'Reprint logged successfully' };
+export async function getAdminProductById(id: string): Promise<ApiResult<ApiData>> {
+  return apiObject(`admin/products/${encodeURIComponent(id)}`);
 }
 
-export async function getAdminProducts(query?: string, category?: string, stockStatus?: string) {
-  const params = new URLSearchParams();
-  if (query) params.append('query', query);
-  if (category) params.append('category', category);
-  if (stockStatus) params.append('stockStatus', stockStatus);
-  const data = await fetchAdminApi(`products?${params.toString()}`);
-  return data || [];
+export async function getAdminInventoryDashboard(): Promise<ApiResult<ApiData>> {
+  return apiObject('admin/inventory/summary');
 }
 
-export async function getAdminProductById(id: string) {
-  const data = await fetchAdminApi(`products/${id}`);
-  return data || null;
+export async function getAdminLabelLogs(limit = 20): Promise<ApiResult<ApiData[]>> {
+  return apiList(`admin/labels/logs${query({ limit })}`);
 }
-
-export async function getAdminInventoryDashboard() {
-  const data = await fetchAdminApi('inventory/summary');
-  return data || null;
-}
-
-export async function getAdminLabelLogs(limit = 20) {
-  const data = await fetchAdminApi(`labels/logs?limit=${limit}`);
-  return data || [];
-}
-

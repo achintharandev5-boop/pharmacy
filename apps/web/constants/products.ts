@@ -1,4 +1,8 @@
-﻿export interface ProductItem {
+﻿// REFERENCE ONLY: not used by the application at runtime.
+// The product names may reflect a requested catalogue, but the stock, expiry, batch and
+// price values are not verified. Never use this list for search, dispensing or label
+// printing; products must come from the API/database.
+export interface ProductItem {
   id: string;
   name: string;
   expiry_date: string;

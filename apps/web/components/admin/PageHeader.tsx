@@ -10,6 +10,9 @@ interface ActionItem {
   onClick?: () => void;
   icon?: LucideIcon;
   variant?: 'primary' | 'secondary' | 'danger';
+  /** Renders the action as unavailable. Use for operations with no working backend. */
+  disabled?: boolean;
+  disabledReason?: string;
 }
 
 interface PageHeaderProps {
@@ -70,6 +73,22 @@ export default function PageHeader({
                 ? 'bg-red-50 hover:bg-red-100 text-red-600 border border-red-200'
                 : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200'
             }`;
+
+            if (act.disabled) {
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  disabled
+                  title={act.disabledReason}
+                  aria-label={act.disabledReason ? `${act.label} (${act.disabledReason})` : act.label}
+                  className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl text-xs font-bold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
+                >
+                  {ActionIcon && <ActionIcon className="w-4 h-4" />}
+                  <span>{act.label}</span>
+                </button>
+              );
+            }
 
             if (act.href) {
               return (

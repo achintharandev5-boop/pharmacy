@@ -33,16 +33,11 @@ export default async function DashboardPortalPage() {
             </div>
             <div>
               <h1 className="text-sm font-bold text-[#0F172A] tracking-tight">Pharmacy System</h1>
-              <p className="text-[11px] font-medium text-[#64748B]">Management & Label POS</p>
+              <p className="text-[11px] font-medium text-[#64748B]">Prescription Labels & Inventory</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-[11px] font-bold text-[#10B981]">
-              <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-              <span>System Operational</span>
-            </div>
-
             <form action={handleLogout}>
               <button
                 type="submit"
@@ -143,7 +138,7 @@ export default async function DashboardPortalPage() {
 
         {/* Footer */}
         <footer className="py-6 text-center text-xs font-medium text-[#64748B] select-none">
-          © {new Date().getFullYear()} Sisila Chemist Pharmacy Management POS. All rights reserved.
+          © {new Date().getFullYear()} Sisila Chemist. All rights reserved.
         </footer>
       </div>
     </div>

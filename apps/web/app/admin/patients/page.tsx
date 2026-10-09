@@ -1,46 +1,21 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import {
-  Users,
-  Search,
-  Plus,
-  ArrowRight,
-  Phone,
-  Calendar,
-  MapPin,
-  Clock,
-  FileText,
-  UserCheck,
-} from 'lucide-react';
+import { Users, Search, ArrowRight } from 'lucide-react';
 import { getAllCustomers } from '@/app/actions/customers';
 import PageHeader from '@/components/admin/PageHeader';
 import FilterTabs from '@/components/admin/FilterTabs';
 import EmptyState from '@/components/admin/EmptyState';
+import { ErrorState, LoadingState, MISSING } from '@/components/admin/DataState';
+import { useApiQuery } from '@/lib/useApiQuery';
+import type { ApiData } from '@/lib/api/types';
 
 export default function PatientDirectoryPage() {
-  const [patients, setPatients] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('All');
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function loadPatients() {
-      setLoading(true);
-      try {
-        const data = await getAllCustomers();
-        if (Array.isArray(data)) {
-          setPatients(data);
-        }
-      } catch (err) {
-        console.error('Failed to load patients:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadPatients();
-  }, []);
+  const patientsQuery = useApiQuery(() => getAllCustomers(), []);
+  const patients: ApiData[] = patientsQuery.data ?? [];
 
   const filteredPatients = patients.filter((p) => {
     const q = searchTerm.toLowerCase();
@@ -48,8 +23,8 @@ export default function PatientDirectoryPage() {
     const phoneMatch = p.phone_number?.includes(q);
     const addressMatch = p.address?.toLowerCase().includes(q);
 
-    if (filter === 'Today') {
-      // If patient was registered today
+    if (filter === 'Added today') {
+      // Patient record created today
       const today = new Date().toISOString().split('T')[0];
       const createdDate = p.created_at?.split('T')[0];
       if (createdDate !== today) return false;
@@ -88,7 +63,7 @@ export default function PatientDirectoryPage() {
         </div>
 
         <FilterTabs
-          tabs={['All', 'Today', 'Recent', 'Returning']}
+          tabs={['All', 'Added today']}
           activeTab={filter}
           onChange={(tab) => setFilter(tab)}
         />
@@ -105,37 +80,38 @@ export default function PatientDirectoryPage() {
                 <th className="py-3.5 px-4">Age / Gender</th>
                 <th className="py-3.5 px-4">Address</th>
                 <th className="py-3.5 px-4 text-center">Total Rx</th>
-                <th className="py-3.5 px-4">Last Visit</th>
+                <th className="py-3.5 px-4">Last Updated</th>
                 <th className="py-3.5 px-4 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
-              {loading ? (
+              {patientsQuery.status === 'loading' ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400 font-semibold">
-                    <div className="inline-flex items-center gap-2">
-                      <span className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                      <span>Loading patient records...</span>
-                    </div>
+                  <td colSpan={7}>
+                    <LoadingState label="Loading patients…" />
+                  </td>
+                </tr>
+              ) : patientsQuery.status === 'error' ? (
+                <tr>
+                  <td colSpan={7}>
+                    <ErrorState title="Could not load patients" message={patientsQuery.error} onRetry={patientsQuery.retry} />
                   </td>
                 </tr>
               ) : filteredPatients.length > 0 ? (
                 filteredPatients.map((p, idx) => {
-                  const initial = p.name ? p.name.charAt(0).toUpperCase() : 'P';
-                  const rxCount = p.prescriptions?.length || Math.floor((idx % 5) + 1);
-                  const lastVisit = p.updated_at
-                    ? new Date(p.updated_at).toLocaleDateString('en-US', {
+                  const initial = p.name ? p.name.charAt(0).toUpperCase() : '?';
+                  const rxCount = Array.isArray(p.prescriptions) ? p.prescriptions.length : null;
+                  const updatedAt = p.updated_at || p.created_at;
+                  const lastUpdated = updatedAt
+                    ? new Date(updatedAt).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
                         year: 'numeric',
                       })
-                    : 'Oct 5, 2026';
+                    : MISSING;
 
                   return (
-                    <tr
-                      key={p.id || idx}
-                      className="hover:bg-blue-50/40 transition-colors group cursor-pointer"
-                    >
+                    <tr key={p.id || idx} className="hover:bg-blue-50/40 transition-colors group">
                       <td className="py-3.5 px-4 font-bold text-slate-900">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-blue-50 border border-blue-100 text-[#2563EB] font-black text-xs flex items-center justify-center shrink-0 shadow-2xs">
@@ -143,7 +119,7 @@ export default function PatientDirectoryPage() {
                           </div>
                           <div>
                             <span className="text-[13px] font-bold text-[#0F172A] block leading-tight">
-                              {p.name}
+                              {p.name || MISSING}
                             </span>
                             {p.medical_notes && (
                               <span className="text-[10px] text-amber-600 font-medium block truncate max-w-[150px]">
@@ -154,30 +130,36 @@ export default function PatientDirectoryPage() {
                         </div>
                       </td>
                       <td className="py-3.5 px-4 font-mono font-bold text-slate-700">
-                        {p.phone_number || 'N/A'}
+                        {p.phone_number || MISSING}
                       </td>
                       <td className="py-3.5 px-4 text-slate-600 font-semibold">
-                        {p.age ? `${p.age} yrs` : 'N/A'} • {p.gender || 'N/A'}
+                        {p.age ? `${p.age} yrs` : MISSING} • {p.gender || MISSING}
                       </td>
                       <td className="py-3.5 px-4 text-slate-500 font-medium truncate max-w-[180px]">
-                        {p.address || 'Colombo, Sri Lanka'}
+                        {p.address || MISSING}
                       </td>
                       <td className="py-3.5 px-4 text-center">
-                        <span className="px-2.5 py-0.5 bg-blue-50 border border-blue-200 text-[#2563EB] rounded-full text-xs font-bold inline-block">
-                          {rxCount} Rx
-                        </span>
+                        {rxCount !== null ? (
+                          <span className="px-2.5 py-0.5 bg-blue-50 border border-blue-200 text-[#2563EB] rounded-full text-xs font-bold inline-block">
+                            {rxCount} Rx
+                          </span>
+                        ) : (
+                          MISSING
+                        )}
                       </td>
                       <td className="py-3.5 px-4 text-slate-500 font-medium text-[11px]">
-                        {lastVisit}
+                        {lastUpdated}
                       </td>
                       <td className="py-3.5 px-4 text-right">
+                        {p.id && (
                         <Link
-                          href={`/admin/patients/${p.id || 'cust_tharun'}`}
+                          href={`/admin/patients/${p.id}`}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-blue-50 text-[#2563EB] border border-blue-200 hover:border-blue-300 font-bold rounded-xl text-xs transition-all shadow-2xs group/btn"
                         >
                           <span>View Profile</span>
                           <ArrowRight className="w-3.5 h-3.5 text-[#2563EB] group-hover/btn:translate-x-0.5 transition-transform" />
                         </Link>
+                        )}
                       </td>
                     </tr>
                   );
@@ -187,7 +169,11 @@ export default function PatientDirectoryPage() {
                   <td colSpan={7}>
                     <EmptyState
                       title="No patients found"
-                      description={`No patient records matched "${searchTerm}". You can register a new patient through the workstation.`}
+                      description={
+                        searchTerm || filter !== 'All'
+                          ? 'No patients match the current search or filter.'
+                          : 'No patient records exist yet. Patients are added from the label workstation.'
+                      }
                       actionText="Create New Patient / Rx"
                       actionHref="/label"
                     />

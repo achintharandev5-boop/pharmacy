@@ -9,16 +9,14 @@ export function ExpDateModal() {
   const closeExpDateModal = useLabelStore((state) => state.closeExpDateModal);
   const expiryDate = useLabelStore((state) => state.expiryDate);
   const setExpiryDate = useLabelStore((state) => state.setExpiryDate);
+  const productExpiry = useLabelStore((state) => state.product?.expiry_date ?? null);
 
   const [dateInput, setDateInput] = useState('');
 
   useEffect(() => {
-    if (expiryDate) {
-      setDateInput(expiryDate);
-    } else {
-      setDateInput('');
-    }
-  }, [expiryDate, expDateModalVisible]);
+    // Pre-fill from the label, then from the product's recorded expiry. Never a guessed date.
+    setDateInput(expiryDate || productExpiry || '');
+  }, [expiryDate, productExpiry, expDateModalVisible]);
 
   if (!expDateModalVisible) return null;
 

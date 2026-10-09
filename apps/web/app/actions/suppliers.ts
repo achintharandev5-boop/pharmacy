@@ -1,56 +1,37 @@
 'use server';
 
-import { cookies } from 'next/headers';
+import { apiList, apiObject, apiRequest, query } from '@/lib/api/server';
+import type { ApiData, ApiResult } from '@/lib/api/types';
 
-async function fetchSupplierApi(endpoint: string, options: { method?: string; body?: any } = {}) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('sb-access-token')?.value;
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+export async function getSuppliers(searchQuery?: string): Promise<ApiResult<ApiData[]>> {
+  return apiList(`suppliers${query({ query: searchQuery })}`);
+}
 
-  try {
-    const res = await fetch(`${apiUrl}/${endpoint}`, {
-      method: options.method || 'GET',
-      headers: {
-        'Authorization': `Bearer ${token || ''}`,
-        'Content-Type': 'application/json',
-      },
-      body: options.body ? JSON.stringify(options.body) : undefined,
-      cache: 'no-store',
-    });
+export async function getSupplierById(id: string): Promise<ApiResult<ApiData>> {
+  return apiObject(`suppliers/${encodeURIComponent(id)}`);
+}
 
-    if (res.ok) {
-      return await res.json();
-    }
-  } catch (e) {
-    console.error(`Supplier API fetch failed for ${endpoint}:`, e);
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function createSupplier(payload: ApiData): Promise<ApiResult<ApiData>> {
+  const result = await apiRequest<ApiData>('suppliers', { method: 'POST', body: payload });
+  if (!result.ok) return result;
+
+  // The API can answer 201 with a locally generated placeholder when the database insert
+  // fails. Only treat the save as successful when a real stored record comes back.
+  const saved = result.data;
+  const looksStored =
+    saved && typeof saved === 'object' && typeof saved.id === 'string' && UUID_PATTERN.test(saved.id) && saved.name === payload?.name;
+  if (!looksStored) {
+    console.error('[api] POST /suppliers returned an unconfirmed record');
+    return {
+      ok: false,
+      error: 'The server did not confirm that the supplier was saved. No supplier was added.',
+    };
   }
-  return null;
+  return result;
 }
 
-export async function getSuppliers(query?: string) {
-  const params = new URLSearchParams();
-  if (query) params.append('query', query);
-  const data = await fetchSupplierApi(`suppliers?${params.toString()}`);
-  return data || [];
-}
-
-export async function getSupplierById(id: string) {
-  const data = await fetchSupplierApi(`suppliers/${id}`);
-  return data || null;
-}
-
-export async function createSupplier(payload: any) {
-  const data = await fetchSupplierApi('suppliers', {
-    method: 'POST',
-    body: payload,
-  });
-  return data || { id: `sup_${Date.now()}`, ...payload };
-}
-
-export async function updateSupplier(id: string, payload: any) {
-  const data = await fetchSupplierApi(`suppliers/${id}`, {
-    method: 'PATCH',
-    body: payload,
-  });
-  return data || { id, ...payload };
+export async function updateSupplier(id: string, payload: ApiData): Promise<ApiResult<ApiData>> {
+  return apiRequest(`suppliers/${encodeURIComponent(id)}`, { method: 'PATCH', body: payload });
 }

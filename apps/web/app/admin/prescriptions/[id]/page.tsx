@@ -1,76 +1,41 @@
 'use client';
 
-import React, { useEffect, useState, use } from 'react';
+import type { ApiData } from '@/lib/api/types';
+import React, { use } from 'react';
 import Link from 'next/link';
-import {
-  FileText,
-  User,
-  Phone,
-  Printer,
-  ArrowLeft,
-  CheckCircle2,
-  Clock,
-  Pill,
-  ShieldCheck,
-  RefreshCw,
-} from 'lucide-react';
-import { getAdminPrescriptionById, reprintAdminPrescription } from '@/app/actions/admin';
+import { User, Phone, Printer, ArrowLeft, Pill } from 'lucide-react';
+import { getAdminPrescriptionById } from '@/app/actions/admin';
 import StatusBadge from '@/components/admin/StatusBadge';
+import { ErrorState, LoadingState, MISSING } from '@/components/admin/DataState';
+import { useApiQuery } from '@/lib/useApiQuery';
+import { REPRINT_UNAVAILABLE_REASON } from '@/lib/reprint';
 
 export default function PrescriptionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const rxId = resolvedParams.id;
 
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [reprinting, setReprinting] = useState(false);
-  const [reprintMessage, setReprintMessage] = useState<string | null>(null);
+  const rxQuery = useApiQuery(() => getAdminPrescriptionById(rxId), [rxId]);
 
-  useEffect(() => {
-    async function loadData() {
-      setLoading(true);
-      try {
-        const res = await getAdminPrescriptionById(rxId);
-        if (res) setData(res);
-      } catch (err) {
-        console.error('Failed to fetch prescription details:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadData();
-  }, [rxId]);
+  if (rxQuery.status === 'loading') {
+    return <LoadingState label="Loading prescription…" />;
+  }
 
-  const handleReprint = async () => {
-    setReprinting(true);
-    setReprintMessage(null);
-    try {
-      await reprintAdminPrescription(rxId, 'Reprint from Prescription detail page');
-      setReprintMessage('Thermal label queued for reprint. Print count incremented. Stock was NOT deducted.');
-      const updated = await getAdminPrescriptionById(rxId);
-      if (updated) setData(updated);
-      setTimeout(() => setReprintMessage(null), 6000);
-    } catch (e) {
-      setReprintMessage('Failed to trigger label reprint');
-    } finally {
-      setReprinting(false);
-    }
-  };
-
-  if (loading) {
+  if (rxQuery.status === 'error') {
     return (
-      <div className="p-8 text-center text-slate-500 font-semibold select-none">
-        <div className="inline-flex items-center gap-2">
-          <span className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-          <span>Loading Prescription Details...</span>
+      <div className="space-y-4 select-none font-sans">
+        <Link href="/admin/prescriptions" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900">
+          <ArrowLeft className="w-4 h-4" />
+          Back to prescriptions
+        </Link>
+        <div className="bg-white rounded-2xl border border-slate-200">
+          <ErrorState title="Could not load prescription" message={rxQuery.error} onRetry={rxQuery.retry} />
         </div>
       </div>
     );
   }
 
-  const rx = data?.prescription || {};
-  const events = data?.events || [];
-  const items = rx.prescription_items || [];
+  const rx = rxQuery.data.prescription ?? rxQuery.data;
+  const items: ApiData[] = Array.isArray(rx.prescription_items) ? rx.prescription_items : [];
 
   return (
     <div className="space-y-6 select-none font-sans text-[#0F172A]">
@@ -79,6 +44,7 @@ export default function PrescriptionDetailPage({ params }: { params: Promise<{ i
         <div className="flex items-center gap-3.5">
           <Link
             href="/admin/prescriptions"
+            aria-label="Back to prescriptions"
             className="p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl border border-slate-200 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -86,54 +52,42 @@ export default function PrescriptionDetailPage({ params }: { params: Promise<{ i
           <div>
             <div className="flex items-center gap-2.5 flex-wrap">
               <h1 className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-[#2563EB]">
-                {rx.prescription_number || 'RX-000000'}
+                {rx.prescription_number || MISSING}
               </h1>
-              <StatusBadge status={rx.status || 'COMPLETED'} />
+              {rx.status && <StatusBadge status={rx.status} />}
             </div>
             <p className="text-xs sm:text-[13px] font-medium text-[#64748B] mt-0.5">
-              Prescription audit detail, Sinhala label parameters, and chronological event trail
+              Prescription details and label instructions as recorded
             </p>
           </div>
         </div>
 
         <button
           type="button"
-          onClick={handleReprint}
-          disabled={reprinting}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#2563EB] to-[#3B82F6] text-white text-xs font-bold shadow-xs hover:brightness-105 transition-all"
+          disabled
+          title={REPRINT_UNAVAILABLE_REASON}
+          aria-label={`Reprint label (${REPRINT_UNAVAILABLE_REASON})`}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 text-slate-400 border border-slate-200 text-xs font-bold cursor-not-allowed"
         >
-          {reprinting ? (
-            <RefreshCw className="w-4 h-4 animate-spin" />
-          ) : (
-            <Printer className="w-4 h-4" />
-          )}
-          <span>Reprint Thermal Label</span>
+          <Printer className="w-4 h-4" />
+          <span>Reprint Label</span>
         </button>
       </div>
 
-      {reprintMessage && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs font-bold flex items-center justify-between shadow-xs">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-[#10B981]" />
-            <span>{reprintMessage}</span>
-          </div>
-        </div>
-      )}
-
       {/* METADATA GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div className="bg-white/90 backdrop-blur-md p-5 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.03)] space-y-3">
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">
             Patient Information
           </h3>
           <div className="space-y-2 text-xs">
             <div className="flex items-center gap-2">
-              <User className="w-4 h-4 text-[#2563EB]" />
-              <span className="font-bold text-slate-900">{rx.customer_name_text || 'Walk-in'}</span>
+              <User className="w-4 h-4 text-[#2563EB]" aria-label="Patient name" />
+              <span className="font-bold text-slate-900">{rx.customer_name_text || MISSING}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Phone className="w-4 h-4 text-slate-400" />
-              <span className="font-mono text-slate-600">{rx.customer_phone || 'No phone'}</span>
+              <Phone className="w-4 h-4 text-slate-400" aria-label="Phone" />
+              <span className="font-mono text-slate-600">{rx.customer_phone || MISSING}</span>
             </div>
           </div>
         </div>
@@ -145,27 +99,12 @@ export default function PrescriptionDetailPage({ params }: { params: Promise<{ i
           <div className="space-y-2 text-xs font-semibold text-slate-700">
             <div className="flex justify-between">
               <span className="text-slate-500">Created:</span>
-              <span className="font-mono">{new Date(rx.created_at).toLocaleString()}</span>
+              <span className="font-mono">{rx.created_at ? new Date(rx.created_at).toLocaleString() : MISSING}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Lifetime Prints:</span>
-              <span className="font-bold text-[#2563EB]">{rx.print_count || 1} Times</span>
+              <span className="text-slate-500">Times printed:</span>
+              <span className="font-bold text-[#2563EB]">{rx.print_count ?? MISSING}</span>
             </div>
-          </div>
-        </div>
-
-        <div className="bg-white/90 backdrop-blur-md p-5 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.03)] space-y-3">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">
-            Safety & Audit Policy
-          </h3>
-          <div className="p-3 bg-emerald-50/70 border border-emerald-200/70 rounded-xl text-[11px] text-emerald-950 font-medium space-y-1">
-            <div className="flex items-center gap-1.5 font-bold text-emerald-900">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#10B981]" />
-              <span>Stock Isolation</span>
-            </div>
-            <p>
-              Reprinting this prescription dispatches thermal labels without deducting inventory units.
-            </p>
           </div>
         </div>
       </div>
@@ -174,7 +113,7 @@ export default function PrescriptionDetailPage({ params }: { params: Promise<{ i
       <div className="bg-white/96 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.03)] p-5 space-y-4">
         <h2 className="text-base font-bold text-[#0F172A] border-b border-slate-100 pb-3 flex items-center gap-2">
           <Pill className="w-4 h-4 text-[#2563EB]" />
-          <span>Prescribed Medicines & Label Payloads</span>
+          <span>Prescribed Medicines</span>
         </h2>
 
         <div className="overflow-x-auto">
@@ -188,14 +127,23 @@ export default function PrescriptionDetailPage({ params }: { params: Promise<{ i
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
-              {items.map((it: any, idx: number) => (
-                <tr key={idx} className="hover:bg-blue-50/40 transition-colors">
-                  <td className="py-3 px-3 font-bold text-slate-900">{it.product_name}</td>
-                  <td className="py-3 px-3 text-slate-700 font-semibold">{it.dosage_summary || 'Standard Dosage'}</td>
-                  <td className="py-3 px-3 text-slate-800 sinhala-text">{it.sinhala_instruction || 'දිනකට නියමිත පරිදි'}</td>
-                  <td className="py-3 px-3 font-mono font-bold text-center text-slate-800">{it.quantity || 1}</td>
+              {items.length > 0 ? (
+                items.map((it: ApiData, idx: number) => (
+                  <tr key={it.id || idx} className="hover:bg-blue-50/40 transition-colors">
+                    <td className="py-3 px-3 font-bold text-slate-900">{it.product_name || MISSING}</td>
+                    <td className="py-3 px-3 text-slate-700 font-semibold">{it.dosage_summary || MISSING}</td>
+                    {/* Clinical text is shown exactly as recorded; nothing is substituted when it is missing. */}
+                    <td className="py-3 px-3 text-slate-800 sinhala-text">{it.sinhala_instruction || MISSING}</td>
+                    <td className="py-3 px-3 font-mono font-bold text-center text-slate-800">{it.quantity ?? MISSING}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className="p-8 text-center text-slate-500 font-semibold">
+                    No medicines are recorded on this prescription.
+                  </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>

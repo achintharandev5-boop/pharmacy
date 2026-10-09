@@ -14,8 +14,6 @@ import {
   History,
   TrendingUp,
   Settings,
-  UserCog,
-  ScrollText,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -60,9 +58,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     title: 'SYSTEM',
     items: [
-      { label: 'System Settings', href: '/admin/settings', icon: Settings, exact: false },
-      { label: 'User Management', href: '/admin/settings?tab=users', icon: UserCog, exact: false },
-      { label: 'Activity Logs', href: '/admin/settings?tab=logs', icon: ScrollText, exact: false },
+      { label: 'Settings', href: '/admin/settings', icon: Settings, exact: false },
     ],
   },
 ];
@@ -99,7 +95,7 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
               Pharmacy System
             </h1>
             <p className="text-[10.5px] font-medium text-[#64748B] truncate leading-tight">
-              Management & Label POS
+              Prescription Labels & Inventory
             </p>
           </div>
         </Link>
@@ -143,21 +139,6 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
         ))}
       </div>
 
-      {/* Sidebar Bottom: Modern Operational Status */}
-      <div className="shrink-0 pt-3 mt-auto">
-        <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-50/70 via-white to-blue-50/60 border border-emerald-200/50 shadow-2xs backdrop-blur-xs">
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#10B981] opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#10B981]" />
-            </span>
-            <span className="text-xs font-bold text-[#0F172A] tracking-tight">System Operational</span>
-          </div>
-          <p className="text-[10.5px] font-medium text-emerald-700 mt-0.5 pl-4">
-            All services healthy
-          </p>
-        </div>
-      </div>
     </div>
   );
 }

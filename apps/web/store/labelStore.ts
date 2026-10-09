@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { HARDCODED_PRODUCTS } from '../constants/products';
 
 export type ActiveControl = 
   | "idle" 
@@ -24,9 +23,12 @@ export type ActiveControl =
 
 export type DosageEntry = { qty: number; isFraction: boolean };
 
+/** Product chosen for a label. `expiry_date` is only present when it came from the product's API record. */
+export type SelectedProduct = { id: string; name: string; expiry_date?: string | null };
+
 export interface LabelData {
   id: string;
-  product: { id: string; name: string } | null;
+  product: SelectedProduct | null;
   productQuantity: number | null;
   alternativeProductName: string;
   dosage: {
@@ -86,7 +88,7 @@ export type StoreState = {
   activeLabelIndex: number;
 
   // Active Label Conveniences (synced with labels[activeLabelIndex])
-  product: { id: string; name: string } | null;
+  product: SelectedProduct | null;
   productQuantity: number | null;
   alternativeProductName: string;
   dosage: {
@@ -120,7 +122,7 @@ export type StoreState = {
   // Mutators & Actions
   setCustomerName: (name: string) => void;
   setCustomerPhone: (phone: string) => void;
-  setProduct: (product: { id: string; name: string } | null) => void;
+  setProduct: (product: SelectedProduct | null) => void;
   setAlternativeProductName: (name: string) => void;
   setProductQuantity: (qty: number | null) => void;
   setReason: (reason: string | null) => void;
@@ -568,7 +570,19 @@ export const useLabelStore = create<StoreState>((set, get) => {
       });
     },
 
-    toggleAdditionalInstruction: (instruction) => updateActiveLabel((label) => {
+    toggleAdditionalInstruction: (instruction) => {
+      // ADD EXP DATE uses the selected product's recorded expiry. When none is known the
+      // pharmacist must enter it; an expiry date is never invented.
+      if (instruction === 'ADD EXP DATE') {
+        const state = get();
+        const label = state.labels[state.activeLabelIndex];
+        const isOn = Boolean(label?.additionalInstructions.includes('ADD EXP DATE') || label?.expiryDate);
+        if (!isOn && !label?.product?.expiry_date) {
+          set({ expDateModalVisible: true });
+          return;
+        }
+      }
+      updateActiveLabel((label) => {
       let updated = [...label.additionalInstructions];
       let updatedExpiry = label.expiryDate;
 
@@ -585,17 +599,7 @@ export const useLabelStore = create<StoreState>((set, get) => {
           updatedExpiry = null;
         } else {
           updated.push('ADD EXP DATE');
-          if (label.product) {
-            const matched = HARDCODED_PRODUCTS.find(
-              (p) => p.id === label.product?.id || p.name.toLowerCase() === label.product?.name.toLowerCase()
-            );
-            updatedExpiry = matched?.expiry_date || null;
-          }
-          if (!updatedExpiry) {
-            const d = new Date();
-            d.setFullYear(d.getFullYear() + 1);
-            updatedExpiry = `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
-          }
+          updatedExpiry = label.product?.expiry_date ?? null;
         }
         return { additionalInstructions: updated, expiryDate: updatedExpiry };
       }
@@ -633,7 +637,8 @@ export const useLabelStore = create<StoreState>((set, get) => {
       }
 
       return { additionalInstructions: updated, expiryDate: updatedExpiry };
-    }),
+      });
+    },
 
     openDaysOfWeekPanel: () => set({ activeControl: 'days_of_week' }),
     closeDaysOfWeekPanel: () => set({ activeControl: 'idle' }),

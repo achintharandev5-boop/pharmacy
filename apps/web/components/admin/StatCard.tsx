@@ -46,7 +46,7 @@ export default function StatCard({
   icon: Icon,
   variant = 'blue',
   href,
-  sparklineBars = [30, 45, 60, 40, 75, 50, 85],
+  sparklineBars,
 }: StatCardProps) {
   const styles = VARIANT_STYLES[variant];
 
@@ -83,19 +83,21 @@ export default function StatCard({
           {value}
         </span>
 
-        {/* Mini Sparkline Bar Chart */}
-        <div className="flex items-end gap-1 h-7">
-          {sparklineBars.map((height, i) => (
-            <div
-              key={i}
-              className={`w-1 rounded-full ${styles.barColor} transition-all duration-300`}
-              style={{
-                height: `${Math.max(15, Math.min(100, height))}%`,
-                opacity: 0.35 + (i / sparklineBars.length) * 0.65,
-              }}
-            />
-          ))}
-        </div>
+        {/* Mini Sparkline Bar Chart: only drawn from real data */}
+        {sparklineBars && sparklineBars.length > 0 && (
+          <div className="flex items-end gap-1 h-7" aria-hidden="true">
+            {sparklineBars.map((height, i) => (
+              <div
+                key={i}
+                className={`w-1 rounded-full ${styles.barColor} transition-all duration-300`}
+                style={{
+                  height: `${Math.max(15, Math.min(100, height))}%`,
+                  opacity: 0.35 + (i / sparklineBars.length) * 0.65,
+                }}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Bottom Row: Trend / Subtext & Optional View Link */}

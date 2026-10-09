@@ -1,50 +1,24 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import {
-  Package,
-  Search,
-  Plus,
-  ArrowRight,
-  Barcode,
-  Calendar,
-  AlertTriangle,
-  CheckCircle2,
-  Eye,
-} from 'lucide-react';
+import { Package, Search, Eye } from 'lucide-react';
 import { getAdminProducts } from '@/app/actions/admin';
 import PageHeader from '@/components/admin/PageHeader';
 import FilterTabs from '@/components/admin/FilterTabs';
 import StatusBadge from '@/components/admin/StatusBadge';
 import EmptyState from '@/components/admin/EmptyState';
+import { ErrorState, LoadingState, MISSING } from '@/components/admin/DataState';
+import { useApiQuery } from '@/lib/useApiQuery';
 
 export default function MasterProductsPage() {
-  const [products, setProducts] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [stockFilter, setStockFilter] = useState('ALL');
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function loadProducts() {
-      setLoading(true);
-      try {
-        const data = await getAdminProducts(
-          searchTerm,
-          undefined,
-          stockFilter === 'ALL' ? undefined : stockFilter.toLowerCase()
-        );
-        if (Array.isArray(data)) {
-          setProducts(data);
-        }
-      } catch (err) {
-        console.error('Failed to load products:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadProducts();
-  }, [searchTerm, stockFilter]);
+  const productsQuery = useApiQuery(
+    () => getAdminProducts(searchTerm, undefined, stockFilter === 'ALL' ? undefined : stockFilter.toLowerCase()),
+    [searchTerm, stockFilter],
+  );
+  const products = productsQuery.data ?? [];
 
   const filteredProducts = products.filter((p) => {
     if (stockFilter === 'Expiring Soon') {
@@ -67,8 +41,9 @@ export default function MasterProductsPage() {
         actions={[
           {
             label: '+ Add Product',
-            href: '/admin/inventory/products',
             variant: 'primary',
+            disabled: true,
+            disabledReason: 'Adding medicines is not available yet: the API has no endpoint to save new products.',
           },
         ]}
       />
@@ -110,29 +85,36 @@ export default function MasterProductsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
-              {loading ? (
+              {productsQuery.status === 'loading' ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400 font-semibold">
-                    <div className="inline-flex items-center gap-2">
-                      <span className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                      <span>Loading product catalog...</span>
-                    </div>
+                  <td colSpan={8}>
+                    <LoadingState label="Loading products…" />
+                  </td>
+                </tr>
+              ) : productsQuery.status === 'error' ? (
+                <tr>
+                  <td colSpan={8}>
+                    <ErrorState title="Could not load products" message={productsQuery.error} onRetry={productsQuery.retry} />
                   </td>
                 </tr>
               ) : filteredProducts.length > 0 ? (
                 filteredProducts.map((p) => {
-                  const stock = Number(p.stock_quantity || 0);
-                  const isOut = stock <= 0;
-                  const isLow = stock > 0 && stock <= 15;
+                  const stock = typeof p.stock_quantity === 'number' ? p.stock_quantity : null;
+                  const reorderLevel = typeof p.reorder_level === 'number' ? p.reorder_level : null;
+                  const price = p.unit_price ?? p.retail_price;
                   const isExpiring =
                     p.expiry_date &&
                     p.expiry_date <=
                       new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-                  let statusText = 'In Stock';
-                  if (isOut) statusText = 'Out of Stock';
-                  else if (isLow) statusText = 'Low Stock';
-                  else if (isExpiring) statusText = 'Expiring';
+                  // Status is only shown when it can be derived from recorded values.
+                  let statusText: string | null = null;
+                  if (stock !== null) {
+                    if (stock <= 0) statusText = 'Out of Stock';
+                    else if (reorderLevel !== null && stock <= reorderLevel) statusText = 'Low Stock';
+                    else if (isExpiring) statusText = 'Expiring';
+                    else statusText = 'In Stock';
+                  }
 
                   return (
                     <tr
@@ -141,7 +123,7 @@ export default function MasterProductsPage() {
                     >
                       <td className="py-3.5 px-4 font-bold text-slate-900">
                         <span className="text-[13px] font-bold text-[#0F172A] block leading-tight">
-                          {p.name}
+                          {p.name || MISSING}
                         </span>
                         {p.category && (
                           <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
@@ -150,31 +132,35 @@ export default function MasterProductsPage() {
                         )}
                       </td>
                       <td className="py-3.5 px-4 text-slate-600 font-semibold">
-                        {p.brand_name || 'Generic'}
+                        {p.brand_name || p.generic_name || MISSING}
                       </td>
                       <td className="py-3.5 px-4 font-mono font-bold text-slate-500">
-                        {p.barcode || 'N/A'}
+                        {p.barcode || MISSING}
                       </td>
                       <td className="py-3.5 px-4 font-mono font-bold text-center text-slate-800">
-                        {stock}
+                        {stock ?? MISSING}
                       </td>
                       <td className="py-3.5 px-4 font-mono font-bold text-slate-800">
-                        LKR {Number(p.unit_price || 0).toFixed(2)}
+                        {price !== undefined && price !== null && Number.isFinite(Number(price))
+                          ? `LKR ${Number(price).toFixed(2)}`
+                          : MISSING}
                       </td>
                       <td className="py-3.5 px-4 text-slate-600 font-mono text-[11px]">
-                        {p.expiry_date || 'N/A'}
+                        {p.expiry_date || MISSING}
                       </td>
                       <td className="py-3.5 px-4">
-                        <StatusBadge status={statusText} />
+                        {statusText ? <StatusBadge status={statusText} /> : MISSING}
                       </td>
                       <td className="py-3.5 px-4 text-right">
+                        {p.id && (
                         <Link
-                          href={`/admin/products/${p.id || 'prod_1'}`}
+                          href={`/admin/products/${p.id}`}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-blue-50 text-[#2563EB] border border-blue-200 hover:border-blue-300 font-bold rounded-xl text-xs transition-colors shadow-2xs group/btn"
                         >
                           <Eye className="w-3.5 h-3.5 text-slate-400 group-hover/btn:text-[#2563EB]" />
                           <span>View Details</span>
                         </Link>
+                        )}
                       </td>
                     </tr>
                   );
@@ -184,9 +170,11 @@ export default function MasterProductsPage() {
                   <td colSpan={8}>
                     <EmptyState
                       title="No products found"
-                      description={`No medicines found matching "${searchTerm}". You can add new stock to the catalog.`}
-                      actionText="+ Add Product"
-                      actionHref="/admin/inventory/products"
+                      description={
+                        searchTerm || stockFilter !== 'ALL'
+                          ? 'No products match the current search or filter.'
+                          : 'No products are in the catalog yet.'
+                      }
                     />
                   </td>
                 </tr>

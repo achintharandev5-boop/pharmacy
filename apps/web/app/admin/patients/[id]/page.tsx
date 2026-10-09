@@ -1,77 +1,44 @@
 'use client';
 
-import React, { useEffect, useState, use } from 'react';
+import type { ApiData } from '@/lib/api/types';
+import React, { use } from 'react';
 import Link from 'next/link';
-import {
-  User,
-  Phone,
-  Calendar,
-  MapPin,
-  FileText,
-  Printer,
-  CheckCircle2,
-  Clock,
-  ArrowLeft,
-  Pill,
-  ShieldCheck,
-  AlertCircle,
-  RefreshCw,
-} from 'lucide-react';
-import { getPatientProfileData, reprintAdminPrescription } from '@/app/actions/admin';
+import { User, Phone, MapPin, FileText, Printer, Clock, ArrowLeft, Pill } from 'lucide-react';
+import { getPatientProfileData } from '@/app/actions/admin';
 import StatusBadge from '@/components/admin/StatusBadge';
+import { ErrorState, LoadingState, MISSING } from '@/components/admin/DataState';
+import { useApiQuery } from '@/lib/useApiQuery';
+import { REPRINT_UNAVAILABLE_REASON } from '@/lib/reprint';
 
 export default function PatientProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const patientId = resolvedParams.id;
 
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [reprintingId, setReprintingId] = useState<string | null>(null);
-  const [reprintMessage, setReprintMessage] = useState<string | null>(null);
+  const profileQuery = useApiQuery(() => getPatientProfileData(patientId), [patientId]);
 
-  useEffect(() => {
-    async function loadData() {
-      setLoading(true);
-      try {
-        const res = await getPatientProfileData(patientId);
-        if (res) setData(res);
-      } catch (err) {
-        console.error('Failed to fetch patient details:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadData();
-  }, [patientId]);
+  if (profileQuery.status === 'loading') {
+    return <LoadingState label="Loading patient…" />;
+  }
 
-  const handleReprint = async (rxId: string) => {
-    setReprintingId(rxId);
-    setReprintMessage(null);
-    try {
-      await reprintAdminPrescription(rxId, 'Patient profile reprint trigger');
-      setReprintMessage('Thermal label queued for reprint. Print count updated. Stock was NOT deducted.');
-      setTimeout(() => setReprintMessage(null), 5000);
-    } catch (e) {
-      setReprintMessage('Failed to trigger reprint');
-    } finally {
-      setReprintingId(null);
-    }
-  };
+  if (profileQuery.status === 'error') {
+    return (
+      <div className="space-y-4 select-none font-sans">
+        <Link href="/admin/patients" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900">
+          <ArrowLeft className="w-4 h-4" />
+          Back to patients
+        </Link>
+        <div className="bg-white rounded-2xl border border-slate-200">
+          <ErrorState title="Could not load patient" message={profileQuery.error} onRetry={profileQuery.retry} />
+        </div>
+      </div>
+    );
+  }
 
-  const patient = data?.patient || {
-    name: 'Patient Record',
-    phone_number: '077 123 4567',
-    age: '34',
-    gender: 'Male',
-    address: 'No 45, Galle Road, Colombo 03',
-    medical_notes: 'Penicillin allergy noted',
-  };
-  const stats = data?.stats || {
-    totalPrescriptions: 3,
-    lastVisit: 'Oct 5, 2026',
-    frequentlyDispensed: ['Amoxicillin 500mg', 'Paracetamol 500mg'],
-  };
-  const prescriptions = data?.prescriptions || [];
+  const data = profileQuery.data;
+  const patient = data.patient ?? {};
+  const stats = data.stats ?? {};
+  const prescriptions: ApiData[] = Array.isArray(data.prescriptions) ? data.prescriptions : [];
+  const frequentlyDispensed: string[] = Array.isArray(stats.frequentlyDispensed) ? stats.frequentlyDispensed : [];
 
   return (
     <div className="space-y-6 select-none font-sans text-[#0F172A]">
@@ -80,42 +47,25 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
         <div className="flex items-center gap-3.5">
           <Link
             href="/admin/patients"
+            aria-label="Back to patients"
             className="p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl border border-slate-200 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#0F172A]">
-                {patient.name}
-              </h1>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-[#1D4ED8] border border-blue-200">
-                Verified Patient
-              </span>
-            </div>
-            <p className="text-xs sm:text-[13px] font-medium text-[#64748B] mt-0.5">
-              Comprehensive dispensing history, frequent medications, and thermal label reprint controls
-            </p>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#0F172A]">{patient.name || MISSING}</h1>
+            <p className="text-xs sm:text-[13px] font-medium text-[#64748B] mt-0.5">Patient details and prescription history</p>
           </div>
         </div>
 
         <Link
-          href={`/label?customer=${encodeURIComponent(patient.name)}&phone=${encodeURIComponent(patient.phone_number || '')}`}
+          href="/label"
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#2563EB] to-[#3B82F6] text-white text-xs font-bold shadow-xs hover:brightness-105 transition-all"
         >
           <FileText className="w-4 h-4" />
-          <span>New Dispense for Patient</span>
+          <span>Open Label Workstation</span>
         </Link>
       </div>
-
-      {reprintMessage && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs font-bold flex items-center justify-between shadow-xs">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-[#10B981]" />
-            <span>{reprintMessage}</span>
-          </div>
-        </div>
-      )}
 
       {/* PATIENT INFO TILES */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -127,41 +77,44 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
 
           <div className="space-y-3 text-xs">
             <div className="flex items-center gap-2.5 text-slate-700">
-              <Phone className="w-4 h-4 text-[#2563EB] shrink-0" />
-              <span className="font-mono font-bold">{patient.phone_number || 'No phone'}</span>
+              <Phone className="w-4 h-4 text-[#2563EB] shrink-0" aria-label="Phone" />
+              <span className="font-mono font-bold">{patient.phone_number || MISSING}</span>
             </div>
             <div className="flex items-center gap-2.5 text-slate-700">
-              <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
-              <span>{patient.address || 'Address on file'}</span>
+              <MapPin className="w-4 h-4 text-slate-400 shrink-0" aria-label="Address" />
+              <span>{patient.address || MISSING}</span>
             </div>
             <div className="flex items-center gap-2.5 text-slate-700">
-              <User className="w-4 h-4 text-slate-400 shrink-0" />
+              <User className="w-4 h-4 text-slate-400 shrink-0" aria-label="Age and gender" />
               <span>
-                {patient.age ? `${patient.age} years old` : 'Age N/A'} • {patient.gender || 'N/A'}
+                {patient.age ? `${patient.age} years old` : MISSING} • {patient.gender || MISSING}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Card 2: Clinical Notes & Allergies */}
+        {/* Card 2: Medical notes */}
         <div className="bg-white/90 backdrop-blur-md p-5 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.03)] space-y-4">
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">
-            Allergies & Clinical Warnings
+            Medical Notes
           </h3>
 
           <div className="space-y-2.5 text-xs">
             {patient.medical_notes ? (
               <div className="p-3 rounded-xl bg-amber-50/80 border border-amber-200/80 text-amber-900 font-medium">
-                <span className="font-bold block text-amber-800 mb-1">Active Note:</span>
+                <span className="font-bold block text-amber-800 mb-1">Recorded note:</span>
                 {patient.medical_notes}
               </div>
             ) : (
-              <p className="text-slate-500 font-medium italic">No known drug allergies reported.</p>
+              // An empty notes field does not mean the patient has no allergies.
+              <p className="text-slate-600 font-medium">
+                No medical notes recorded. Allergy status is unknown; confirm with the patient.
+              </p>
             )}
 
             <div className="p-3 rounded-xl bg-blue-50/60 border border-blue-100 text-blue-900 font-medium flex items-center justify-between">
-              <span>Total Dispensed Labels:</span>
-              <span className="font-bold font-mono">{stats.totalPrescriptions * 2} Labels</span>
+              <span>Total prescriptions:</span>
+              <span className="font-bold font-mono">{stats.totalPrescriptions ?? MISSING}</span>
             </div>
           </div>
         </div>
@@ -173,15 +126,19 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
           </h3>
 
           <div className="space-y-2">
-            {(stats.frequentlyDispensed || []).map((med: string, i: number) => (
-              <div
-                key={i}
-                className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 border border-slate-100 text-xs font-bold text-slate-800"
-              >
-                <Pill className="w-3.5 h-3.5 text-[#2563EB]" />
-                <span className="truncate">{med}</span>
-              </div>
-            ))}
+            {frequentlyDispensed.length > 0 ? (
+              frequentlyDispensed.map((med: string, i: number) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 border border-slate-100 text-xs font-bold text-slate-800"
+                >
+                  <Pill className="w-3.5 h-3.5 text-[#2563EB]" />
+                  <span className="truncate">{med}</span>
+                </div>
+              ))
+            ) : (
+              <p className="text-xs text-slate-500 font-medium">No dispensing history recorded.</p>
+            )}
           </div>
         </div>
       </div>
@@ -191,11 +148,8 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <h2 className="text-base font-bold text-[#0F172A] flex items-center gap-2">
             <Clock className="w-4 h-4 text-[#2563EB]" />
-            <span>Prescription History & Dispensing Log</span>
+            <span>Prescription History</span>
           </h2>
-          <span className="text-xs text-[#64748B] font-semibold">
-            Stock-Safe Thermal Reprinting Active
-          </span>
         </div>
 
         <div className="overflow-x-auto">
@@ -212,45 +166,46 @@ export default function PatientProfilePage({ params }: { params: Promise<{ id: s
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
               {prescriptions.length > 0 ? (
-                prescriptions.map((rx: any) => (
-                  <tr key={rx.id} className="hover:bg-blue-50/40 transition-colors">
-                    <td className="py-3 px-3 font-mono font-bold text-[#2563EB]">
-                      {rx.prescription_number || rx.id}
-                    </td>
-                    <td className="py-3 px-3 text-slate-800 font-semibold">
-                      {rx.prescription_items?.map((it: any) => it.product_name).join(', ') ||
-                        'Dispensed Items'}
-                    </td>
-                    <td className="py-3 px-3 text-center font-mono font-bold text-slate-700">
-                      {rx.print_count || 1}
-                    </td>
-                    <td className="py-3 px-3 font-mono text-slate-500 text-[11px]">
-                      {new Date(rx.created_at).toLocaleString()}
-                    </td>
-                    <td className="py-3 px-3">
-                      <StatusBadge status={rx.status || 'COMPLETED'} />
-                    </td>
-                    <td className="py-3 px-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => handleReprint(rx.id)}
-                        disabled={reprintingId === rx.id}
-                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-blue-50 text-[#2563EB] border border-blue-200 hover:border-blue-300 font-bold rounded-xl text-xs transition-colors shadow-2xs"
-                      >
-                        {reprintingId === rx.id ? (
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                prescriptions.map((rx: ApiData, i: number) => {
+                  const medicines = Array.isArray(rx.prescription_items)
+                    ? rx.prescription_items.map((it: ApiData) => it.product_name).filter(Boolean).join(', ')
+                    : '';
+                  return (
+                    <tr key={rx.id || i} className="hover:bg-blue-50/40 transition-colors">
+                      <td className="py-3 px-3 font-mono font-bold text-[#2563EB]">
+                        {rx.id ? (
+                          <Link href={`/admin/prescriptions/${rx.id}`} className="hover:underline">
+                            {rx.prescription_number || rx.id}
+                          </Link>
                         ) : (
-                          <Printer className="w-3.5 h-3.5" />
+                          rx.prescription_number || MISSING
                         )}
-                        <span>Reprint</span>
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="py-3 px-3 text-slate-800 font-semibold">{medicines || MISSING}</td>
+                      <td className="py-3 px-3 text-center font-mono font-bold text-slate-700">{rx.print_count ?? MISSING}</td>
+                      <td className="py-3 px-3 font-mono text-slate-500 text-[11px]">
+                        {rx.created_at ? new Date(rx.created_at).toLocaleString() : MISSING}
+                      </td>
+                      <td className="py-3 px-3">{rx.status ? <StatusBadge status={rx.status} /> : MISSING}</td>
+                      <td className="py-3 px-3 text-right">
+                        <button
+                          type="button"
+                          disabled
+                          title={REPRINT_UNAVAILABLE_REASON}
+                          aria-label={`Reprint (${REPRINT_UNAVAILABLE_REASON})`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-400 border border-slate-200 font-bold rounded-xl text-xs cursor-not-allowed"
+                        >
+                          <Printer className="w-3.5 h-3.5" />
+                          <span>Reprint</span>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-400 font-semibold">
-                    No previous prescriptions found for this patient.
+                  <td colSpan={6} className="p-8 text-center text-slate-500 font-semibold">
+                    No prescriptions recorded for this patient.
                   </td>
                 </tr>
               )}

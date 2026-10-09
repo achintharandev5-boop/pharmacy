@@ -1,39 +1,26 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { History, Search, TrendingDown, TrendingUp } from 'lucide-react';
 import { getInventoryMovements } from '@/app/actions/inventory';
 import PageHeader from '@/components/admin/PageHeader';
 import InventoryTabs from '@/components/admin/InventoryTabs';
 import FilterTabs from '@/components/admin/FilterTabs';
 import EmptyState from '@/components/admin/EmptyState';
+import { ErrorState, LoadingState, MISSING } from '@/components/admin/DataState';
+import { useApiQuery } from '@/lib/useApiQuery';
 
 export default function StockMovementsPage() {
-  const [movements, setMovements] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('ALL');
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function loadMovements() {
-      setLoading(true);
-      try {
-        const data = await getInventoryMovements(searchTerm, typeFilter);
-        if (Array.isArray(data)) setMovements(data);
-      } catch (err) {
-        console.error('Failed to load stock movements:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadMovements();
-  }, [searchTerm, typeFilter]);
+  const movementsQuery = useApiQuery(() => getInventoryMovements(searchTerm, typeFilter), [searchTerm, typeFilter]);
+  const movements = movementsQuery.data ?? [];
 
   return (
     <div className="space-y-6 select-none font-sans text-[#0F172A]">
       <PageHeader
         title="Stock Movement Audit Ledger"
-        subtitle="Complete immutable transaction history of all stock receipts, dispenses, adjustments, and returns."
+        subtitle="Transaction history of stock receipts, dispenses, adjustments, and returns."
         icon={History}
       />
 
@@ -80,13 +67,16 @@ export default function StockMovementsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
-              {loading ? (
+              {movementsQuery.status === 'loading' ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400 font-semibold">
-                    <div className="inline-flex items-center gap-2">
-                      <span className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                      <span>Loading movements ledger...</span>
-                    </div>
+                  <td colSpan={6}>
+                    <LoadingState label="Loading stock movements…" />
+                  </td>
+                </tr>
+              ) : movementsQuery.status === 'error' ? (
+                <tr>
+                  <td colSpan={6}>
+                    <ErrorState title="Could not load stock movements" message={movementsQuery.error} onRetry={movementsQuery.retry} />
                   </td>
                 </tr>
               ) : movements.length > 0 ? (
@@ -109,10 +99,10 @@ export default function StockMovementsPage() {
                         </span>
                       </td>
                       <td className="py-3.5 px-4 font-bold text-slate-900">
-                        {m.product?.name || m.product_name || 'Medicine SKU'}
+                        {m.product?.name || m.product_name || MISSING}
                       </td>
                       <td className="py-3.5 px-4 font-mono font-bold text-slate-600">
-                        {m.batch?.batch_number || m.batch_number || 'N/A'}
+                        {m.batch?.batch_number || m.batch_number || MISSING}
                       </td>
                       <td className="py-3.5 px-4 font-mono font-bold text-center">
                         <span
@@ -126,10 +116,10 @@ export default function StockMovementsPage() {
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-slate-600 max-w-[250px] truncate" title={m.notes}>
-                        {m.notes || 'Normal pharmacy operation'}
+                        {m.notes || MISSING}
                       </td>
                       <td className="py-3.5 px-4 font-mono text-slate-500 text-[11px]">
-                        {new Date(m.created_at).toLocaleString()}
+                        {m.created_at ? new Date(m.created_at).toLocaleString() : MISSING}
                       </td>
                     </tr>
                   );
@@ -139,7 +129,11 @@ export default function StockMovementsPage() {
                   <td colSpan={6}>
                     <EmptyState
                       title="No movements recorded"
-                      description="No transactions found matching your search criteria."
+                      description={
+                        searchTerm || typeFilter !== 'ALL'
+                          ? 'No stock movements match the current search or filter.'
+                          : 'No stock movements have been recorded yet.'
+                      }
                     />
                   </td>
                 </tr>

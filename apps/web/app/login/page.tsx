@@ -33,7 +33,7 @@ export default function LoginPage() {
               Pharmacy System
             </h1>
             <p className="text-xs text-[#64748B] font-medium">
-              Management & Label POS • Sisila Chemist
+              Prescription Labels & Inventory • Sisila Chemist
             </p>
           </div>
 

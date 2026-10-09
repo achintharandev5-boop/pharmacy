@@ -2,43 +2,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLabelStore } from '../store/labelStore';
 import { searchProducts, getProductByBarcode } from '../app/actions/products';
-import { HARDCODED_PRODUCTS, ProductItem } from '../constants/products';
+import type { SelectedProduct } from '../store/labelStore';
+import type { ProductSearchResult } from '../app/actions/products';
+import { NETWORK_ERROR_MESSAGE } from '../lib/api/types';
 import { Search, X, ScanBarcode } from 'lucide-react';
 
-function filterProducts(query: string, list: ProductItem[]): ProductItem[] {
-  const q = query.trim().toLowerCase();
-  if (!q) return list;
-
-  const prefixMatches: ProductItem[] = [];
-  const substringMatches: ProductItem[] = [];
-  const fuzzyMatches: ProductItem[] = [];
-
-  for (const item of list) {
-    const name = item.name.toLowerCase();
-    if (name.startsWith(q)) {
-      prefixMatches.push(item);
-    } else if (name.includes(q)) {
-      substringMatches.push(item);
-    } else {
-      let qIdx = 0;
-      for (let i = 0; i < name.length && qIdx < q.length; i++) {
-        if (name[i] === q[qIdx]) {
-          qIdx++;
-        }
-      }
-      if (qIdx === q.length) {
-        fuzzyMatches.push(item);
-      }
-    }
-  }
-
-  return [...prefixMatches, ...substringMatches, ...fuzzyMatches];
-}
+type SearchStatus = 'idle' | 'loading' | 'error' | 'done';
 
 export function ProductSearchInput() {
   const { product, setProduct, setExpiryDate } = useLabelStore();
   const [searchTerm, setSearchTerm] = useState('');
-  const [results, setResults] = useState<any[]>(HARDCODED_PRODUCTS);
+  const [results, setResults] = useState<ProductSearchResult[]>([]);
+  const [searchStatus, setSearchStatus] = useState<SearchStatus>('idle');
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
   const [isOpen, setIsOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
@@ -67,30 +44,72 @@ export function ProductSearchInput() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleBarcodeLookup = async (barcode: string) => {
-    setIsOpen(false);
-    const res = await getProductByBarcode(barcode);
-    if (res.notFound) {
-      setErrorMsg(`Barcode not found: ${barcode}`);
-      setTimeout(() => setErrorMsg(''), 3000);
-      setSearchTerm('');
-    } else if (res.data) {
-      setProduct({ id: res.data.id, name: res.data.name });
-      if (res.data.expiry_date) {
-        setExpiryDate(res.data.expiry_date);
-      }
-      setSearchTerm(res.data.name);
+  // Sets the label's product. An expiry carried over from the previous catalog product is
+  // cleared so it can never be printed against a different medicine; a manually entered
+  // expiry is kept.
+  const applyProduct = (next: SelectedProduct | null) => {
+    const { product: prev, expiryDate } = useLabelStore.getState();
+    setProduct(next);
+    if (next?.expiry_date) {
+      setExpiryDate(next.expiry_date);
+    } else if (prev?.expiry_date && expiryDate === prev.expiry_date && prev.id !== next?.id) {
+      setExpiryDate(null);
     }
   };
 
-  const handleSelectProduct = async (item: any) => {
+  const handleBarcodeLookup = async (barcode: string) => {
+    setIsOpen(false);
+    let res: Awaited<ReturnType<typeof getProductByBarcode>>;
+    try {
+      res = await getProductByBarcode(barcode);
+    } catch {
+      res = { ok: false, error: NETWORK_ERROR_MESSAGE };
+    }
+    if (res.ok) {
+      applyProduct({ id: res.data.id, name: res.data.name, expiry_date: res.data.expiry_date ?? null });
+      setSearchTerm(res.data.name);
+      return;
+    }
+    const notFound = res.status === 404;
+    setErrorMsg(notFound ? `Barcode not found: ${barcode}` : `Barcode lookup failed: ${res.error}`);
+    setTimeout(() => setErrorMsg(''), notFound ? 3000 : 6000);
+    if (notFound) setSearchTerm('');
+  };
+
+  const handleSelectProduct = (item: ProductSearchResult) => {
     setIsOpen(false);
     setSelectedIndex(-1);
-    setProduct({ id: item.id, name: item.name });
-    if (item.expiry_date) {
-      setExpiryDate(item.expiry_date);
-    }
+    applyProduct({ id: item.id, name: item.name, expiry_date: item.expiry_date ?? null });
     setSearchTerm(item.name);
+  };
+
+  const runSearch = async (term: string) => {
+    const requestId = ++requestIdRef.current;
+    setSearchStatus('loading');
+    setSearchError(null);
+    let res: Awaited<ReturnType<typeof searchProducts>>;
+    try {
+      res = await searchProducts(term);
+    } catch {
+      res = { ok: false, error: NETWORK_ERROR_MESSAGE };
+    }
+    if (requestId !== requestIdRef.current) return; // superseded by a newer search
+    if (res.ok) {
+      setResults(res.data);
+      setSearchStatus('done');
+    } else {
+      setResults([]);
+      setSearchError(res.error);
+      setSearchStatus('error');
+    }
+  };
+
+  const resetSearch = () => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    requestIdRef.current++;
+    setResults([]);
+    setSearchStatus('idle');
+    setSearchError(null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -150,52 +169,27 @@ export function ProductSearchInput() {
     setSearchTerm(val);
     setSelectedIndex(-1);
 
-    if (val.trim()) {
-      const exactMatch = HARDCODED_PRODUCTS.find(
-        (p) => p.name.toLowerCase() === val.trim().toLowerCase()
-      );
-      if (exactMatch) {
-        setProduct({ id: exactMatch.id, name: exactMatch.name });
-        if (exactMatch.expiry_date) setExpiryDate(exactMatch.expiry_date);
-      } else {
-        setProduct({ id: 'manual', name: val.trim() });
-      }
-    } else {
-      setProduct(null);
-    }
-
-    const localFiltered = filterProducts(val, HARDCODED_PRODUCTS);
-    setResults(localFiltered);
+    // Typed text is used as a manual product name until a catalog result is chosen.
+    applyProduct(val.trim() ? { id: 'manual', name: val.trim() } : null);
     setIsOpen(true);
 
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     if (val.trim().length > 1) {
-      debounceTimerRef.current = setTimeout(async () => {
-        const res = await searchProducts(val);
-        if (res.data && Array.isArray(res.data)) {
-          const merged = [...localFiltered];
-          for (const item of res.data) {
-            if (!merged.some((p) => p.name.toLowerCase() === item.name.toLowerCase())) {
-              merged.push(item);
-            }
-          }
-          setResults(merged);
-        }
-      }, 250);
+      debounceTimerRef.current = setTimeout(() => runSearch(val), 250);
+    } else {
+      resetSearch();
     }
   };
 
   const handleFocus = () => {
-    const filtered = filterProducts(searchTerm, HARDCODED_PRODUCTS);
-    setResults(filtered);
     setIsOpen(true);
   };
 
   const handleClear = () => {
     setSearchTerm('');
-    if (product) setProduct(null);
-    setResults(HARDCODED_PRODUCTS);
-    setIsOpen(true);
+    if (product) applyProduct(null);
+    resetSearch();
+    setIsOpen(false);
     inputRef.current?.focus();
   };
 
@@ -266,9 +260,24 @@ export function ProductSearchInput() {
       )}
 
       {/* DROPDOWN MENU */}
-      {isOpen && (
+      {isOpen && searchStatus !== 'idle' && (
         <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-white border border-[#DCE7F5] rounded-2xl z-50 max-h-[380px] overflow-y-auto shadow-xl py-1">
-          {results.length > 0 ? (
+          {searchStatus === 'loading' ? (
+            <div role="status" className="p-4 text-center bg-[#F8FAFC]">
+              <p className="text-xs font-semibold text-slate-500">Searching products…</p>
+            </div>
+          ) : searchStatus === 'error' ? (
+            <div role="alert" className="p-4 text-center bg-rose-50 space-y-2">
+              <p className="text-xs font-semibold text-rose-800">Product search failed: {searchError}</p>
+              <button
+                type="button"
+                onClick={() => runSearch(searchTerm)}
+                className="px-3 py-1.5 text-xs font-bold bg-white border border-rose-300 text-rose-800 rounded-lg hover:bg-rose-100 touch-manipulation"
+              >
+                Retry
+              </button>
+            </div>
+          ) : results.length > 0 ? (
             results.map((r, index) => {
               const isSelected = index === selectedIndex;
               return (

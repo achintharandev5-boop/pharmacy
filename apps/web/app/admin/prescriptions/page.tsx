@@ -1,68 +1,30 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import {
-  FileText,
-  Search,
-  Printer,
-  ArrowRight,
-  CheckCircle2,
-  RefreshCw,
-  Eye,
-  Plus,
-} from 'lucide-react';
-import { getAdminPrescriptions, reprintAdminPrescription } from '@/app/actions/admin';
+import { FileText, Search, Printer, Eye } from 'lucide-react';
+import { getAdminPrescriptions } from '@/app/actions/admin';
 import PageHeader from '@/components/admin/PageHeader';
 import FilterTabs from '@/components/admin/FilterTabs';
 import StatusBadge from '@/components/admin/StatusBadge';
 import EmptyState from '@/components/admin/EmptyState';
+import { ErrorState, LoadingState, MISSING } from '@/components/admin/DataState';
+import { useApiQuery } from '@/lib/useApiQuery';
+import { REPRINT_UNAVAILABLE_REASON } from '@/lib/reprint';
+import type { ApiData } from '@/lib/api/types';
 
 export default function MasterPrescriptionsPage() {
-  const [prescriptions, setPrescriptions] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
-  const [loading, setLoading] = useState(true);
-  const [reprintingId, setReprintingId] = useState<string | null>(null);
-  const [reprintMessage, setReprintMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function loadPrescriptions() {
-      setLoading(true);
-      try {
-        const data = await getAdminPrescriptions(searchTerm, statusFilter);
-        if (Array.isArray(data)) {
-          setPrescriptions(data);
-        }
-      } catch (err) {
-        console.error('Failed to load prescriptions:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadPrescriptions();
-  }, [searchTerm, statusFilter]);
-
-  const handleReprint = async (rxId: string) => {
-    setReprintingId(rxId);
-    setReprintMessage(null);
-    try {
-      await reprintAdminPrescription(rxId, 'Reprint from Master Prescription directory');
-      setReprintMessage('Thermal label queued for reprint. Print count updated (Inventory stock NOT deducted).');
-      setTimeout(() => setReprintMessage(null), 5000);
-    } catch (e) {
-      setReprintMessage('Failed to trigger label reprint');
-    } finally {
-      setReprintingId(null);
-    }
-  };
+  const prescriptionsQuery = useApiQuery(() => getAdminPrescriptions(searchTerm, statusFilter), [searchTerm, statusFilter]);
+  const prescriptions = prescriptionsQuery.data ?? [];
 
   return (
     <div className="space-y-6 select-none font-sans text-[#0F172A]">
       {/* HEADER */}
       <PageHeader
         title="Prescriptions"
-        subtitle="Complete audit trail of all generated prescriptions, Sinhala label parameters, and print history"
+        subtitle="Prescriptions recorded from the label workstation, with label and print details."
         icon={FileText}
         actions={[
           {
@@ -72,15 +34,6 @@ export default function MasterPrescriptionsPage() {
           },
         ]}
       />
-
-      {reprintMessage && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs font-bold flex items-center justify-between shadow-xs">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-[#10B981]" />
-            <span>{reprintMessage}</span>
-          </div>
-        </div>
-      )}
 
       {/* SEARCH & FILTERS BAR */}
       <div className="bg-white/88 backdrop-blur-md p-4 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.03)] flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -119,47 +72,47 @@ export default function MasterPrescriptionsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
-              {loading ? (
+              {prescriptionsQuery.status === 'loading' ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400 font-semibold">
-                    <div className="inline-flex items-center gap-2">
-                      <span className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                      <span>Loading prescription records...</span>
-                    </div>
+                  <td colSpan={8}>
+                    <LoadingState label="Loading prescriptions…" />
+                  </td>
+                </tr>
+              ) : prescriptionsQuery.status === 'error' ? (
+                <tr>
+                  <td colSpan={8}>
+                    <ErrorState title="Could not load prescriptions" message={prescriptionsQuery.error} onRetry={prescriptionsQuery.retry} />
                   </td>
                 </tr>
               ) : prescriptions.length > 0 ? (
                 prescriptions.map((rx) => {
                   const itemsSummary =
                     rx.prescription_items && rx.prescription_items.length > 0
-                      ? rx.prescription_items.map((i: any) => i.product_name).join(', ')
-                      : 'Prescription Medicine';
+                      ? rx.prescription_items.map((i: ApiData) => i.product_name || MISSING).join(', ')
+                      : MISSING;
 
                   return (
-                    <tr
-                      key={rx.id}
-                      className="hover:bg-blue-50/40 transition-colors group cursor-pointer"
-                    >
+                    <tr key={rx.id} className="hover:bg-blue-50/40 transition-colors group">
                       <td className="py-3.5 px-4 font-mono font-bold text-[#2563EB]">
-                        {rx.prescription_number || 'RX-000000'}
+                        {rx.prescription_number || MISSING}
                       </td>
                       <td className="py-3.5 px-4 font-bold text-slate-900">
-                        {rx.customer_name_text || 'Walk-in Patient'}
+                        {rx.customer_name_text || MISSING}
                       </td>
                       <td className="py-3.5 px-4 font-mono text-slate-600">
-                        {rx.customer_phone || 'N/A'}
+                        {rx.customer_phone || MISSING}
                       </td>
                       <td className="py-3.5 px-4 text-slate-700 max-w-[220px] truncate" title={itemsSummary}>
                         {itemsSummary}
                       </td>
                       <td className="py-3.5 px-4 text-center font-mono font-bold text-slate-800">
-                        {rx.print_count || 1}
+                        {rx.print_count ?? MISSING}
                       </td>
                       <td className="py-3.5 px-4">
-                        <StatusBadge status={rx.status || 'COMPLETED'} />
+                        {rx.status ? <StatusBadge status={rx.status} /> : MISSING}
                       </td>
                       <td className="py-3.5 px-4 font-mono text-slate-500 text-[11px]">
-                        {new Date(rx.created_at).toLocaleString()}
+                        {rx.created_at ? new Date(rx.created_at).toLocaleString() : MISSING}
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <div className="inline-flex items-center gap-2">
@@ -173,15 +126,12 @@ export default function MasterPrescriptionsPage() {
 
                           <button
                             type="button"
-                            onClick={() => handleReprint(rx.id)}
-                            disabled={reprintingId === rx.id}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-white hover:bg-blue-50 text-[#2563EB] border border-blue-200 hover:border-blue-300 rounded-lg text-xs font-bold transition-colors shadow-2xs"
+                            disabled
+                            title={REPRINT_UNAVAILABLE_REASON}
+                            aria-label={`Reprint (${REPRINT_UNAVAILABLE_REASON})`}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-400 border border-slate-200 rounded-lg text-xs font-bold cursor-not-allowed"
                           >
-                            {reprintingId === rx.id ? (
-                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                              <Printer className="w-3.5 h-3.5" />
-                            )}
+                            <Printer className="w-3.5 h-3.5" />
                             <span>Reprint</span>
                           </button>
                         </div>
@@ -194,7 +144,11 @@ export default function MasterPrescriptionsPage() {
                   <td colSpan={8}>
                     <EmptyState
                       title="No prescriptions found"
-                      description={`No records found matching "${searchTerm}". Start dispensing from the Label Workstation.`}
+                      description={
+                        searchTerm || statusFilter !== 'ALL'
+                          ? 'No prescriptions match the current search or filter.'
+                          : 'No prescriptions have been recorded yet. Prescriptions saved from the Label Workstation appear here.'
+                      }
                       actionText="Open Label Workstation"
                       actionHref="/label"
                     />

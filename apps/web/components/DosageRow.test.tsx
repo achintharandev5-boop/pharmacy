@@ -49,6 +49,9 @@ function DosageTestWrapper({ time }: { time: 'morning' | 'lunch' | 'night' }) {
 
 describe('Dosage Row Logic & Constraints', () => {
   beforeEach(() => {
+    // incrementDosage/decrementDosage update the active label, so reset the labels too;
+    // resetting only the top-level `dosage` let quantities leak between tests.
+    useLabelStore.getState().allClear();
     useLabelStore.setState({
       dosage: {
         morning: { qty: 0, isFraction: false },

@@ -1,59 +1,74 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { ChartNoAxesCombined, TrendingUp, TrendingDown, DollarSign, Package } from 'lucide-react';
+import type { ApiData } from '@/lib/api/types';
+import React, { useState } from 'react';
+import { ChartNoAxesCombined, TrendingUp, TrendingDown } from 'lucide-react';
 import { getInventoryAnalytics, getInventorySummary } from '@/app/actions/inventory';
 import PageHeader from '@/components/admin/PageHeader';
 import InventoryTabs from '@/components/admin/InventoryTabs';
 import FilterTabs from '@/components/admin/FilterTabs';
+import { ErrorState, LoadingState, MISSING } from '@/components/admin/DataState';
+import { useApiQuery } from '@/lib/useApiQuery';
+
+function formatLkr(value: unknown) {
+  return typeof value === 'number' && Number.isFinite(value) ? `LKR ${value.toLocaleString()}` : MISSING;
+}
 
 export default function InventoryAnalyticsPage() {
   const [range, setRange] = useState('30d');
-  const [analytics, setAnalytics] = useState<any>(null);
-  const [summary, setSummary] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const summaryQuery = useApiQuery(() => getInventorySummary(), []);
+  const analyticsQuery = useApiQuery(() => getInventoryAnalytics(range), [range]);
 
-  useEffect(() => {
-    async function loadAnalytics() {
-      setLoading(true);
-      try {
-        const [anaRes, sumRes] = await Promise.all([
-          getInventoryAnalytics(range),
-          getInventorySummary(),
-        ]);
-        if (anaRes) setAnalytics(anaRes);
-        if (sumRes) setSummary(sumRes);
-      } catch (err) {
-        console.error('Failed to load inventory analytics:', err);
-      } finally {
-        setLoading(false);
-      }
+  const valuation = summaryQuery.data?.valuation;
+  const marginPct =
+    typeof valuation?.potentialMargin === 'number' && typeof valuation?.retail === 'number' && valuation.retail > 0
+      ? Math.round((valuation.potentialMargin / valuation.retail) * 100)
+      : null;
+  const fastMoving: ApiData[] = Array.isArray(analyticsQuery.data?.fastMoving) ? analyticsQuery.data.fastMoving : [];
+  const slowMoving: ApiData[] = Array.isArray(analyticsQuery.data?.slowMoving) ? analyticsQuery.data.slowMoving : [];
+
+  const valuationCards = [
+    { label: 'Total Inventory Cost', value: formatLkr(valuation?.cost), note: 'Stock at purchase cost', tone: 'text-[#0F172A]' },
+    { label: 'Estimated Retail Value', value: formatLkr(valuation?.retail), note: 'Stock at retail price', tone: 'text-[#2563EB]' },
+    {
+      label: 'Unrealized Gross Margin',
+      value: formatLkr(valuation?.potentialMargin),
+      note: marginPct !== null ? `~${marginPct}% of retail value` : 'Retail value minus cost',
+      tone: 'text-[#10B981]',
+    },
+  ];
+
+  const renderMovers = (list: ApiData[], kind: 'fast' | 'slow') => {
+    if (analyticsQuery.status === 'loading') return <LoadingState label="Loading…" />;
+    if (analyticsQuery.status === 'error') {
+      return <ErrorState title="Could not load analytics" message={analyticsQuery.error} onRetry={analyticsQuery.retry} compact />;
     }
-    loadAnalytics();
-  }, [range]);
-
-  const valuation = summary?.valuation || {
-    cost: 4850000,
-    retail: 6320000,
-    potentialMargin: 1470000,
+    if (list.length === 0) {
+      return <p className="text-center text-slate-500 py-6 text-xs font-semibold">No data for this period.</p>;
+    }
+    return list.map((m: ApiData, i: number) => (
+      <div key={m.id || i} className="flex items-center justify-between p-3 rounded-xl bg-slate-50/70 border border-slate-100 text-xs">
+        <span className="font-bold text-slate-900">{m.name || MISSING}</span>
+        <div className="flex items-center gap-3">
+          <span className="font-mono font-bold text-slate-700">{m.units ?? MISSING} units</span>
+          {kind === 'fast' && m.growth && (
+            <span className="font-mono font-bold text-[#10B981] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">{m.growth}</span>
+          )}
+          {kind === 'slow' && m.daysInStock !== undefined && m.daysInStock !== null && (
+            <span className="font-mono font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">
+              {m.daysInStock} days
+            </span>
+          )}
+        </div>
+      </div>
+    ));
   };
-  const fastMoving = analytics?.fastMoving || [
-    { name: 'Paracetamol 500mg', units: 480, growth: '+24%' },
-    { name: 'Amoxicillin 500mg', units: 320, growth: '+18%' },
-    { name: 'Metformin 500mg', units: 290, growth: '+12%' },
-    { name: 'Omeprazole 20mg', units: 210, growth: '+8%' },
-  ];
-  const slowMoving = analytics?.slowMoving || [
-    { name: 'Cefixime 200mg', units: 12, daysInStock: 84 },
-    { name: 'Azithromycin 500mg', units: 18, daysInStock: 76 },
-    { name: 'Atorvastatin 40mg', units: 22, daysInStock: 65 },
-  ];
 
   return (
     <div className="space-y-6 select-none font-sans text-[#0F172A]">
       <PageHeader
         title="Inventory Analytics & Valuation"
-        subtitle="Real-time stock valuation, fast/slow-moving velocity analysis, and category exposure metrics."
+        subtitle="Stock valuation and fast/slow-moving medicines."
         icon={ChartNoAxesCombined}
       />
 
@@ -74,41 +89,32 @@ export default function InventoryAnalyticsPage() {
       </div>
 
       {/* VALUATION ROW */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div className="bg-white/90 backdrop-blur-md p-5 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.03)] space-y-1">
-          <span className="text-slate-400 font-bold uppercase text-[11px] tracking-wider">
-            Total Inventory Cost
-          </span>
-          <span className="text-3xl font-extrabold text-[#0F172A] block">
-            LKR {Number(valuation.cost).toLocaleString()}
-          </span>
-          <span className="text-xs text-slate-500 font-semibold block">Total procurement capital tied</span>
+      {summaryQuery.status === 'error' ? (
+        <div className="bg-white rounded-2xl border border-slate-200">
+          <ErrorState title="Could not load stock valuation" message={summaryQuery.error} onRetry={summaryQuery.retry} compact />
         </div>
-
-        <div className="bg-white/90 backdrop-blur-md p-5 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.03)] space-y-1">
-          <span className="text-slate-400 font-bold uppercase text-[11px] tracking-wider">
-            Estimated Retail Value
-          </span>
-          <span className="text-3xl font-extrabold text-[#2563EB] block">
-            LKR {Number(valuation.retail).toLocaleString()}
-          </span>
-          <span className="text-xs text-slate-500 font-semibold block">Gross counter sales value</span>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5" aria-busy={summaryQuery.status === 'loading'}>
+          {valuationCards.map((card) => (
+            <div
+              key={card.label}
+              className="bg-white/90 backdrop-blur-md p-5 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.03)] space-y-1"
+            >
+              <span className="text-slate-400 font-bold uppercase text-[11px] tracking-wider">{card.label}</span>
+              <span className={`text-3xl font-extrabold block ${card.tone}`}>
+                {summaryQuery.status === 'loading' ? (
+                  <span className="inline-block h-8 w-28 rounded bg-slate-100 animate-pulse" aria-hidden="true" />
+                ) : (
+                  card.value
+                )}
+              </span>
+              <span className="text-xs text-slate-500 font-semibold block">{card.note}</span>
+            </div>
+          ))}
         </div>
+      )}
 
-        <div className="bg-white/90 backdrop-blur-md p-5 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.03)] space-y-1">
-          <span className="text-slate-400 font-bold uppercase text-[11px] tracking-wider">
-            Unrealized Gross Margin
-          </span>
-          <span className="text-3xl font-extrabold text-[#10B981] block">
-            LKR {Number(valuation.potentialMargin).toLocaleString()}
-          </span>
-          <span className="text-xs text-[#10B981] font-semibold block">
-            ~{Math.round((valuation.potentialMargin / valuation.retail) * 100)}% estimated markup margin
-          </span>
-        </div>
-      </div>
-
-      {/* FAST AND SLOW MOVING TILES */}
+      {/* FAST AND SLOW MOVING */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div className="bg-white/90 backdrop-blur-md rounded-2xl border border-slate-200/70 p-5 shadow-[0_4px_20px_rgba(15,23,42,0.03)] space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -116,25 +122,9 @@ export default function InventoryAnalyticsPage() {
               <TrendingUp className="w-4 h-4 text-[#10B981]" />
               <span>Fast-Moving Medicines</span>
             </h3>
-            <span className="text-xs font-semibold text-slate-500">Highest velocity</span>
+            <span className="text-xs font-semibold text-slate-500">Most units dispensed</span>
           </div>
-
-          <div className="space-y-2.5">
-            {fastMoving.map((m: any, i: number) => (
-              <div
-                key={i}
-                className="flex items-center justify-between p-3 rounded-xl bg-slate-50/70 border border-slate-100 text-xs"
-              >
-                <span className="font-bold text-slate-900">{m.name}</span>
-                <div className="flex items-center gap-3">
-                  <span className="font-mono font-bold text-slate-700">{m.units} units</span>
-                  <span className="font-mono font-bold text-[#10B981] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
-                    {m.growth}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
+          <div className="space-y-2.5">{renderMovers(fastMoving, 'fast')}</div>
         </div>
 
         <div className="bg-white/90 backdrop-blur-md rounded-2xl border border-slate-200/70 p-5 shadow-[0_4px_20px_rgba(15,23,42,0.03)] space-y-4">
@@ -143,25 +133,9 @@ export default function InventoryAnalyticsPage() {
               <TrendingDown className="w-4 h-4 text-amber-500" />
               <span>Slow-Moving Medicines</span>
             </h3>
-            <span className="text-xs font-semibold text-slate-500">Capital lock risk</span>
+            <span className="text-xs font-semibold text-slate-500">Fewest units dispensed</span>
           </div>
-
-          <div className="space-y-2.5">
-            {slowMoving.map((m: any, i: number) => (
-              <div
-                key={i}
-                className="flex items-center justify-between p-3 rounded-xl bg-slate-50/70 border border-slate-100 text-xs"
-              >
-                <span className="font-bold text-slate-900">{m.name}</span>
-                <div className="flex items-center gap-3">
-                  <span className="font-mono font-bold text-slate-700">{m.units} units</span>
-                  <span className="font-mono font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">
-                    {m.daysInStock} days
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
+          <div className="space-y-2.5">{renderMovers(slowMoving, 'slow')}</div>
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useLabelStore } from '../store/labelStore';
 import { searchCustomersByPhone } from '../app/actions/customers';
-import { HARDCODED_CUSTOMERS } from '../constants/customers';
+import { NETWORK_ERROR_MESSAGE } from '../lib/api/types';
 
 export function CustomerSearchPanel() {
   const { setCustomerSearchVisible, setCustomerName, setCustomerPhone } = useLabelStore();
@@ -10,20 +10,28 @@ export function CustomerSearchPanel() {
   const [results, setResults] = useState<any[]>([]);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   const handleSearch = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!phone.trim() || loading) return;
     setLoading(true);
     setSearched(false);
-    
-    const res = await searchCustomersByPhone(phone);
-    if (res.data) {
+    setSearchError(null);
+
+    let res: Awaited<ReturnType<typeof searchCustomersByPhone>>;
+    try {
+      res = await searchCustomersByPhone(phone);
+    } catch {
+      res = { ok: false, error: NETWORK_ERROR_MESSAGE };
+    }
+    if (res.ok) {
       setResults(res.data);
     } else {
       setResults([]);
+      setSearchError(res.error);
     }
-    
+
     setSearched(true);
     setLoading(false);
   };
@@ -44,6 +52,7 @@ export function CustomerSearchPanel() {
     setPhone('');
     setResults([]);
     setSearched(false);
+    setSearchError(null);
   };
 
   return (
@@ -68,30 +77,6 @@ export function CustomerSearchPanel() {
         {/* BODY */}
         <div className="p-5 flex flex-col gap-4 overflow-y-auto">
 
-          {/* QUICK SELECT HARDCODED CUSTOMERS */}
-          <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-black tracking-wider text-slate-500 uppercase block">
-              QUICK SELECT CUSTOMER
-            </span>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {HARDCODED_CUSTOMERS.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => handleSelect(c.name, c.phone_number)}
-                  className="min-h-[58px] p-2.5 px-3 bg-[#F8FAFC] border-2 border-[#CBD5E1] hover:border-[#2563EB] hover:bg-[#EFF6FF] active:bg-[#DBEAFE] flex flex-col items-start justify-center transition-all touch-manipulation active:scale-[0.98] group text-left"
-                >
-                  <span className="font-black text-base text-[#0F172A] group-hover:text-[#2563EB] leading-tight">
-                    {c.name}
-                  </span>
-                  <span className="font-bold text-xs text-slate-500 font-mono mt-0.5">
-                    {c.phone_number}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-          
           {/* SEARCH FIELD */}
           <div className="flex flex-col gap-1">
             <label className="text-xs font-black tracking-wider text-slate-500 uppercase block">
@@ -170,7 +155,23 @@ export function CustomerSearchPanel() {
                 </div>
               )}
 
-              {!loading && searched && results.length === 0 && (
+              {!loading && searched && searchError && (
+                <div role="alert" className="bg-[#FEF2F2] border-2 border-[#FECDD3] p-5 rounded-none flex flex-col items-center justify-center text-center gap-2">
+                  <span className="text-xl font-black text-[#E11D48] uppercase">
+                    SEARCH FAILED
+                  </span>
+                  <span className="text-base font-bold text-slate-700">{searchError}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleSearch()}
+                    className="mt-1 h-[52px] px-8 bg-white border-2 border-[#E11D48] text-[#E11D48] font-black text-base rounded-none hover:bg-[#FEE2E2] active:bg-[#FECDD3] transition-all touch-manipulation active:scale-[0.98]"
+                  >
+                    RETRY
+                  </button>
+                </div>
+              )}
+
+              {!loading && searched && !searchError && results.length === 0 && (
                 <div className="bg-[#FEF2F2] border-2 border-[#FECDD3] p-5 rounded-none flex flex-col items-center justify-center text-center gap-2">
                   <span className="text-xl font-black text-[#E11D48] uppercase">
                     CUSTOMER NOT FOUND

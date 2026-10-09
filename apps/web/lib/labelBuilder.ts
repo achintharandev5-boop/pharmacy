@@ -1,5 +1,4 @@
 import { getInstruction, getNormalInstruction, InstructionCategory, AdminAction, MealTiming } from '../constants/oabInstructions';
-import { HARDCODED_PRODUCTS } from '../constants/products';
 import { useLabelStore } from '../store/labelStore';
 
 export function formatDosageReadable(qty: number, isFraction: boolean): string | null {
@@ -28,16 +27,8 @@ export function buildFinalInstruction(state: any) {
 
   const prodName = state.product?.name || state.productName || '';
 
-  // Expiry date: check state or resolve from known products
-  let expDate = state.expiryDate || state.expDate || null;
-  if (!expDate && prodName) {
-    const matched = HARDCODED_PRODUCTS.find(
-      (p) => p.name.toLowerCase() === prodName.toLowerCase() || (state.product?.id && p.id === state.product.id)
-    );
-    if (matched?.expiry_date) {
-      expDate = matched.expiry_date;
-    }
-  }
+  // Expiry date: only what was recorded on this label (from the product's API record or entered by the pharmacist)
+  const expDate = state.expiryDate || state.expDate || null;
 
   const output: any = {
     id: state.id || '',

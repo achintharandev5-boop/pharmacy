@@ -1,6 +1,5 @@
 'use client';
 import React from 'react';
-import { HARDCODED_PRODUCTS } from '../constants/products';
 
 export function LabelCard({ labelItem }: { labelItem: any }) {
   if (!labelItem) return null;
@@ -22,17 +21,9 @@ export function LabelCard({ labelItem }: { labelItem: any }) {
                       !FREQUENCY_TAGS.includes(inst)
   ) || [];
 
-  // Robust Expiry Date Resolution: from labelItem or HARDCODED_PRODUCTS
-  let expDate = labelItem.expiryDate || labelItem.expDate || null;
+  // Expiry date: only what was recorded on this label; never looked up from sample data
+  const expDate = labelItem.expiryDate || labelItem.expDate || null;
   const prodName = labelItem.productName || labelItem.product?.name || '';
-  if (!expDate && prodName) {
-    const matched = HARDCODED_PRODUCTS.find(
-      (p) => p.name.toLowerCase() === prodName.toLowerCase() || (labelItem.product?.id && p.id === labelItem.product.id)
-    );
-    if (matched?.expiry_date) {
-      expDate = matched.expiry_date;
-    }
-  }
 
   const customerName = labelItem.customerName || '';
   const hasQty = Boolean(labelItem.productQuantity && String(labelItem.productQuantity).trim());

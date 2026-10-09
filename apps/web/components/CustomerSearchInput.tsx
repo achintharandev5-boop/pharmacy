@@ -1,25 +1,20 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import { useLabelStore } from '../store/labelStore';
-import { HARDCODED_CUSTOMERS, CustomerData } from '../constants/customers';
+import type { CustomerData } from '../constants/customers';
 import { User, X } from 'lucide-react';
 import { searchCustomersByPhone } from '../app/actions/customers';
+import { NETWORK_ERROR_MESSAGE } from '../lib/api/types';
 
-function filterCustomers(query: string, list: CustomerData[]): CustomerData[] {
-  const q = query.trim().toLowerCase().replace(/[\s\-]/g, '');
-  if (!q) return list;
-
-  return list.filter((c) => {
-    const nameMatch = c.name.toLowerCase().includes(q);
-    const phoneMatch = c.phone_number.replace(/[\s\-]/g, '').includes(q);
-    return nameMatch || phoneMatch;
-  });
-}
+type SearchStatus = 'idle' | 'loading' | 'error' | 'done';
 
 export function CustomerSearchInput() {
   const { customerName, setCustomerName, setCustomerPhone } = useLabelStore();
   const [searchTerm, setSearchTerm] = useState(customerName || '');
-  const [results, setResults] = useState<CustomerData[]>(HARDCODED_CUSTOMERS);
+  const [results, setResults] = useState<CustomerData[]>([]);
+  const [searchStatus, setSearchStatus] = useState<SearchStatus>('idle');
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
 
@@ -50,46 +45,60 @@ export function CustomerSearchInput() {
     setSelectedIndex(-1);
   };
 
+  // Only saved patients from the API are offered; a failed search is shown as an error.
+  const runSearch = async (term: string) => {
+    const requestId = ++requestIdRef.current;
+    setSearchStatus('loading');
+    setSearchError(null);
+    let res: Awaited<ReturnType<typeof searchCustomersByPhone>>;
+    try {
+      res = await searchCustomersByPhone(term);
+    } catch {
+      res = { ok: false, error: NETWORK_ERROR_MESSAGE };
+    }
+    if (requestId !== requestIdRef.current) return; // a newer search superseded this one
+    if (res.ok) {
+      setResults(res.data);
+      setSearchStatus('done');
+    } else {
+      setResults([]);
+      setSearchError(res.error);
+      setSearchStatus('error');
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setSearchTerm(val);
     setCustomerName(val); // Allow free typing of customer name
     setSelectedIndex(-1);
-
-    const localMatches = filterCustomers(val, HARDCODED_CUSTOMERS);
-    setResults(localMatches);
     setIsOpen(true);
 
-    // Also query backend if digits/phone or text
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     if (val.trim().length > 1) {
-      debounceTimerRef.current = setTimeout(async () => {
-        const res = await searchCustomersByPhone(val);
-        if (res.data && Array.isArray(res.data)) {
-          const merged = [...localMatches];
-          for (const item of res.data) {
-            if (!merged.some((c) => c.phone_number === item.phone_number)) {
-              merged.push(item);
-            }
-          }
-          setResults(merged);
-        }
-      }, 250);
+      debounceTimerRef.current = setTimeout(() => runSearch(val), 250);
+    } else {
+      requestIdRef.current++;
+      setResults([]);
+      setSearchStatus('idle');
+      setSearchError(null);
     }
   };
 
   const handleFocus = () => {
-    const filtered = filterCustomers(searchTerm, HARDCODED_CUSTOMERS);
-    setResults(filtered);
     setIsOpen(true);
   };
 
   const handleClear = () => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    requestIdRef.current++;
     setSearchTerm('');
     setCustomerName('');
     setCustomerPhone('');
-    setResults(HARDCODED_CUSTOMERS);
-    setIsOpen(true);
+    setResults([]);
+    setSearchStatus('idle');
+    setSearchError(null);
+    setIsOpen(false);
     inputRef.current?.focus();
   };
 
@@ -173,9 +182,26 @@ export function CustomerSearchInput() {
       </div>
 
       {/* DROPDOWN */}
-      {isOpen && (
+      {isOpen && searchStatus !== 'idle' && (
         <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-white border border-[#DCE7F5] rounded-2xl z-50 max-h-[340px] overflow-y-auto shadow-xl py-1">
-          {results.length > 0 ? (
+          {searchStatus === 'loading' ? (
+            <div role="status" className="p-3 text-center bg-[#F8FAFC]">
+              <p className="text-xs font-medium text-slate-500">Searching saved patients…</p>
+            </div>
+          ) : searchStatus === 'error' ? (
+            <div role="alert" className="p-3 text-center bg-rose-50 space-y-2">
+              <p className="text-xs font-semibold text-rose-800">
+                Patient search failed: {searchError}
+              </p>
+              <button
+                type="button"
+                onClick={() => runSearch(searchTerm)}
+                className="px-3 py-1.5 text-xs font-bold bg-white border border-rose-300 text-rose-800 rounded-lg hover:bg-rose-100 touch-manipulation"
+              >
+                Retry
+              </button>
+            </div>
+          ) : results.length > 0 ? (
             results.map((c, index) => {
               const isSelected = index === selectedIndex;
               return (

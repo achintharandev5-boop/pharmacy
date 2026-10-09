@@ -1,6 +1,8 @@
 'use server';
 
 import { cookies } from 'next/headers';
+import { apiList, apiObject } from '@/lib/api/server';
+import type { ApiData, ApiResult } from '@/lib/api/types';
 
 export async function createPrescriptionRecord(data: any, idempotencyKey?: string) {
   const cookieStore = await cookies();
@@ -50,46 +52,12 @@ export async function createPrescriptionRecord(data: any, idempotencyKey?: strin
   }
 }
 
-export async function getPrescriptionHistory() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('sb-access-token')?.value;
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-
-  try {
-    const res = await fetch(`${apiUrl}/prescriptions`, {
-      headers: { 'Authorization': `Bearer ${token || ''}` },
-      cache: 'no-store',
-    });
-
-    if (res.ok) {
-      return await res.json();
-    }
-  } catch (e) {
-    console.error('Failed to fetch prescription history:', e);
-  }
-
-  return [];
+export async function getPrescriptionHistory(): Promise<ApiResult<ApiData[]>> {
+  return apiList('prescriptions');
 }
 
-export async function getPrescriptionById(id: string) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('sb-access-token')?.value;
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-
-  try {
-    const res = await fetch(`${apiUrl}/prescriptions/${id}`, {
-      headers: { 'Authorization': `Bearer ${token || ''}` },
-      cache: 'no-store',
-    });
-
-    if (res.ok) {
-      return await res.json();
-    }
-  } catch (e) {
-    console.error('Failed to fetch prescription detail:', e);
-  }
-
-  return null;
+export async function getPrescriptionById(id: string): Promise<ApiResult<ApiData>> {
+  return apiObject(`prescriptions/${encodeURIComponent(id)}`);
 }
 
 export async function logPrescriptionPrint(id: string) {
