@@ -1,0 +1,220 @@
+'use client';
+import React, { useState } from 'react';
+import { useLabelStore } from '../store/labelStore';
+import { searchCustomersByPhone } from '../app/actions/customers';
+import { HARDCODED_CUSTOMERS } from '../constants/customers';
+
+export function CustomerSearchPanel() {
+  const { setCustomerSearchVisible, setCustomerName, setCustomerPhone } = useLabelStore();
+  const [phone, setPhone] = useState('');
+  const [results, setResults] = useState<any[]>([]);
+  const [searched, setSearched] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleSearch = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!phone.trim() || loading) return;
+    setLoading(true);
+    setSearched(false);
+    
+    const res = await searchCustomersByPhone(phone);
+    if (res.data) {
+      setResults(res.data);
+    } else {
+      setResults([]);
+    }
+    
+    setSearched(true);
+    setLoading(false);
+  };
+
+  const handleSelect = (name: string, phoneNum?: string) => {
+    setCustomerName(name);
+    if (phoneNum) {
+      setCustomerPhone(phoneNum);
+    } else if (phone.trim()) {
+      setCustomerPhone(phone.trim());
+    }
+    setCustomerSearchVisible(false);
+  };
+
+  const append = (d: string) => setPhone((prev) => prev + d);
+  const backspace = () => setPhone((prev) => prev.slice(0, -1));
+  const clearPhone = () => {
+    setPhone('');
+    setResults([]);
+    setSearched(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-3 select-none touch-manipulation">
+      <div className="bg-white w-[min(900px,92vw)] max-h-[85dvh] border-2 border-[#CBD5E1] rounded-none shadow-none overflow-hidden flex flex-col">
+        
+        {/* HEADER */}
+        <div className="h-[64px] bg-[#2563EB] text-white px-5 flex items-center justify-between shrink-0 select-none">
+          <h2 className="text-xl lg:text-2xl font-black uppercase tracking-wide">
+            CUSTOMER SEARCH
+          </h2>
+          <button 
+            type="button"
+            onClick={() => setCustomerSearchVisible(false)} 
+            className="w-[56px] h-[56px] flex items-center justify-center font-black text-2xl hover:bg-white/20 active:bg-white/30 text-white rounded-none transition-all touch-manipulation active:scale-[0.98]"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+        
+        {/* BODY */}
+        <div className="p-5 flex flex-col gap-4 overflow-y-auto">
+
+          {/* QUICK SELECT HARDCODED CUSTOMERS */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-black tracking-wider text-slate-500 uppercase block">
+              QUICK SELECT CUSTOMER
+            </span>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {HARDCODED_CUSTOMERS.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => handleSelect(c.name, c.phone_number)}
+                  className="min-h-[58px] p-2.5 px-3 bg-[#F8FAFC] border-2 border-[#CBD5E1] hover:border-[#2563EB] hover:bg-[#EFF6FF] active:bg-[#DBEAFE] flex flex-col items-start justify-center transition-all touch-manipulation active:scale-[0.98] group text-left"
+                >
+                  <span className="font-black text-base text-[#0F172A] group-hover:text-[#2563EB] leading-tight">
+                    {c.name}
+                  </span>
+                  <span className="font-bold text-xs text-slate-500 font-mono mt-0.5">
+                    {c.phone_number}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          {/* SEARCH FIELD */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-black tracking-wider text-slate-500 uppercase block">
+              PHONE NUMBER
+            </label>
+            <form onSubmit={handleSearch} className="flex gap-2 w-full">
+              <input 
+                type="tel" 
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Enter phone number..."
+                className="h-[62px] flex-1 bg-[#F8FAFC] border border-[#CBD5E1] rounded-none px-4 text-2xl font-bold text-[#0F172A] outline-none focus:border-2 focus:border-[#2563EB] placeholder:text-[#94A3B8] touch-manipulation"
+              />
+              <button 
+                type="submit" 
+                disabled={!phone.trim() || loading}
+                className="h-[62px] min-w-[140px] bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#1E40AF] disabled:opacity-40 text-white font-black text-lg rounded-none transition-all touch-manipulation active:scale-[0.98]"
+              >
+                {loading ? 'SEARCHING...' : 'SEARCH'}
+              </button>
+            </form>
+          </div>
+
+          {/* CONVENTIONAL NUMERIC KEYPAD */}
+          <div className="grid grid-cols-3 gap-2">
+            {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
+              <button 
+                key={d} 
+                type="button"
+                onClick={() => append(d)} 
+                className="h-[72px] bg-[#F8FAFC] text-[#0F172A] font-black text-3xl border border-[#CBD5E1] rounded-none hover:bg-[#F1F5F9] active:bg-[#E2E8F0] flex items-center justify-center transition-all select-none touch-manipulation active:scale-[0.98]"
+              >
+                {d}
+              </button>
+            ))}
+
+            {/* Backspace */}
+            <button 
+              type="button"
+              onClick={backspace} 
+              className="h-[72px] bg-[#FEF2F2] text-[#E11D48] font-black text-2xl border border-[#FECDD3] rounded-none hover:bg-[#FEE2E2] active:bg-[#FCA5A5] flex items-center justify-center transition-all select-none touch-manipulation active:scale-[0.98]"
+              title="Backspace"
+            >
+              ⌫
+            </button>
+
+            {/* 0 */}
+            <button 
+              type="button"
+              onClick={() => append('0')} 
+              className="h-[72px] bg-[#F8FAFC] text-[#0F172A] font-black text-3xl border border-[#CBD5E1] rounded-none hover:bg-[#F1F5F9] active:bg-[#E2E8F0] flex items-center justify-center transition-all select-none touch-manipulation active:scale-[0.98]"
+            >
+              0
+            </button>
+
+            {/* Clear */}
+            <button 
+              type="button"
+              onClick={clearPhone} 
+              className="h-[72px] bg-[#FEF2F2] text-[#E11D48] font-black text-lg border border-[#FECDD3] rounded-none hover:bg-[#FEE2E2] active:bg-[#FCA5A5] flex items-center justify-center transition-all select-none touch-manipulation active:scale-[0.98]"
+            >
+              CLEAR
+            </button>
+          </div>
+
+          {/* DYNAMIC RESULTS SECTION */}
+          {(loading || searched) && (
+            <div className="mt-2 border-t border-[#CBD5E1] pt-3 flex flex-col gap-2">
+              <span className="text-xs font-black text-[#2563EB] uppercase tracking-wider block">
+                SEARCH RESULTS
+              </span>
+
+              {loading && (
+                <div className="p-6 bg-[#EFF6FF] border border-[#BFDBFE] text-[#2563EB] font-black text-xl text-center animate-pulse">
+                  SEARCHING FOR {phone}...
+                </div>
+              )}
+
+              {!loading && searched && results.length === 0 && (
+                <div className="bg-[#FEF2F2] border-2 border-[#FECDD3] p-5 rounded-none flex flex-col items-center justify-center text-center gap-2">
+                  <span className="text-xl font-black text-[#E11D48] uppercase">
+                    CUSTOMER NOT FOUND
+                  </span>
+                  <span className="text-base font-bold text-slate-700">
+                    No customer was found for: <span className="font-black text-[#0F172A]">{phone}</span>
+                  </span>
+                  <span className="text-xs font-semibold text-slate-500">
+                    You can type the name directly in the Customer Name field on the main label panel.
+                  </span>
+                </div>
+              )}
+
+              {!loading && results.length > 0 && (
+                <div className="max-h-[260px] overflow-y-auto flex flex-col gap-2 pr-1">
+                  {results.map((r) => (
+                    <div 
+                      key={r.id} 
+                      onClick={() => handleSelect(r.name, r.phone_number)}
+                      className="min-h-[68px] bg-white border border-[#CBD5E1] hover:border-[#2563EB] hover:bg-[#EFF6FF] active:bg-[#DBEAFE] p-3 px-5 flex items-center justify-between cursor-pointer transition-all touch-manipulation"
+                    >
+                      <div className="flex flex-col justify-center">
+                        <span className="text-xl font-extrabold text-[#0F172A]">{r.name}</span>
+                        <span className="text-base font-bold text-slate-600">{r.phone_number}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelect(r.name, r.phone_number);
+                        }}
+                        className="h-[46px] px-6 bg-[#059669] hover:bg-[#047857] active:bg-[#065F46] text-white font-black text-base rounded-none border border-[#059669] transition-all touch-manipulation active:scale-[0.98]"
+                      >
+                        SELECT
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  );
+}
