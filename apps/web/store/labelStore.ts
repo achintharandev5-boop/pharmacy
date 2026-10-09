@@ -205,6 +205,11 @@ export function parseQty(buffer: string): { qty: number; isFraction: boolean } {
 
 const initialLabel = createDefaultLabel();
 
+/** Where the workstation goes after the number pad closes: back into the STAT flow if it came from there. */
+function returnControlAfterPad(target: ActiveControl | null): ActiveControl {
+  return target === 'stat' || target === 'stat_fraction' ? 'stat' : 'idle';
+}
+
 export const useLabelStore = create<StoreState>((set, get) => {
   // Helper to sync active label changes into labels array
   const updateActiveLabel = (updater: (label: LabelData) => Partial<LabelData>) => {
@@ -511,10 +516,10 @@ export const useLabelStore = create<StoreState>((set, get) => {
       },
     })),
 
-    cancelNumberPad: () => set({
+    cancelNumberPad: () => set((state) => ({
       numberPad: { visible: false, buffer: '', targetControl: null },
-      activeControl: 'idle',
-    }),
+      activeControl: returnControlAfterPad(state.numberPad.targetControl),
+    })),
 
     confirmNumberPad: () => {
       const { numberPad } = get();
@@ -523,7 +528,7 @@ export const useLabelStore = create<StoreState>((set, get) => {
       if (!targetControl || buffer === '') {
         set({
           numberPad: { visible: false, buffer: '', targetControl: null },
-          activeControl: 'idle',
+          activeControl: returnControlAfterPad(targetControl),
         });
         return;
       }
@@ -566,7 +571,7 @@ export const useLabelStore = create<StoreState>((set, get) => {
 
       set({
         numberPad: { visible: false, buffer: '', targetControl: null },
-        activeControl: 'idle',
+        activeControl: returnControlAfterPad(targetControl),
       });
     },
 
@@ -655,19 +660,30 @@ export const useLabelStore = create<StoreState>((set, get) => {
       return { selectedDaysOfWeek: updated };
     }),
 
-    startStat: () => updateActiveLabel(() => ({
-      stat: { qty: 0, isFraction: false, followUp: null },
-    })),
+    // STAT flow: STAT tile -> StatPanel (quantity) -> DONE -> StatFollowUpPanel -> back to the grid.
+    // Each step must move `activeControl`, otherwise the panels never open or close.
+    startStat: () => {
+      updateActiveLabel(() => ({
+        stat: { qty: 0, isFraction: false, followUp: null },
+      }));
+      set({ activeControl: 'stat' });
+    },
 
-    cancelStat: () => updateActiveLabel(() => ({
-      stat: null,
-    })),
+    cancelStat: () => {
+      updateActiveLabel(() => ({
+        stat: null,
+      }));
+      set({ activeControl: 'idle' });
+    },
 
     doneStat: () => set({ activeControl: 'stat_followup' }),
 
-    setStatFollowUp: (followUp) => updateActiveLabel((label) => ({
-      stat: label.stat ? { ...label.stat, followUp } : { qty: 0, isFraction: false, followUp },
-    })),
+    setStatFollowUp: (followUp) => {
+      updateActiveLabel((label) => ({
+        stat: label.stat ? { ...label.stat, followUp } : { qty: 0, isFraction: false, followUp },
+      }));
+      set({ activeControl: 'idle' });
+    },
 
     resetActiveLabel: () => updateActiveLabel(() => createDefaultLabel()),
 

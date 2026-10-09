@@ -17,11 +17,10 @@ export async function createSupplier(payload: ApiData): Promise<ApiResult<ApiDat
   const result = await apiRequest<ApiData>('suppliers', { method: 'POST', body: payload });
   if (!result.ok) return result;
 
-  // The API can answer 201 with a locally generated placeholder when the database insert
-  // fails. Only treat the save as successful when a real stored record comes back.
+  // The API now fails on any database error. Keep a defensive check that a stored record
+  // (with a database id) came back, so an unexpected response is never shown as saved.
   const saved = result.data;
-  const looksStored =
-    saved && typeof saved === 'object' && typeof saved.id === 'string' && UUID_PATTERN.test(saved.id) && saved.name === payload?.name;
+  const looksStored = saved && typeof saved === 'object' && typeof saved.id === 'string' && UUID_PATTERN.test(saved.id);
   if (!looksStored) {
     console.error('[api] POST /suppliers returned an unconfirmed record');
     return {

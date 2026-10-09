@@ -34,7 +34,9 @@ describe('NumberPad Component', () => {
   it('renders correctly and shows target control', () => {
     useLabelStore.setState({ numberPad: { visible: true, buffer: '', targetControl: 'morning' } });
     render(<NumberPad />);
-    expect(screen.getByText('ENTERING: MORNING')).toBeInTheDocument();
+    // Header shows "Entering" above the target name.
+    expect(screen.getByText('Entering')).toBeInTheDocument();
+    expect(screen.getByText('MORNING')).toBeInTheDocument();
   });
 
   it('digit entry updates the preview live', async () => {
@@ -76,8 +78,8 @@ describe('NumberPad Component', () => {
     await user.click(screen.getByText('6'));
     expect(screen.getByTestId('preview-panel').textContent).toBe('BUFFER:456');
 
-    // BS removes 6
-    await user.click(screen.getByText('BS'));
+    // Backspace (icon key, found by its accessible name) removes 6
+    await user.click(screen.getByRole('button', { name: 'Backspace' }));
     expect(screen.getByTestId('preview-panel').textContent).toBe('BUFFER:45');
 
     // AC clears
@@ -95,7 +97,7 @@ describe('NumberPad Component', () => {
     await user.click(screen.getByTestId('numpad-enter'));
 
     // Should close pad
-    expect(screen.queryByText('ENTERING: MORNING')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('numpad-enter')).not.toBeInTheDocument();
     
     // Check if store committed to morning qty
     expect(useLabelStore.getState().dosage.morning.qty).toBe(1);
@@ -114,7 +116,7 @@ describe('NumberPad Component', () => {
     await user.click(screen.getByText('BACK'));
 
     // Should close pad
-    expect(screen.queryByText('ENTERING: MORNING')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('numpad-enter')).not.toBeInTheDocument();
     
     // Morning should still be 5
     expect(useLabelStore.getState().dosage.morning.qty).toBe(5);

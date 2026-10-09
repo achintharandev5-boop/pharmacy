@@ -28,11 +28,12 @@ async function readBody(res: Response): Promise<unknown> {
 
 function errorMessage(status: number, body: unknown): string {
   if (status === 401) return 'Your session has expired. Please sign in again.';
-  if (status === 403) return 'You do not have permission to perform this action.';
 
   const message =
     body && typeof body === 'object' && 'message' in body ? (body as { message: unknown }).message : null;
+  // 403 messages from the API explain what is missing (for example, no role assigned).
   if (typeof message === 'string' && message.trim()) return message;
+  if (status === 403) return 'You do not have permission to perform this action.';
   if (Array.isArray(message) && message.length > 0) return message.join(' ');
 
   if (status === 404) return 'The requested record was not found.';

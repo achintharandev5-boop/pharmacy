@@ -1,12 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useLabelStore } from '../../store/labelStore';
 import { CustomerSearchPanel } from '../../components/CustomerSearchPanel';
 import { PrintableLabel } from '../../components/PrintableLabel';
 import { buildFinalInstruction } from '../../lib/labelBuilder';
 import { createPrescriptionRecord, logPrescriptionPrint } from '../actions/prescriptions';
 import { validateBeforePrint } from '../../constants/oabInstructions';
+
+/** Frequency buttons, as recognised by the label builder. */
+const FREQUENCY_CODES = ['STAT', 'SOS', '6H', '8H', '5H', 'EOD', 'DAILY', 'EVENING'];
 
 import { ProductToolbar } from '../../components/label/ProductToolbar';
 import { InstructionGrid } from '../../components/label/InstructionGrid';
@@ -27,6 +30,11 @@ export default function LabelPage() {
   const [showActionPage, setShowActionPage] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveWarning, setSaveWarning] = useState<string | null>(null);
+  // One key per review session: a retry after a failed or lost response reuses it, so the
+  // server can never dispense the same prescription twice.
+  const idempotencyKeyRef = useRef<string | null>(null);
+  const idempotencyKey = () => (idempotencyKeyRef.current ??= `rx-${crypto.randomUUID()}`);
 
   const handleDone = () => {
     const currentState = useLabelStore.getState();
@@ -47,6 +55,8 @@ export default function LabelPage() {
 
     setValidationError(null);
     setSaveError(null);
+    setSaveWarning(null);
+    idempotencyKeyRef.current = null;
     setShowActionPage(true);
   };
 
@@ -57,24 +67,33 @@ export default function LabelPage() {
     return {
       customerName: customerName || 'Walk-in Patient',
       customerPhone: customerPhone || null,
-      items: labels.map((label) => ({
-        productId: label.product?.id || undefined,
-        alternativeProductName: label.alternativeProductName || undefined,
-        quantity: label.productQuantity || 1,
-        days: label.days || undefined,
-        dosage: {
-          morning: label.dosage.morning.qty || 0,
-          lunch: label.dosage.lunch.qty || 0,
-          night: label.dosage.night.qty || 0,
-        },
-        frequency: label.frequencyDosage.qty > 0 ? 'FREQUENCY' : undefined,
-        stat: label.stat ? { qty: label.stat.qty, isFraction: label.stat.isFraction, followUp: label.stat.followUp || undefined } : undefined,
-        expiryDate: label.expiryDate || undefined,
-        instructions: label.additionalInstructions || [],
-        reasons: label.reasons || (label.reason ? [label.reason] : []),
-        selectedDaysOfWeek: label.selectedDaysOfWeek || [],
-        showAddress: label.showAddress !== false,
-      })),
+      items: labels.map((label) => {
+        const built = buildFinalInstruction({ ...label, customerName });
+        const activeFrequency = (label.additionalInstructions || []).find((i) => FREQUENCY_CODES.includes(i));
+        return {
+          productId: label.product?.id || undefined,
+          alternativeProductName: label.alternativeProductName || undefined,
+          // Existing behaviour: a label without an entered quantity is saved as 1 unit.
+          // Flagged for pharmacist review (docs/BACKEND_AUDIT_AND_REPAIR_REPORT.md).
+          quantity: label.productQuantity || 1,
+          days: label.days || undefined,
+          dosage: {
+            morning: label.dosage.morning.qty || 0,
+            lunch: label.dosage.lunch.qty || 0,
+            night: label.dosage.night.qty || 0,
+          },
+          frequency: activeFrequency ?? (label.frequencyDosage.qty > 0 ? 'FREQUENCY' : undefined),
+          frequencyQty: label.frequencyDosage.qty > 0 ? label.frequencyDosage.qty : undefined,
+          stat: label.stat ? { qty: label.stat.qty, isFraction: label.stat.isFraction, followUp: label.stat.followUp || undefined } : undefined,
+          expiryDate: label.expiryDate || undefined,
+          instructions: label.additionalInstructions || [],
+          reasons: label.reasons || (label.reason ? [label.reason] : []),
+          selectedDaysOfWeek: label.selectedDaysOfWeek || [],
+          showAddress: label.showAddress !== false,
+          // The dosage and instruction text the workstation generated for this label.
+          finalInstructionText: [built.dosageText, built.instructionString].filter(Boolean).join(' | ') || undefined,
+        };
+      }),
     };
   };
 
@@ -84,20 +103,19 @@ export default function LabelPage() {
     setSaveError(null);
 
     const payload = buildPrescriptionPayload();
-    const idempotencyKey = `idempotency_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
     try {
-      const res = await createPrescriptionRecord(payload, idempotencyKey);
-      if (res.error) {
-        setSaveError(res.error);
+      const res = await createPrescriptionRecord(payload, idempotencyKey());
+      if (!res.ok) {
+        setSaveError(`Not saved: ${res.error}`);
         return;
       }
 
+      idempotencyKeyRef.current = null;
       allClear();
       setShowActionPage(false);
-    } catch (err: any) {
-      console.error('Failed to save prescription:', err);
-      setSaveError(err.message || 'An unexpected error occurred while saving prescription.');
+    } catch {
+      setSaveError('Not saved: the pharmacy server could not be reached. Try again; it will not be saved twice.');
     } finally {
       setIsProcessing(false);
     }
@@ -121,30 +139,33 @@ export default function LabelPage() {
     setFinalLabelData(allFinalData);
 
     const payload = buildPrescriptionPayload();
-    const idempotencyKey = `idempotency_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
     try {
-      // Confirm persistence first before printing
-      const res = await createPrescriptionRecord(payload, idempotencyKey);
-      if (res.error) {
-        setSaveError(res.error);
+      // Print only after the server has confirmed the prescription is saved.
+      const res = await createPrescriptionRecord(payload, idempotencyKey());
+      if (!res.ok) {
+        setSaveError(`Not saved, nothing printed: ${res.error}`);
         setFinalLabelData(null);
         return;
       }
+      idempotencyKeyRef.current = null;
+      const saved = res.data;
 
-      if (res.data?.id) {
-        await logPrescriptionPrint(res.data.id);
+      // Let the printable labels render before opening the print dialog.
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      window.print();
+
+      const logged = await logPrescriptionPrint(saved.id);
+      allClear();
+      setFinalLabelData(null);
+      setShowActionPage(false);
+      if (!logged.ok) {
+        setSaveWarning(
+          `Prescription ${saved.prescriptionNumber} was saved and sent to the printer, but the print could not be recorded: ${logged.error}`,
+        );
       }
-
-      setTimeout(() => {
-        window.print();
-        allClear();
-        setFinalLabelData(null);
-        setShowActionPage(false);
-      }, 150);
-    } catch (err: any) {
-      console.error('Failed to save & print prescription:', err);
-      setSaveError(err.message || 'Failed to complete print and save operation.');
+    } catch {
+      setSaveError('Not saved, nothing printed: the pharmacy server could not be reached. Try again; it will not be saved twice.');
       setFinalLabelData(null);
     } finally {
       setIsProcessing(false);
@@ -185,6 +206,17 @@ export default function LabelPage() {
     <>
       <PrintableLabel data={finalLabelData} />
       <div className="no-print w-full h-full">
+        {saveWarning && (
+          <div
+            role="alert"
+            className="fixed top-3 left-1/2 -translate-x-1/2 z-50 max-w-2xl w-[calc(100%-2rem)] bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 text-sm font-semibold rounded-lg shadow-lg flex items-start gap-3"
+          >
+            <span className="flex-1">{saveWarning}</span>
+            <button type="button" onClick={() => setSaveWarning(null)} className="font-bold underline shrink-0">
+              Dismiss
+            </button>
+          </div>
+        )}
         {customerSearchVisible && <CustomerSearchPanel />}
         <DeleteLabelModal />
         <ExpDateModal />

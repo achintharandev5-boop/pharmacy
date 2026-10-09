@@ -34,13 +34,13 @@ export async function sendClientSms({
   scheduleTime,
 }: SendSmsParams) {
   const apiToken = process.env.TEXT_LK_API_TOKEN;
-  const defaultSenderId = process.env.TEXT_LK_SENDER_ID || 'TextLKDemo';
+  const defaultSenderId = process.env.TEXT_LK_SENDER_ID;
 
-  if (!apiToken) {
-    console.error('TEXT_LK_API_TOKEN is not configured in .env');
+  if (!apiToken || !(senderId || defaultSenderId)) {
+    console.error('[sms] TEXT_LK_API_TOKEN or TEXT_LK_SENDER_ID is not configured');
     return {
       success: false,
-      error: 'SMS API token is not configured in environment (TEXT_LK_API_TOKEN).',
+      error: 'SMS is not configured on this server (TEXT_LK_API_TOKEN and TEXT_LK_SENDER_ID are required).',
     };
   }
 
@@ -78,7 +78,8 @@ export async function sendClientSms({
     const data = await res.json();
 
     if (!res.ok || data.status === 'error') {
-      console.error('Text.lk API Error:', data);
+      // Status only: the gateway response can echo the recipient number.
+      console.error(`[sms] Text.lk rejected the message (HTTP ${res.status})`);
       return {
         success: false,
         error: data.message || `Failed to send SMS (Status: ${res.status})`,
@@ -90,7 +91,7 @@ export async function sendClientSms({
       data: data.data,
     };
   } catch (error: any) {
-    console.error('Failed to send SMS via Text.lk:', error);
+    console.error('[sms] Text.lk could not be reached');
     return {
       success: false,
       error: error.message || 'Failed to dispatch SMS request',

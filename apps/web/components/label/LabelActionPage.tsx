@@ -95,7 +95,7 @@ export function LabelActionPage({
 
       if (res.success) {
         setCustomerPhone(smsRecipient.trim());
-        setSmsStatus({ type: 'success', message: 'SMS delivered to client successfully!' });
+        setSmsStatus({ type: 'success', message: 'SMS accepted by the gateway for delivery.' });
         setTimeout(() => {
           setSmsModalOpen(false);
           setSmsStatus(null);

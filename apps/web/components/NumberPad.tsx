@@ -83,8 +83,8 @@ export function NumberPad() {
         <NumBtn onClick={() => handleDigit('4')}>4</NumBtn>
         <NumBtn onClick={() => handleDigit('5')}>5</NumBtn>
         <NumBtn onClick={() => handleDigit('6')}>6</NumBtn>
-        <ActionBtn onClick={backspace} color="gray">
-          <Delete size={24} />
+        <ActionBtn onClick={backspace} color="gray" label="Backspace">
+          <Delete size={24} aria-hidden="true" />
         </ActionBtn>
 
         <NumBtn onClick={() => handleDigit('1')}>1</NumBtn>
@@ -122,7 +122,18 @@ function NumBtn({ children, onClick }: { children: React.ReactNode, onClick: () 
   );
 }
 
-function ActionBtn({ children, onClick, color }: { children: React.ReactNode, onClick: () => void, color: 'red' | 'gray' }) {
+function ActionBtn({
+  children,
+  onClick,
+  color,
+  label,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  color: 'red' | 'gray';
+  /** Accessible name for icon-only keys. */
+  label?: string;
+}) {
   const colorClass = color === 'red' 
     ? 'bg-[#FFF1F2] border border-[#FECDD3] text-[#E11D48] hover:bg-[#FFE4E6]' 
     : 'bg-[#F1F5F9] border border-[#E2E8F0] text-[#475569] hover:bg-[#E2E8F0]';
@@ -131,6 +142,8 @@ function ActionBtn({ children, onClick, color }: { children: React.ReactNode, on
     <button 
       type="button"
       onClick={onClick}
+      aria-label={label}
+      title={label}
       className={`font-black text-base lg:text-lg rounded-2xl transition-all flex items-center justify-center select-none touch-manipulation active:scale-95 shadow-sm cursor-pointer ${colorClass}`}
     >
       {children}

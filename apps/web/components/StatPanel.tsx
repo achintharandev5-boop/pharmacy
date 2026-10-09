@@ -57,6 +57,7 @@ export function StatPanel() {
           <button 
             type="button"
             onClick={() => openNumberPad('stat_fraction')}
+            aria-label="Enter STAT fraction"
             className="h-12 px-4 bg-white border border-[#DCE7F5] text-[#475569] hover:text-[#2563EB] hover:border-[#BFDBFE] rounded-xl font-bold text-sm flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
           >
             <span>X / Y</span>
@@ -65,6 +66,7 @@ export function StatPanel() {
           <button 
             type="button"
             onClick={() => decrementDosage('stat')}
+            aria-label="Decrease STAT quantity"
             className="w-14 h-12 bg-[#EF4444] hover:bg-[#DC2626] active:scale-95 text-white rounded-xl font-bold text-2xl flex items-center justify-center shadow-sm transition-all cursor-pointer"
           >
             <Minus size={22} strokeWidth={3} />
@@ -72,6 +74,7 @@ export function StatPanel() {
           <button 
             type="button"
             onClick={() => incrementDosage('stat')}
+            aria-label="Increase STAT quantity"
             className="w-14 h-12 bg-[#10B981] hover:bg-[#059669] active:scale-95 text-white rounded-xl font-bold text-2xl flex items-center justify-center shadow-sm transition-all cursor-pointer"
           >
             <Plus size={22} strokeWidth={3} />
