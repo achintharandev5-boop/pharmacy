@@ -56,6 +56,11 @@ SELECT pg_temp.check(
   pg_temp.fails($$INSERT INTO prescriptions (prescription_number, customer_name_text, status) VALUES ('X', 'A', 'BOGUS')$$) = '23514',
   'prescription status is restricted');
 
+INSERT INTO products (name, barcode) VALUES ('Catalogue Only', 'T-NEW');
+SELECT pg_temp.check(
+  (SELECT expiry_date IS NULL AND stock_quantity = 0 FROM products WHERE barcode = 'T-NEW'),
+  'a medicine can be added without inventing an expiry date or batch');
+
 UPDATE customers SET name = 'Test Patient Renamed' WHERE id = 'dddddddd-0000-4000-8000-000000000001';
 SELECT pg_temp.check(
   (SELECT changed_fields FROM audit_log WHERE entity_type = 'customers' AND action = 'UPDATE' ORDER BY id DESC LIMIT 1) = ARRAY['name'],

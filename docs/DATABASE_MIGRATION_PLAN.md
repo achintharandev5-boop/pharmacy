@@ -2,6 +2,8 @@
 
 Status: **prepared, not applied.** Nothing in this plan has been run against the Supabase project. Applying it requires the owner's approval.
 
+The step-by-step runbook (compatibility checks, backup, order, RLS verification, role assignment, rollback) is `SUPABASE_DEPLOYMENT_GUIDE.md`. This document explains what the migrations do.
+
 ## What the new migrations do
 
 | File | Changes | Destructive? |

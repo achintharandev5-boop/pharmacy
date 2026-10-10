@@ -44,6 +44,12 @@ CREATE INDEX IF NOT EXISTS idx_customers_name ON customers (lower(name));
 -- ---------------------------------------------------------------------------
 -- 2. Medicines (products)
 -- ---------------------------------------------------------------------------
+-- The first schema required a single expiry date and batch number on every product. Expiry
+-- and batch now live in product_batches; requiring them here would force an invented expiry
+-- date whenever a new medicine is added. Existing values are kept.
+ALTER TABLE products ALTER COLUMN expiry_date DROP NOT NULL;
+ALTER TABLE products ALTER COLUMN batch_number DROP NOT NULL;
+
 -- Columns the workstation reads but no migration created.
 ALTER TABLE products ADD COLUMN IF NOT EXISTS pack_size INTEGER;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS product_type TEXT;
