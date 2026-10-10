@@ -76,18 +76,18 @@ export function BottomActionBar({ onDone }: BottomActionBarProps) {
         {/* 1. DAYS CARD */}
         <div className="h-full">
           <div
-            className={`w-full h-full bg-white border border-[#DCE7F5] rounded-2xl px-4 flex items-center justify-between shadow-[0_2px_8px_rgba(15,23,42,0.03)] ${
+            className={`w-full h-full bg-white border border-border rounded-ui-lg px-4 flex items-center justify-between shadow-card ${
               isStatActive ? 'opacity-40 pointer-events-none' : ''
             }`}
           >
             {/* Calendar Icon */}
-            <div className="shrink-0 flex items-center text-[#2563EB]">
+            <div className="shrink-0 flex items-center text-primary">
               <Calendar size={24} />
             </div>
 
             {/* Middle Controls Stack */}
             <div className="flex flex-col items-center justify-center">
-              <span className="text-[11px] font-bold text-[#94A3B8] uppercase leading-none">
+              <span className="text-[11px] font-bold text-subtle uppercase leading-none">
                 Days
               </span>
               <div className="flex items-center gap-1 mt-1">
@@ -95,7 +95,7 @@ export function BottomActionBar({ onDone }: BottomActionBarProps) {
                   type="button"
                   onClick={handleDaysDecrement}
                   aria-label="Decrease days"
-                  className="w-7 h-7 rounded-lg bg-[#F1F5F9] hover:bg-[#E2E8F0] active:scale-95 text-[#64748B] flex items-center justify-center font-bold text-sm select-none touch-manipulation cursor-pointer transition-all"
+                  className="w-7 h-7 rounded-lg bg-surface-2 hover:bg-border active:scale-95 text-subtle flex items-center justify-center font-bold text-sm select-none touch-manipulation cursor-pointer transition-all"
                 >
                   <Minus size={14} strokeWidth={2.5} />
                 </button>
@@ -104,7 +104,7 @@ export function BottomActionBar({ onDone }: BottomActionBarProps) {
                   type="button"
                   onClick={() => openNumberPad('days')}
                   aria-label={`Days: ${daysNum}`}
-                  className="min-w-[28px] px-1 text-center font-black text-lg text-[#0F172A] hover:text-[#2563EB] cursor-pointer"
+                  className="min-w-[28px] px-1 text-center font-black text-lg text-fg hover:text-primary cursor-pointer"
                 >
                   {daysNum}
                 </button>
@@ -113,7 +113,7 @@ export function BottomActionBar({ onDone }: BottomActionBarProps) {
                   type="button"
                   onClick={handleDaysIncrement}
                   aria-label="Increase days"
-                  className="w-7 h-7 rounded-lg bg-[#EFF6FF] hover:bg-[#DBEAFE] active:scale-95 text-[#2563EB] flex items-center justify-center font-bold text-sm select-none touch-manipulation cursor-pointer transition-all"
+                  className="w-7 h-7 rounded-lg bg-primary-soft hover:bg-primary-border active:scale-95 text-primary flex items-center justify-center font-bold text-sm select-none touch-manipulation cursor-pointer transition-all"
                 >
                   <Plus size={14} strokeWidth={2.5} />
                 </button>
@@ -128,7 +128,7 @@ export function BottomActionBar({ onDone }: BottomActionBarProps) {
         <div className="h-full">
           <div
             onClick={handleExpDateClick}
-            className={`w-full h-full bg-white border border-[#DCE7F5] rounded-2xl px-4 flex items-center justify-between shadow-[0_2px_8px_rgba(15,23,42,0.03)] hover:border-[#BFDBFE] transition-colors cursor-pointer select-none ${
+            className={`w-full h-full bg-white border border-border rounded-ui-lg px-4 flex items-center justify-between shadow-card hover:border-primary-border transition-colors cursor-pointer select-none ${
               isStatActive ? 'opacity-40 pointer-events-none' : ''
             }`}
           >
@@ -137,11 +137,11 @@ export function BottomActionBar({ onDone }: BottomActionBarProps) {
                 <Calendar size={24} />
               </div>
               <div className="flex flex-col justify-center">
-                <span className="text-[11px] font-semibold text-[#94A3B8] uppercase leading-none">
+                <span className="text-[11px] font-semibold text-subtle uppercase leading-none">
                   Expiry Date
                 </span>
-                <span className="font-black text-base text-[#0F172A] leading-tight mt-0.5">
-                  {expiryDate || <span className="text-[#94A3B8] font-bold">Not set</span>}
+                <span className="font-black text-base text-fg leading-tight mt-0.5">
+                  {expiryDate || <span className="text-subtle font-bold">Not set</span>}
                 </span>
               </div>
             </div>
@@ -152,7 +152,7 @@ export function BottomActionBar({ onDone }: BottomActionBarProps) {
                 e.stopPropagation();
                 openExpDateModal();
               }}
-              className="w-9 h-9 rounded-xl bg-[#EFF6FF] hover:bg-[#DBEAFE] text-[#2563EB] flex items-center justify-center transition-all cursor-pointer shrink-0 shadow-sm"
+              className="w-9 h-9 rounded-ui-lg bg-primary-soft hover:bg-primary-border text-primary flex items-center justify-center transition-all cursor-pointer shrink-0 shadow-sm"
               title="Open Expiry Date Picker"
             >
               <Calendar size={18} />
@@ -162,20 +162,20 @@ export function BottomActionBar({ onDone }: BottomActionBarProps) {
 
         {/* 3. LABEL NAVIGATION CARD */}
         <div className="h-full">
-          <div className="w-full h-full bg-white border border-[#DCE7F5] rounded-2xl px-4 flex items-center justify-between shadow-[0_2px_8px_rgba(15,23,42,0.03)]">
+          <div className="w-full h-full bg-white border border-border rounded-ui-lg px-4 flex items-center justify-between shadow-card">
             <button
               type="button"
               disabled={isPrevDisabled}
               onClick={() => selectLabel(activeLabelIndex - 1)}
               aria-label="Previous label"
-              className={`w-10 h-10 rounded-xl bg-[#F0F6FF] hover:bg-[#E0EEFC] active:scale-95 text-[#2563EB] flex items-center justify-center font-bold transition-all cursor-pointer ${
+              className={`w-10 h-10 rounded-ui-lg bg-primary-soft hover:bg-[#E0EEFC] active:scale-95 text-primary flex items-center justify-center font-bold transition-all cursor-pointer ${
                 isPrevDisabled ? 'opacity-40 pointer-events-none' : ''
               }`}
             >
               <ChevronLeft size={22} strokeWidth={2.5} />
             </button>
 
-            <span className="font-black text-sm text-[#2563EB] tracking-wider uppercase select-none">
+            <span className="font-black text-sm text-primary tracking-wider uppercase select-none">
               LABEL {activeLabelIndex + 1} OF {totalLabels}
             </span>
 
@@ -184,7 +184,7 @@ export function BottomActionBar({ onDone }: BottomActionBarProps) {
               disabled={isNextDisabled}
               onClick={() => selectLabel(activeLabelIndex + 1)}
               aria-label="Next label"
-              className={`w-10 h-10 rounded-xl bg-[#F0F6FF] hover:bg-[#E0EEFC] active:scale-95 text-[#2563EB] flex items-center justify-center font-bold transition-all cursor-pointer ${
+              className={`w-10 h-10 rounded-ui-lg bg-primary-soft hover:bg-[#E0EEFC] active:scale-95 text-primary flex items-center justify-center font-bold transition-all cursor-pointer ${
                 isNextDisabled ? 'opacity-40 pointer-events-none' : ''
               }`}
             >
@@ -200,7 +200,7 @@ export function BottomActionBar({ onDone }: BottomActionBarProps) {
             onClick={onDone}
             disabled={isStatActive}
             aria-label="Done — review and print labels"
-            className={`w-full h-full bg-[#059669] hover:bg-[#047857] active:bg-[#065F46] text-white rounded-2xl px-6 flex items-center justify-between shadow-md transition-all select-none touch-manipulation cursor-pointer active:scale-[0.99] ${
+            className={`w-full h-full bg-success hover:bg-success active:bg-success text-white rounded-ui-lg px-6 flex items-center justify-between shadow-md transition-all select-none touch-manipulation cursor-pointer active:scale-[0.99] ${
               isStatActive ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''
             }`}
           >

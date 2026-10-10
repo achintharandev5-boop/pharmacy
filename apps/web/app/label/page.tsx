@@ -178,13 +178,13 @@ export default function LabelPage() {
         <PrintableLabel data={finalLabelData} />
         <div className="no-print w-full h-full">
           {saveError && (
-            <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-[#FFF1F2] border-2 border-[#E11D48] text-[#9F1239] px-6 py-3 font-bold text-base shadow-2xl flex items-center gap-3 rounded-2xl">
+            <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-danger-soft border-2 border-danger text-danger px-6 py-3 font-bold text-base shadow-pop flex items-center gap-3 rounded-ui-lg">
               <span>⚠️</span>
               <span>{saveError}</span>
               <button
                 type="button"
                 onClick={() => setSaveError(null)}
-                className="ml-4 font-bold text-xs bg-[#E11D48] text-white px-2 py-1 rounded-lg"
+                className="ml-4 font-bold text-xs bg-danger text-white px-2 py-1 rounded-lg"
               >
                 DISMISS
               </button>
@@ -209,7 +209,7 @@ export default function LabelPage() {
         {saveWarning && (
           <div
             role="alert"
-            className="fixed top-3 left-1/2 -translate-x-1/2 z-50 max-w-2xl w-[calc(100%-2rem)] bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 text-sm font-semibold rounded-lg shadow-lg flex items-start gap-3"
+            className="fixed top-3 left-1/2 -translate-x-1/2 z-50 max-w-2xl w-[calc(100%-2rem)] bg-warning-soft border border-warning-border text-warning px-4 py-3 text-sm font-semibold rounded-lg shadow-pop flex items-start gap-3"
           >
             <span className="flex-1">{saveWarning}</span>
             <button type="button" onClick={() => setSaveWarning(null)} className="font-bold underline shrink-0">
@@ -221,7 +221,7 @@ export default function LabelPage() {
         <DeleteLabelModal />
         <ExpDateModal />
 
-        <main className="w-screen h-screen h-[100dvh] bg-[#F4F8FF] overflow-hidden flex flex-col p-2.5 text-[#0F172A] select-none touch-manipulation font-sans">
+        <main className="w-screen h-screen h-[100dvh] bg-primary-soft overflow-hidden flex flex-col p-2.5 text-fg select-none touch-manipulation font-sans">
           {/* 1. TOP TOOLBAR (84px height) */}
           <ProductToolbar />
 

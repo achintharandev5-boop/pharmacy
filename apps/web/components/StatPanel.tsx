@@ -28,26 +28,26 @@ export function StatPanel() {
     <div className="w-full h-full flex flex-col justify-between p-3 select-none overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-2.5 mb-2 shrink-0">
-        <div className="w-8 h-8 rounded-xl bg-[#FFF1F2] border border-[#FECDD3] text-[#E11D48] flex items-center justify-center shadow-sm">
+        <div className="w-8 h-8 rounded-ui-lg bg-danger-soft border border-danger-border text-danger flex items-center justify-center shadow-sm">
           <Zap size={18} className="fill-current" />
         </div>
         <div>
-          <h3 className="text-base font-bold text-[#0F172A] leading-tight">
+          <h3 className="text-base font-bold text-fg leading-tight">
             STAT Dose
           </h3>
-          <p className="text-xs text-[#94A3B8] font-medium leading-tight">
+          <p className="text-xs text-subtle font-medium leading-tight">
             Immediate administration single dose
           </p>
         </div>
       </div>
       
       {/* Center QTY Box */}
-      <div className="flex-1 bg-[#F8FAFC] border border-[#DCE7F5] rounded-2xl p-4 flex flex-col items-center justify-center gap-4 my-1">
+      <div className="flex-1 bg-surface border border-border rounded-ui-lg p-4 flex flex-col items-center justify-center gap-4 my-1">
         <div className="flex flex-col items-center justify-center">
-          <span className="text-xs font-bold text-[#94A3B8] uppercase tracking-wider">
+          <span className="text-xs font-bold text-subtle uppercase tracking-wider">
             STAT Quantity
           </span>
-          <span className="text-4xl lg:text-5xl font-black text-[#0F172A] mt-1">
+          <span className="text-4xl lg:text-5xl font-black text-fg mt-1">
             {displayQty || '0'}
           </span>
         </div>
@@ -58,7 +58,7 @@ export function StatPanel() {
             type="button"
             onClick={() => openNumberPad('stat_fraction')}
             aria-label="Enter STAT fraction"
-            className="h-12 px-4 bg-white border border-[#DCE7F5] text-[#475569] hover:text-[#2563EB] hover:border-[#BFDBFE] rounded-xl font-bold text-sm flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
+            className="h-12 px-4 bg-white border border-border text-muted hover:text-primary hover:border-primary-border rounded-ui-lg font-bold text-sm flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
           >
             <span>X / Y</span>
             <ChevronDown size={15} />
@@ -67,7 +67,7 @@ export function StatPanel() {
             type="button"
             onClick={() => decrementDosage('stat')}
             aria-label="Decrease STAT quantity"
-            className="w-14 h-12 bg-[#EF4444] hover:bg-[#DC2626] active:scale-95 text-white rounded-xl font-bold text-2xl flex items-center justify-center shadow-sm transition-all cursor-pointer"
+            className="w-14 h-12 bg-danger hover:bg-danger active:scale-95 text-white rounded-ui-lg font-bold text-2xl flex items-center justify-center shadow-sm transition-all cursor-pointer"
           >
             <Minus size={22} strokeWidth={3} />
           </button>
@@ -75,7 +75,7 @@ export function StatPanel() {
             type="button"
             onClick={() => incrementDosage('stat')}
             aria-label="Increase STAT quantity"
-            className="w-14 h-12 bg-[#10B981] hover:bg-[#059669] active:scale-95 text-white rounded-xl font-bold text-2xl flex items-center justify-center shadow-sm transition-all cursor-pointer"
+            className="w-14 h-12 bg-[#10B981] hover:bg-success active:scale-95 text-white rounded-ui-lg font-bold text-2xl flex items-center justify-center shadow-sm transition-all cursor-pointer"
           >
             <Plus size={22} strokeWidth={3} />
           </button>
@@ -83,11 +83,11 @@ export function StatPanel() {
       </div>
 
       {/* Footer */}
-      <div className="flex items-center gap-2.5 mt-2 pt-2 border-t border-[#DCE7F5] shrink-0">
+      <div className="flex items-center gap-2.5 mt-2 pt-2 border-t border-border shrink-0">
         <button 
           type="button"
           onClick={cancelStat}
-          className="h-12 px-5 bg-[#F1F5F9] hover:bg-[#E2E8F0] text-[#475569] font-bold text-sm rounded-xl active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
+          className="h-12 px-5 bg-surface-2 hover:bg-border text-muted font-bold text-sm rounded-ui-lg active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
         >
           <X size={16} />
           <span>Cancel</span>
@@ -95,7 +95,7 @@ export function StatPanel() {
         <button 
           type="button"
           onClick={doneStat}
-          className="flex-1 h-12 bg-[#2563EB] hover:bg-[#1D4ED8] active:scale-[0.99] text-white font-bold text-base rounded-xl shadow-sm transition-all cursor-pointer flex items-center justify-center gap-1.5"
+          className="flex-1 h-12 bg-primary hover:bg-primary-hover active:scale-[0.99] text-white font-bold text-base rounded-ui-lg shadow-sm transition-all cursor-pointer flex items-center justify-center gap-1.5"
         >
           <Check size={18} strokeWidth={2.5} />
           <span>Done (Next)</span>

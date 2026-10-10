@@ -87,16 +87,16 @@ export function OABWorkflowPanel({ onInstructionGenerated, className = '' }: OAB
   };
 
   return (
-    <div className={`bg-white border-2 border-gray-200 rounded-2xl p-5 shadow-sm space-y-5 ${className}`}>
+    <div className={`bg-white border-2 border-border rounded-ui-lg p-5 shadow-sm space-y-5 ${className}`}>
       {/* HEADER */}
       <div className="flex items-center justify-between border-b pb-3">
         <div>
-          <h2 className="text-xl font-bold text-gray-800">Software Logic For OAB</h2>
-          <p className="text-xs text-gray-500">Button-driven medicine instruction selection</p>
+          <h2 className="text-xl font-bold text-fg">Software Logic For OAB</h2>
+          <p className="text-xs text-subtle">Button-driven medicine instruction selection</p>
         </div>
         <button
           onClick={handleReset}
-          className="text-xs font-semibold px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
+          className="text-xs font-semibold px-3 py-1.5 bg-surface-2 text-muted rounded-lg hover:bg-border transition-colors"
         >
           Reset Workflow
         </button>
@@ -104,17 +104,17 @@ export function OABWorkflowPanel({ onInstructionGenerated, className = '' }: OAB
 
       {/* STEP 1: CATEGORY SELECTION */}
       <div className="space-y-2">
-        <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
+        <label className="text-xs font-bold uppercase tracking-wider text-subtle">
           1. Select Medicine Instruction Type
         </label>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <button
             type="button"
             onClick={() => handleCategorySelect('chewable')}
-            className={`py-3 px-3 rounded-xl font-bold text-sm text-center border-2 transition-all ${
+            className={`py-3 px-3 rounded-ui-lg font-bold text-sm text-center border-2 transition-all ${
               selectedCategory === 'chewable'
-                ? 'bg-[#1F48FF] text-white border-[#1F48FF] shadow-md scale-[1.02]'
-                : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300'
+                ? 'bg-primary text-white border-primary shadow-md scale-[1.02]'
+                : 'bg-surface text-muted border-border hover:border-border-strong'
             }`}
           >
             <div>CHEWABLE</div>
@@ -124,10 +124,10 @@ export function OABWorkflowPanel({ onInstructionGenerated, className = '' }: OAB
           <button
             type="button"
             onClick={() => handleCategorySelect('dissolveAndDrink')}
-            className={`py-3 px-3 rounded-xl font-bold text-sm text-center border-2 transition-all ${
+            className={`py-3 px-3 rounded-ui-lg font-bold text-sm text-center border-2 transition-all ${
               selectedCategory === 'dissolveAndDrink'
-                ? 'bg-[#1F48FF] text-white border-[#1F48FF] shadow-md scale-[1.02]'
-                : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300'
+                ? 'bg-primary text-white border-primary shadow-md scale-[1.02]'
+                : 'bg-surface text-muted border-border hover:border-border-strong'
             }`}
           >
             <div>DISSOLVE & DRINK</div>
@@ -137,10 +137,10 @@ export function OABWorkflowPanel({ onInstructionGenerated, className = '' }: OAB
           <button
             type="button"
             onClick={() => handleCategorySelect('withFood')}
-            className={`py-3 px-3 rounded-xl font-bold text-sm text-center border-2 transition-all ${
+            className={`py-3 px-3 rounded-ui-lg font-bold text-sm text-center border-2 transition-all ${
               selectedCategory === 'withFood'
-                ? 'bg-[#1F48FF] text-white border-[#1F48FF] shadow-md scale-[1.02]'
-                : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300'
+                ? 'bg-primary text-white border-primary shadow-md scale-[1.02]'
+                : 'bg-surface text-muted border-border hover:border-border-strong'
             }`}
           >
             <div>WITH FOOD</div>
@@ -150,10 +150,10 @@ export function OABWorkflowPanel({ onInstructionGenerated, className = '' }: OAB
           <button
             type="button"
             onClick={() => handleCategorySelect('emptyStomach')}
-            className={`py-3 px-3 rounded-xl font-bold text-sm text-center border-2 transition-all ${
+            className={`py-3 px-3 rounded-ui-lg font-bold text-sm text-center border-2 transition-all ${
               selectedCategory === 'emptyStomach'
-                ? 'bg-[#1F48FF] text-white border-[#1F48FF] shadow-md scale-[1.02]'
-                : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300'
+                ? 'bg-primary text-white border-primary shadow-md scale-[1.02]'
+                : 'bg-surface text-muted border-border hover:border-border-strong'
             }`}
           >
             <div>EMPTY STOMACH</div>
@@ -166,7 +166,7 @@ export function OABWorkflowPanel({ onInstructionGenerated, className = '' }: OAB
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
         {/* ACTION OPTIONS */}
         <div className="space-y-2">
-          <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
+          <label className="text-xs font-bold uppercase tracking-wider text-subtle">
             2. Action (TAKE / GIVE)
           </label>
           <div className="grid grid-cols-2 gap-2">
@@ -174,11 +174,11 @@ export function OABWorkflowPanel({ onInstructionGenerated, className = '' }: OAB
               type="button"
               disabled={!selectedCategory}
               onClick={() => handleActionSelect('take')}
-              className={`py-2.5 px-3 rounded-xl font-bold text-sm text-center border-2 transition-all ${
-                !selectedCategory ? 'opacity-40 cursor-not-allowed bg-gray-100 border-gray-200 text-gray-400' :
+              className={`py-2.5 px-3 rounded-ui-lg font-bold text-sm text-center border-2 transition-all ${
+                !selectedCategory ? 'opacity-40 cursor-not-allowed bg-surface-2 border-border text-subtle' :
                 selectedAction === 'take'
-                  ? 'bg-emerald-600 text-white border-emerald-600 shadow'
-                  : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300'
+                  ? 'bg-success text-white border-success shadow'
+                  : 'bg-surface text-muted border-border hover:border-border-strong'
               }`}
             >
               TAKE (ගන්න)
@@ -188,11 +188,11 @@ export function OABWorkflowPanel({ onInstructionGenerated, className = '' }: OAB
               type="button"
               disabled={!selectedCategory}
               onClick={() => handleActionSelect('give')}
-              className={`py-2.5 px-3 rounded-xl font-bold text-sm text-center border-2 transition-all ${
-                !selectedCategory ? 'opacity-40 cursor-not-allowed bg-gray-100 border-gray-200 text-gray-400' :
+              className={`py-2.5 px-3 rounded-ui-lg font-bold text-sm text-center border-2 transition-all ${
+                !selectedCategory ? 'opacity-40 cursor-not-allowed bg-surface-2 border-border text-subtle' :
                 selectedAction === 'give'
-                  ? 'bg-emerald-600 text-white border-emerald-600 shadow'
-                  : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300'
+                  ? 'bg-success text-white border-success shadow'
+                  : 'bg-surface text-muted border-border hover:border-border-strong'
               }`}
             >
               GIVE (දෙන්න)
@@ -203,11 +203,11 @@ export function OABWorkflowPanel({ onInstructionGenerated, className = '' }: OAB
         {/* MEAL TIMING OPTIONS */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
+            <label className="text-xs font-bold uppercase tracking-wider text-subtle">
               3. Timing (BEFORE / AFTER)
             </label>
             {isTimingLocked && (
-              <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-amber-100 text-amber-800 rounded">
+              <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-amber-100 text-warning rounded">
                 Locked / N/A
               </span>
             )}
@@ -217,12 +217,12 @@ export function OABWorkflowPanel({ onInstructionGenerated, className = '' }: OAB
               type="button"
               disabled={!selectedCategory || isTimingLocked}
               onClick={() => handleTimingSelect('before')}
-              className={`py-2.5 px-3 rounded-xl font-bold text-sm text-center border-2 transition-all ${
+              className={`py-2.5 px-3 rounded-ui-lg font-bold text-sm text-center border-2 transition-all ${
                 isTimingLocked || !selectedCategory
-                  ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-50'
+                  ? 'bg-surface-2 border-border text-subtle cursor-not-allowed opacity-50'
                   : selectedTiming === 'before'
-                  ? 'bg-indigo-600 text-white border-indigo-600 shadow'
-                  : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300'
+                  ? 'bg-primary text-white border-primary shadow'
+                  : 'bg-surface text-muted border-border hover:border-border-strong'
               }`}
             >
               BEFORE (පෙර)
@@ -232,12 +232,12 @@ export function OABWorkflowPanel({ onInstructionGenerated, className = '' }: OAB
               type="button"
               disabled={!selectedCategory || isTimingLocked}
               onClick={() => handleTimingSelect('after')}
-              className={`py-2.5 px-3 rounded-xl font-bold text-sm text-center border-2 transition-all ${
+              className={`py-2.5 px-3 rounded-ui-lg font-bold text-sm text-center border-2 transition-all ${
                 isTimingLocked || !selectedCategory
-                  ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-50'
+                  ? 'bg-surface-2 border-border text-subtle cursor-not-allowed opacity-50'
                   : selectedTiming === 'after'
-                  ? 'bg-indigo-600 text-white border-indigo-600 shadow'
-                  : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300'
+                  ? 'bg-primary text-white border-primary shadow'
+                  : 'bg-surface text-muted border-border hover:border-border-strong'
               }`}
             >
               AFTER (පසු)
@@ -251,7 +251,7 @@ export function OABWorkflowPanel({ onInstructionGenerated, className = '' }: OAB
         <button
           type="button"
           onClick={handleGivePrint}
-          className="w-full py-3 px-4 bg-[#1F48FF] hover:bg-blue-700 active:scale-[0.99] text-white font-extrabold rounded-xl text-lg shadow-md transition-all flex items-center justify-center gap-2"
+          className="w-full py-3 px-4 bg-primary hover:bg-primary-hover active:scale-[0.99] text-white font-extrabold rounded-ui-lg text-lg shadow-md transition-all flex items-center justify-center gap-2"
         >
           <span>GIVE / PRINT</span>
         </button>
@@ -259,18 +259,18 @@ export function OABWorkflowPanel({ onInstructionGenerated, className = '' }: OAB
 
       {/* ERROR MESSAGE IF ANY */}
       {errorMessage && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs font-semibold text-red-700">
+        <div className="p-3 bg-danger-soft border border-danger-border rounded-ui-lg text-xs font-semibold text-danger">
           {errorMessage}
         </div>
       )}
 
       {/* OUTPUT PRINTED SENTENCE DISPLAY */}
       {printedSentence && (
-        <div className="p-4 bg-emerald-50 border-2 border-emerald-400 rounded-xl space-y-1">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">
+        <div className="p-4 bg-success-soft border-2 border-emerald-400 rounded-ui-lg space-y-1">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-success">
             PRINT OUTPUT INSTRUCTION:
           </div>
-          <div className="text-xl font-extrabold text-emerald-950 font-serif">
+          <div className="text-xl font-extrabold text-success font-serif">
             {printedSentence}
           </div>
         </div>

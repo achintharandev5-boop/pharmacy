@@ -100,7 +100,7 @@ export function InstructionGrid({ validationError }: InstructionGridProps) {
       <SelectedInstructionsPanel validationError={validationError} />
 
       {/* 2. 5x4 INSTRUCTION GRID CARD OR SUB-PANELS (Moves immediately below Selected Instructions) */}
-      <div className="bg-white border border-[#DCE7F5] rounded-2xl p-3 shadow-[0_2px_8px_rgba(15,23,42,0.03)] flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
+      <div className="bg-white border border-border rounded-ui-lg p-3 shadow-card flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
         {activeControl === 'days_of_week' ? (
           <DaysOfWeekPanel />
         ) : activeControl === 'oab_workflow' ? (
@@ -123,13 +123,13 @@ export function InstructionGrid({ validationError }: InstructionGridProps) {
             <button
               type="button"
               onClick={() => handleTileClick('REASONS')}
-              className={`rounded-xl border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
+              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
                 isReasonsActive
-                  ? 'bg-[#EFF6FF] border-2 border-[#2563EB] text-[#2563EB] shadow-sm'
-                  : 'bg-white border-[#E2ECF8] text-[#0F172A] hover:bg-[#F8FAFC] hover:border-[#BFDBFE]'
+                  ? 'bg-primary-soft border-2 border-primary text-primary shadow-sm'
+                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
               }`}
             >
-              <MessageSquareText size={24} className="text-[#2563EB] mb-1 shrink-0" />
+              <MessageSquareText size={24} className="text-primary mb-1 shrink-0" />
               <span className="font-bold text-xs leading-tight">Reasons</span>
             </button>
 
@@ -137,10 +137,10 @@ export function InstructionGrid({ validationError }: InstructionGridProps) {
             <button
               type="button"
               onClick={() => handleTileClick('TILL DATE')}
-              className={`rounded-xl border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
+              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
                 additionalInstructions.includes('TILL DATE')
                   ? 'bg-[#F0FDFA] border-2 border-[#0D9488] text-[#0D9488] shadow-sm'
-                  : 'bg-white border-[#E2ECF8] text-[#0F172A] hover:bg-[#F8FAFC] hover:border-[#BFDBFE]'
+                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
               }`}
             >
               <CalendarDays size={24} className="text-[#0D9488] mb-1 shrink-0" />
@@ -151,13 +151,13 @@ export function InstructionGrid({ validationError }: InstructionGridProps) {
             <button
               type="button"
               onClick={() => handleTileClick('5H')}
-              className={`rounded-xl border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
+              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
                 additionalInstructions.includes('5H')
-                  ? 'bg-[#EFF6FF] border-2 border-[#2563EB] text-[#2563EB] shadow-sm'
-                  : 'bg-white border-[#E2ECF8] text-[#0F172A] hover:bg-[#F8FAFC] hover:border-[#BFDBFE]'
+                  ? 'bg-primary-soft border-2 border-primary text-primary shadow-sm'
+                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
               }`}
             >
-              <Clock size={24} className="text-[#2563EB] mb-1 shrink-0" />
+              <Clock size={24} className="text-primary mb-1 shrink-0" />
               <span className="font-bold text-xs leading-tight">5H</span>
             </button>
 
@@ -165,10 +165,10 @@ export function InstructionGrid({ validationError }: InstructionGridProps) {
             <button
               type="button"
               onClick={() => handleTileClick('EVENING')}
-              className={`rounded-xl border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
+              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
                 additionalInstructions.includes('EVENING')
                   ? 'bg-[#FFF7ED] border-2 border-[#EA580C] text-[#EA580C] shadow-sm'
-                  : 'bg-white border-[#E2ECF8] text-[#0F172A] hover:bg-[#F8FAFC] hover:border-[#BFDBFE]'
+                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
               }`}
             >
               <Sunset size={24} className="text-[#F97316] mb-1 shrink-0" />
@@ -179,13 +179,13 @@ export function InstructionGrid({ validationError }: InstructionGridProps) {
             <button
               type="button"
               onClick={() => handleTileClick('6H')}
-              className={`rounded-xl border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
+              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
                 additionalInstructions.includes('6H')
-                  ? 'bg-[#EFF6FF] border-2 border-[#2563EB] text-[#2563EB] shadow-sm'
-                  : 'bg-white border-[#E2ECF8] text-[#0F172A] hover:bg-[#F8FAFC] hover:border-[#BFDBFE]'
+                  ? 'bg-primary-soft border-2 border-primary text-primary shadow-sm'
+                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
               }`}
             >
-              <Clock size={24} className="text-[#2563EB] mb-1 shrink-0" />
+              <Clock size={24} className="text-primary mb-1 shrink-0" />
               <span className="font-bold text-xs leading-tight">6H</span>
             </button>
 
@@ -194,13 +194,13 @@ export function InstructionGrid({ validationError }: InstructionGridProps) {
             <button
               type="button"
               onClick={() => handleTileClick('REMOVE ADDRESS')}
-              className={`rounded-xl border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
+              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
                 isAddressHidden
-                  ? 'bg-[#FFF1F2] border-2 border-[#E11D48] text-[#E11D48] shadow-sm'
-                  : 'bg-white border-[#E2ECF8] text-[#0F172A] hover:bg-[#F8FAFC] hover:border-[#BFDBFE]'
+                  ? 'bg-danger-soft border-2 border-danger text-danger shadow-sm'
+                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
               }`}
             >
-              <MapPinOff size={24} className="text-[#E11D48] mb-1 shrink-0" />
+              <MapPinOff size={24} className="text-danger mb-1 shrink-0" />
               <span className="font-bold text-xs leading-tight">
                 {isAddressHidden ? 'Address Hidden' : 'Remove Address'}
               </span>
@@ -210,13 +210,13 @@ export function InstructionGrid({ validationError }: InstructionGridProps) {
             <button
               type="button"
               onClick={() => handleTileClick('AND THIS DATE')}
-              className={`rounded-xl border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
+              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
                 additionalInstructions.includes('AND THIS DATE')
-                  ? 'bg-[#EFF6FF] border-2 border-[#2563EB] text-[#2563EB] shadow-sm'
-                  : 'bg-white border-[#E2ECF8] text-[#0F172A] hover:bg-[#F8FAFC] hover:border-[#BFDBFE]'
+                  ? 'bg-primary-soft border-2 border-primary text-primary shadow-sm'
+                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
               }`}
             >
-              <CalendarPlus size={24} className="text-[#2563EB] mb-1 shrink-0" />
+              <CalendarPlus size={24} className="text-primary mb-1 shrink-0" />
               <span className="font-bold text-xs leading-tight">And This Date</span>
             </button>
 
@@ -224,13 +224,13 @@ export function InstructionGrid({ validationError }: InstructionGridProps) {
             <button
               type="button"
               onClick={() => handleTileClick('WEEKLY')}
-              className={`rounded-xl border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
+              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
                 additionalInstructions.includes('WEEKLY')
-                  ? 'bg-[#EFF6FF] border-2 border-[#2563EB] text-[#2563EB] shadow-sm'
-                  : 'bg-white border-[#E2ECF8] text-[#0F172A] hover:bg-[#F8FAFC] hover:border-[#BFDBFE]'
+                  ? 'bg-primary-soft border-2 border-primary text-primary shadow-sm'
+                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
               }`}
             >
-              <RefreshCcw size={24} className="text-[#2563EB] mb-1 shrink-0" />
+              <RefreshCcw size={24} className="text-primary mb-1 shrink-0" />
               <span className="font-bold text-xs leading-tight">Weekly</span>
             </button>
 
@@ -238,27 +238,27 @@ export function InstructionGrid({ validationError }: InstructionGridProps) {
             <button
               type="button"
               onClick={() => handleTileClick('STAT')}
-              className={`rounded-xl border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
+              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
                 isStatSelected
-                  ? 'bg-[#FFF1F2] border-2 border-[#FDA4AF] text-[#E11D48] shadow-sm'
-                  : 'bg-white border-[#E2ECF8] text-[#0F172A] hover:bg-[#F8FAFC] hover:border-[#BFDBFE]'
+                  ? 'bg-danger-soft border-2 border-[#FDA4AF] text-danger shadow-sm'
+                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
               }`}
             >
-              <Zap size={24} className="text-[#E11D48] mb-1 shrink-0 fill-current" />
-              <span className="font-bold text-xs leading-tight text-[#E11D48]">STAT</span>
+              <Zap size={24} className="text-danger mb-1 shrink-0 fill-current" />
+              <span className="font-bold text-xs leading-tight text-danger">STAT</span>
             </button>
 
             {/* 10. EOD */}
             <button
               type="button"
               onClick={() => handleTileClick('EOD')}
-              className={`rounded-xl border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
+              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
                 additionalInstructions.includes('EOD')
-                  ? 'bg-[#EFF6FF] border-2 border-[#2563EB] text-[#2563EB] shadow-sm'
-                  : 'bg-white border-[#E2ECF8] text-[#0F172A] hover:bg-[#F8FAFC] hover:border-[#BFDBFE]'
+                  ? 'bg-primary-soft border-2 border-primary text-primary shadow-sm'
+                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
               }`}
             >
-              <ChevronsRight size={24} className="text-[#2563EB] mb-1 shrink-0" />
+              <ChevronsRight size={24} className="text-primary mb-1 shrink-0" />
               <span className="font-bold text-xs leading-tight">EOD</span>
             </button>
 
@@ -267,21 +267,21 @@ export function InstructionGrid({ validationError }: InstructionGridProps) {
             <button
               type="button"
               onClick={() => handleTileClick('ADD EXP DATE')}
-              className={`rounded-xl border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
+              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
                 isExpDateActive
-                  ? 'bg-[#2563EB] text-white border-2 border-[#1D4ED8] shadow-sm'
-                  : 'bg-white border-[#E2ECF8] text-[#0F172A] hover:bg-[#F8FAFC] hover:border-[#BFDBFE]'
+                  ? 'bg-primary text-white border-2 border-primary-hover shadow-sm'
+                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
               }`}
             >
               <Calendar
                 size={24}
-                className={`mb-1 shrink-0 ${isExpDateActive ? 'text-white' : 'text-[#2563EB]'}`}
+                className={`mb-1 shrink-0 ${isExpDateActive ? 'text-white' : 'text-primary'}`}
               />
-              <span className={`font-bold text-xs leading-tight ${isExpDateActive ? 'text-white' : 'text-[#0F172A]'}`}>
+              <span className={`font-bold text-xs leading-tight ${isExpDateActive ? 'text-white' : 'text-fg'}`}>
                 EXP Date
               </span>
               {expiryDate && (
-                <span className={`text-[10px] font-medium leading-none mt-0.5 ${isExpDateActive ? 'text-blue-100' : 'text-[#2563EB]'}`}>
+                <span className={`text-[10px] font-medium leading-none mt-0.5 ${isExpDateActive ? 'text-primary-border' : 'text-primary'}`}>
                   {expiryDate}
                 </span>
               )}
@@ -291,13 +291,13 @@ export function InstructionGrid({ validationError }: InstructionGridProps) {
             <button
               type="button"
               onClick={() => handleTileClick('EMPTY STOMACH')}
-              className={`rounded-xl border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
+              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
                 additionalInstructions.includes('EMPTY STOMACH')
-                  ? 'bg-[#FFFBEB] border-2 border-[#D97706] text-[#D97706] shadow-sm'
-                  : 'bg-white border-[#E2ECF8] text-[#0F172A] hover:bg-[#F8FAFC] hover:border-[#BFDBFE]'
+                  ? 'bg-warning-soft border-2 border-warning text-warning shadow-sm'
+                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
               }`}
             >
-              <CircleDot size={24} className="text-[#EF4444] mb-1 shrink-0" />
+              <CircleDot size={24} className="text-danger mb-1 shrink-0" />
               <span className="font-bold text-xs leading-tight">Empty Stomach</span>
             </button>
 
@@ -305,10 +305,10 @@ export function InstructionGrid({ validationError }: InstructionGridProps) {
             <button
               type="button"
               onClick={() => handleTileClick('WITH FOOD')}
-              className={`rounded-xl border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
+              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
                 additionalInstructions.includes('WITH FOOD')
                   ? 'bg-[#F5F3FF] border-2 border-[#7C3AED] text-[#7C3AED] shadow-sm'
-                  : 'bg-white border-[#E2ECF8] text-[#0F172A] hover:bg-[#F8FAFC] hover:border-[#BFDBFE]'
+                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
               }`}
             >
               <Utensils size={24} className="text-[#7C3AED] mb-1 shrink-0" />
@@ -319,10 +319,10 @@ export function InstructionGrid({ validationError }: InstructionGridProps) {
             <button
               type="button"
               onClick={() => handleTileClick('CHEWABLE')}
-              className={`rounded-xl border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
+              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
                 additionalInstructions.includes('CHEWABLE')
                   ? 'bg-[#F5F3FF] border-2 border-[#7C3AED] text-[#7C3AED] shadow-sm'
-                  : 'bg-white border-[#E2ECF8] text-[#0F172A] hover:bg-[#F8FAFC] hover:border-[#BFDBFE]'
+                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
               }`}
             >
               <Pill size={24} className="text-[#7C3AED] mb-1 shrink-0" />
@@ -333,13 +333,13 @@ export function InstructionGrid({ validationError }: InstructionGridProps) {
             <button
               type="button"
               onClick={() => handleTileClick('DAILY')}
-              className={`rounded-xl border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
+              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
                 additionalInstructions.includes('DAILY')
-                  ? 'bg-[#ECFDF5] border-2 border-[#059669] text-[#059669] shadow-sm'
-                  : 'bg-white border-[#E2ECF8] text-[#0F172A] hover:bg-[#F8FAFC] hover:border-[#BFDBFE]'
+                  ? 'bg-success-soft border-2 border-success text-success shadow-sm'
+                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
               }`}
             >
-              <CalendarCheck size={24} className="text-[#059669] mb-1 shrink-0" />
+              <CalendarCheck size={24} className="text-success mb-1 shrink-0" />
               <span className="font-bold text-xs leading-tight">Daily</span>
             </button>
 
@@ -348,7 +348,7 @@ export function InstructionGrid({ validationError }: InstructionGridProps) {
             <button
               type="button"
               onClick={() => handleTileClick('DELETE LABEL')}
-              className="rounded-xl border border-red-500 bg-[#EF4444] hover:bg-[#DC2626] active:scale-95 text-white flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer shadow-sm"
+              className="rounded-ui-lg border border-red-500 bg-danger hover:bg-danger active:scale-95 text-white flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer shadow-sm"
             >
               <Trash2 size={24} className="text-white mb-1 shrink-0" />
               <span className="font-bold text-xs leading-tight text-white">Delete Label</span>
@@ -358,7 +358,7 @@ export function InstructionGrid({ validationError }: InstructionGridProps) {
             <button
               type="button"
               onClick={() => handleTileClick('ADD LABEL')}
-              className="rounded-xl border border-emerald-600 bg-[#059669] hover:bg-[#047857] active:scale-95 text-white flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer shadow-sm"
+              className="rounded-ui-lg border border-success bg-success hover:bg-success active:scale-95 text-white flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer shadow-sm"
             >
               <CirclePlus size={24} className="text-white mb-1 shrink-0" />
               <span className="font-bold text-xs leading-tight text-white">Add Label</span>
@@ -368,13 +368,13 @@ export function InstructionGrid({ validationError }: InstructionGridProps) {
             <button
               type="button"
               onClick={() => handleTileClick('DISSOLVE AND DRINK')}
-              className={`rounded-xl border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
+              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
                 additionalInstructions.includes('DISSOLVE AND DRINK')
-                  ? 'bg-[#EFF6FF] border-2 border-[#2563EB] text-[#2563EB] shadow-sm'
-                  : 'bg-white border-[#E2ECF8] text-[#0F172A] hover:bg-[#F8FAFC] hover:border-[#BFDBFE]'
+                  ? 'bg-primary-soft border-2 border-primary text-primary shadow-sm'
+                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
               }`}
             >
-              <GlassWater size={24} className="text-[#2563EB] mb-1 shrink-0" />
+              <GlassWater size={24} className="text-primary mb-1 shrink-0" />
               <span className="font-bold text-xs leading-tight">Dissolve and Drink</span>
             </button>
 
@@ -382,13 +382,13 @@ export function InstructionGrid({ validationError }: InstructionGridProps) {
             <button
               type="button"
               onClick={() => handleTileClick('KEEP IN MOUTH')}
-              className={`rounded-xl border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
+              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
                 additionalInstructions.includes('KEEP IN MOUTH')
-                  ? 'bg-[#FFF1F2] border-2 border-[#E11D48] text-[#E11D48] shadow-sm'
-                  : 'bg-white border-[#E2ECF8] text-[#0F172A] hover:bg-[#F8FAFC] hover:border-[#BFDBFE]'
+                  ? 'bg-danger-soft border-2 border-danger text-danger shadow-sm'
+                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
               }`}
             >
-              <Smile size={24} className="text-[#E11D48] mb-1 shrink-0" />
+              <Smile size={24} className="text-danger mb-1 shrink-0" />
               <span className="font-bold text-xs leading-tight">Keep in Mouth</span>
             </button>
 
@@ -396,10 +396,10 @@ export function InstructionGrid({ validationError }: InstructionGridProps) {
             <button
               type="button"
               onClick={() => handleTileClick('8H')}
-              className={`rounded-xl border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
+              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
                 additionalInstructions.includes('8H')
                   ? 'bg-[#F5F3FF] border-2 border-[#7C3AED] text-[#7C3AED] shadow-sm'
-                  : 'bg-white border-[#E2ECF8] text-[#0F172A] hover:bg-[#F8FAFC] hover:border-[#BFDBFE]'
+                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
               }`}
             >
               <Clock size={24} className="text-[#7C3AED] mb-1 shrink-0" />
@@ -415,19 +415,19 @@ export function InstructionGrid({ validationError }: InstructionGridProps) {
         disabled={isStatActive}
         onClick={() => openDaysOfWeekPanel()}
         aria-label="Select days of week"
-        className={`w-full h-[52px] shrink-0 rounded-xl border border-[#D0E2FB] flex items-center justify-between px-4 text-sm font-bold tracking-wide transition-all select-none touch-manipulation cursor-pointer ${
+        className={`w-full h-[52px] shrink-0 rounded-ui-lg border border-[#D0E2FB] flex items-center justify-between px-4 text-sm font-bold tracking-wide transition-all select-none touch-manipulation cursor-pointer ${
           isStatActive ? 'opacity-40 pointer-events-none' : ''
         } ${
           selectedDaysOfWeek.length > 0
-            ? 'bg-[#DBEAFE] text-[#1D4ED8] border-2 border-[#2563EB]'
-            : 'bg-[#EEF4FE] hover:bg-[#E2EDFD] text-[#2563EB]'
+            ? 'bg-primary-border text-primary-hover border-2 border-primary'
+            : 'bg-[#EEF4FE] hover:bg-[#E2EDFD] text-primary'
         }`}
       >
         <div className="flex items-center gap-2.5">
-          <Calendar size={20} className="text-[#2563EB]" />
+          <Calendar size={20} className="text-primary" />
           <span>{daysLabel}</span>
         </div>
-        <ChevronRight size={20} className="text-[#2563EB]" />
+        <ChevronRight size={20} className="text-primary" />
       </button>
     </div>
   );

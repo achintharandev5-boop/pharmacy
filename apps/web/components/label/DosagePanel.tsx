@@ -57,8 +57,8 @@ function DosageRowCard({
     <div
       onClick={onSelectRow}
       aria-selected={isActive}
-      className={`w-full flex-1 rounded-2xl border ${bgClass} ${borderClass} p-3 flex items-stretch gap-3 shadow-[0_2px_8px_rgba(15,23,42,0.02)] transition-all min-h-[110px] ${
-        isActive ? 'ring-2 ring-[#2563EB]' : ''
+      className={`w-full flex-1 rounded-ui-lg border ${bgClass} ${borderClass} p-3 flex items-stretch gap-3 shadow-card transition-all min-h-[110px] ${
+        isActive ? 'ring-2 ring-primary' : ''
       }`}
     >
       {/* 1. TIME BLOCK (~30%) */}
@@ -67,16 +67,16 @@ function DosageRowCard({
           e.stopPropagation();
           onOpenQtyPad();
         }}
-        className="flex items-center gap-3.5 w-[30%] shrink-0 select-none cursor-pointer pl-1.5"
+        className="flex items-center gap-2 xl:gap-3.5 w-[30%] shrink-0 select-none cursor-pointer pl-0.5 xl:pl-1.5"
       >
         <div className="shrink-0 flex items-center justify-center">
           {icon}
         </div>
         <div className="flex flex-col justify-center min-w-0">
-          <span className="font-black text-base lg:text-lg text-[#0F172A] tracking-wider leading-tight">
+          <span className="font-black text-sm xl:text-lg text-fg tracking-wide xl:tracking-wider leading-tight">
             {labelTitle}
           </span>
-          <span className="text-xs text-[#94A3B8] font-semibold leading-tight mt-1">
+          <span className="text-[11px] xl:text-xs text-subtle font-semibold leading-tight mt-1 whitespace-nowrap">
             {timeRange}
           </span>
         </div>
@@ -90,17 +90,17 @@ function DosageRowCard({
         }}
         className="flex flex-col items-center justify-center w-[12%] shrink-0 select-none cursor-pointer px-1"
       >
-        <span className="text-xs font-bold text-[#94A3B8] uppercase text-center leading-none">
+        <span className="text-xs font-bold text-subtle uppercase text-center leading-none">
           QTY
         </span>
-        <span className="font-black text-3xl lg:text-4xl text-[#0F172A] text-center leading-none mt-1.5">
+        <span className="font-black text-3xl xl:text-4xl text-fg text-center leading-none mt-1.5">
           {displayQty}
         </span>
       </div>
 
       {/* 3. X / Y FRACTION COLUMN (~20%) */}
       <div className="flex flex-col items-center justify-center w-[20%] shrink-0 select-none px-1 h-full py-0.5">
-        <span className="text-xs font-bold text-[#94A3B8] uppercase text-center leading-none mb-1">
+        <span className="text-xs font-bold text-subtle uppercase text-center leading-none mb-1">
           X / Y
         </span>
         <button
@@ -110,10 +110,10 @@ function DosageRowCard({
             onOpenXYPad();
           }}
           aria-label={`Select ${labelTitle} fraction`}
-          className="w-full h-[64px] lg:h-[72px] bg-white border-2 border-[#DCE7F5] hover:border-[#2563EB] active:scale-95 rounded-2xl flex items-center justify-between px-3.5 text-lg lg:text-xl font-black text-[#0F172A] shadow-sm transition-all cursor-pointer select-none touch-manipulation"
+          className="w-full h-[64px] lg:h-[72px] bg-white border-2 border-border hover:border-primary active:scale-95 rounded-ui-lg flex items-center justify-between gap-1 px-2 xl:px-3.5 text-base xl:text-xl font-black text-fg shadow-sm transition-all cursor-pointer select-none touch-manipulation"
         >
-          <span>{isFraction ? displayQty : '1 / 1'}</span>
-          <ChevronDown size={20} strokeWidth={2.5} className="text-[#94A3B8] shrink-0" />
+          <span className="whitespace-nowrap">{isFraction ? displayQty : '1 / 1'}</span>
+          <ChevronDown size={18} strokeWidth={2.5} className="text-subtle shrink-0" />
         </button>
       </div>
 
@@ -125,7 +125,7 @@ function DosageRowCard({
           onDecrement();
         }}
         aria-label={`Decrease ${labelTitle} dosage`}
-        className="flex-1 rounded-2xl bg-[#EF4444] hover:bg-[#DC2626] active:bg-[#B91C1C] text-white flex items-center justify-center font-black shadow-sm transition-all select-none touch-manipulation cursor-pointer active:scale-95"
+        className="flex-1 rounded-ui-lg bg-danger hover:bg-danger active:bg-danger text-white flex items-center justify-center font-black shadow-sm transition-all select-none touch-manipulation cursor-pointer active:scale-95"
       >
         <Minus size={34} strokeWidth={3.5} />
       </button>
@@ -138,7 +138,7 @@ function DosageRowCard({
           onIncrement();
         }}
         aria-label={`Increase ${labelTitle} dosage`}
-        className="flex-1 rounded-2xl bg-[#10B981] hover:bg-[#059669] active:bg-[#047857] text-white flex items-center justify-center font-black shadow-sm transition-all select-none touch-manipulation cursor-pointer active:scale-95"
+        className="flex-1 rounded-ui-lg bg-[#10B981] hover:bg-success active:bg-success text-white flex items-center justify-center font-black shadow-sm transition-all select-none touch-manipulation cursor-pointer active:scale-95"
       >
         <Plus size={34} strokeWidth={3.5} />
       </button>
@@ -170,7 +170,7 @@ export function DosagePanel() {
       bgClass: 'bg-[#FFF9F2]',
       borderClass: 'border-[#FFE8D1]',
       icon: (
-        <svg className="w-12 h-12 text-[#F59E0B]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg className="w-9 h-9 xl:w-12 xl:h-12 text-[#F59E0B]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="4.5" fill="#FEF3C7" />
           <path d="M12 2v2" />
           <path d="M12 20v2" />
@@ -188,10 +188,10 @@ export function DosagePanel() {
       title: 'LUNCH',
       timeRange: '11:00 - 16:00',
       fractionKey: 'lunch_fraction' as const,
-      bgClass: 'bg-[#F8FBFF]',
+      bgClass: 'bg-primary-soft',
       borderClass: 'border-[#E0EEFC]',
       icon: (
-        <svg className="w-12 h-12 text-[#38BDF8]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg className="w-9 h-9 xl:w-12 xl:h-12 text-[#38BDF8]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="5" fill="#E0F2FE" />
           <path d="M12 1v2" />
           <path d="M12 21v2" />
@@ -212,7 +212,7 @@ export function DosagePanel() {
       bgClass: 'bg-[#FAF7FF]',
       borderClass: 'border-[#EFE8FD]',
       icon: (
-        <svg className="w-12 h-12 text-[#8B5CF6]" viewBox="0 0 24 24" fill="#EDE9FE" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg className="w-9 h-9 xl:w-12 xl:h-12 text-[#8B5CF6]" viewBox="0 0 24 24" fill="#EDE9FE" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
         </svg>
       ),
@@ -220,27 +220,27 @@ export function DosagePanel() {
   ];
 
   return (
-    <div className="w-full h-full bg-white border border-[#DCE7F5] rounded-2xl p-4 shadow-[0_2px_8px_rgba(15,23,42,0.03)] flex flex-col justify-between flex-1 min-h-0 overflow-hidden">
+    <div className="w-full h-full bg-white border border-border rounded-ui-lg p-4 shadow-card flex flex-col justify-between flex-1 min-h-0 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between shrink-0 mb-3">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-[#EFF6FF] flex items-center justify-center text-[#2563EB] shadow-sm">
+          <div className="w-7 h-7 rounded-lg bg-primary-soft flex items-center justify-center text-primary shadow-sm">
             <Pill size={16} />
           </div>
-          <h2 className="text-base font-bold text-[#0F172A] leading-none">
+          <h2 className="text-base font-bold text-fg leading-none">
             Dosage Schedule
           </h2>
         </div>
 
         {/* Units segmented pill */}
-        <div className="bg-[#F1F5F9] p-1 rounded-xl flex items-center gap-1">
+        <div className="bg-surface-2 p-1 rounded-ui-lg flex items-center gap-1">
           <button
             type="button"
             onClick={() => setSelectedUnit('Units')}
             className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               selectedUnit === 'Units'
-                ? 'bg-[#2563EB] text-white shadow-sm'
-                : 'text-[#64748B] hover:text-[#0F172A]'
+                ? 'bg-primary text-white shadow-sm'
+                : 'text-subtle hover:text-fg'
             }`}
           >
             Units
@@ -250,8 +250,8 @@ export function DosagePanel() {
             onClick={() => setSelectedUnit('Tablets')}
             className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               selectedUnit === 'Tablets'
-                ? 'bg-[#2563EB] text-white shadow-sm font-bold'
-                : 'text-[#64748B] hover:text-[#0F172A]'
+                ? 'bg-primary text-white shadow-sm font-bold'
+                : 'text-subtle hover:text-fg'
             }`}
           >
             Tablets
@@ -261,8 +261,8 @@ export function DosagePanel() {
             onClick={() => setSelectedUnit('ML')}
             className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               selectedUnit === 'ML'
-                ? 'bg-[#2563EB] text-white shadow-sm font-bold'
-                : 'text-[#64748B] hover:text-[#0F172A]'
+                ? 'bg-primary text-white shadow-sm font-bold'
+                : 'text-subtle hover:text-fg'
             }`}
           >
             ML

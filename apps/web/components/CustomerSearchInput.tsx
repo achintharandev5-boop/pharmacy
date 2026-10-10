@@ -141,16 +141,16 @@ export function CustomerSearchInput() {
       {/* Customer Card Content */}
       <div 
         onClick={() => inputRef.current?.focus()}
-        className="w-full h-full bg-white border border-[#DCE7F5] rounded-2xl px-3 py-2 flex items-center gap-3 shadow-[0_2px_8px_rgba(15,23,42,0.03)] hover:border-[#BFDBFE] transition-colors cursor-text"
+        className="w-full h-full bg-white border border-border rounded-ui-lg px-3 py-2 flex items-center gap-3 shadow-card hover:border-primary-border transition-colors cursor-text"
       >
         {/* Solid Blue Squircle with User Icon */}
-        <div className="w-11 h-11 rounded-xl bg-[#2563EB] flex items-center justify-center text-white shrink-0 shadow-sm">
+        <div className="w-11 h-11 rounded-ui-lg bg-primary flex items-center justify-center text-white shrink-0 shadow-sm">
           <User size={22} className="text-white" />
         </div>
 
         {/* Text Input Stack */}
         <div className="flex-1 min-w-0 flex flex-col justify-center">
-          <div className="text-sm font-bold text-[#0F172A] leading-tight">
+          <div className="text-sm font-bold text-fg leading-tight">
             Customer Name / Mobile
           </div>
           <input
@@ -161,7 +161,7 @@ export function CustomerSearchInput() {
             onFocus={handleFocus}
             onKeyDown={handleKeyDown}
             placeholder="Search or enter patient name / mobile..."
-            className="w-full bg-transparent text-xs text-[#475569] font-medium outline-none placeholder:text-[#94A3B8] leading-tight mt-0.5"
+            className="w-full bg-transparent text-xs text-muted font-medium outline-none placeholder:text-subtle leading-tight mt-0.5"
           />
         </div>
 
@@ -173,7 +173,7 @@ export function CustomerSearchInput() {
               e.stopPropagation();
               handleClear();
             }}
-            className="w-7 h-7 flex items-center justify-center text-[#94A3B8] hover:text-[#0F172A] active:text-black select-none touch-manipulation rounded-full hover:bg-[#F1F5F9] shrink-0"
+            className="w-7 h-7 flex items-center justify-center text-subtle hover:text-fg active:text-black select-none touch-manipulation rounded-full hover:bg-surface-2 shrink-0"
             title="Clear customer"
           >
             <X size={14} />
@@ -183,20 +183,20 @@ export function CustomerSearchInput() {
 
       {/* DROPDOWN */}
       {isOpen && searchStatus !== 'idle' && (
-        <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-white border border-[#DCE7F5] rounded-2xl z-50 max-h-[340px] overflow-y-auto shadow-xl py-1">
+        <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-white border border-border rounded-ui-lg z-50 max-h-[340px] overflow-y-auto shadow-pop py-1">
           {searchStatus === 'loading' ? (
-            <div role="status" className="p-3 text-center bg-[#F8FAFC]">
-              <p className="text-xs font-medium text-slate-500">Searching saved patients…</p>
+            <div role="status" className="p-3 text-center bg-surface">
+              <p className="text-xs font-medium text-subtle">Searching saved patients…</p>
             </div>
           ) : searchStatus === 'error' ? (
-            <div role="alert" className="p-3 text-center bg-rose-50 space-y-2">
-              <p className="text-xs font-semibold text-rose-800">
+            <div role="alert" className="p-3 text-center bg-danger-soft space-y-2">
+              <p className="text-xs font-semibold text-danger">
                 Patient search failed: {searchError}
               </p>
               <button
                 type="button"
                 onClick={() => runSearch(searchTerm)}
-                className="px-3 py-1.5 text-xs font-bold bg-white border border-rose-300 text-rose-800 rounded-lg hover:bg-rose-100 touch-manipulation"
+                className="px-3 py-1.5 text-xs font-bold bg-white border border-danger-border text-danger rounded-lg hover:bg-danger-soft touch-manipulation"
               >
                 Retry
               </button>
@@ -209,29 +209,29 @@ export function CustomerSearchInput() {
                   key={c.id || index}
                   type="button"
                   onClick={() => handleSelectCustomer(c)}
-                  className={`w-full text-left px-4 py-2.5 border-b border-[#F8FAFC] last:border-b-0 transition-colors touch-manipulation flex items-center justify-between ${
+                  className={`w-full text-left px-4 py-2.5 border-b border-surface last:border-b-0 transition-colors touch-manipulation flex items-center justify-between ${
                     isSelected
-                      ? 'bg-[#EFF6FF] border-l-4 border-l-[#2563EB]'
-                      : 'hover:bg-[#F8FAFC] active:bg-[#F1F5F9]'
+                      ? 'bg-primary-soft border-l-4 border-l-primary'
+                      : 'hover:bg-surface active:bg-surface-2'
                   }`}
                 >
                   <div className="flex flex-col">
-                    <span className="font-bold text-sm text-[#0F172A] leading-tight">
+                    <span className="font-bold text-sm text-fg leading-tight">
                       {c.name}
                     </span>
-                    <span className="text-xs font-mono text-slate-500 mt-0.5">
+                    <span className="text-xs font-mono text-subtle mt-0.5">
                       {c.phone_number}
                     </span>
                   </div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 bg-[#EFF6FF] text-[#2563EB] rounded-md border border-[#BFDBFE]">
+                  <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 bg-primary-soft text-primary rounded-md border border-primary-border">
                     SELECT
                   </span>
                 </button>
               );
             })
           ) : (
-            <div className="p-3 text-center bg-[#F8FAFC]">
-              <p className="text-xs font-medium text-slate-500">
+            <div className="p-3 text-center bg-surface">
+              <p className="text-xs font-medium text-subtle">
                 No saved customer for "{searchTerm}". You can continue typing to save a new name.
               </p>
             </div>

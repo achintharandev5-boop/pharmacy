@@ -27,9 +27,9 @@ export function ToggleButton({
           : 'text-base sm:text-lg lg:text-xl'
       } ${
         isActive 
-          ? 'bg-[#2563EB] text-white border-2 border-[#1D4ED8]' 
-          : 'bg-white text-[#0F172A] border border-[#CBD5E1] hover:bg-[#F1F5F9] active:bg-[#E2E8F0]'
-      } ${disabled ? 'opacity-40 pointer-events-none cursor-not-allowed bg-[#F8FAFC] border-[#E2E8F0] text-[#94A3B8]' : 'active:brightness-95'} ${className}`}
+          ? 'bg-primary text-white border-2 border-primary-hover' 
+          : 'bg-white text-fg border border-border-strong hover:bg-surface-2 active:bg-border'
+      } ${disabled ? 'opacity-40 pointer-events-none cursor-not-allowed bg-surface border-border text-subtle' : 'active:brightness-95'} ${className}`}
       style={{
         WebkitUserSelect: 'none',
         WebkitTapHighlightColor: 'transparent',

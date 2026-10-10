@@ -57,10 +57,10 @@ export function CustomerSearchPanel() {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-3 select-none touch-manipulation">
-      <div className="bg-white w-[min(900px,92vw)] max-h-[85dvh] border-2 border-[#CBD5E1] rounded-none shadow-none overflow-hidden flex flex-col">
+      <div className="bg-white w-[min(900px,92vw)] max-h-[85dvh] border-2 border-border-strong rounded-none shadow-none overflow-hidden flex flex-col">
         
         {/* HEADER */}
-        <div className="h-[64px] bg-[#2563EB] text-white px-5 flex items-center justify-between shrink-0 select-none">
+        <div className="h-[64px] bg-primary text-white px-5 flex items-center justify-between shrink-0 select-none">
           <h2 className="text-xl lg:text-2xl font-black uppercase tracking-wide">
             CUSTOMER SEARCH
           </h2>
@@ -79,7 +79,7 @@ export function CustomerSearchPanel() {
 
           {/* SEARCH FIELD */}
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-black tracking-wider text-slate-500 uppercase block">
+            <label className="text-xs font-black tracking-wider text-subtle uppercase block">
               PHONE NUMBER
             </label>
             <form onSubmit={handleSearch} className="flex gap-2 w-full">
@@ -88,12 +88,12 @@ export function CustomerSearchPanel() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="Enter phone number..."
-                className="h-[62px] flex-1 bg-[#F8FAFC] border border-[#CBD5E1] rounded-none px-4 text-2xl font-bold text-[#0F172A] outline-none focus:border-2 focus:border-[#2563EB] placeholder:text-[#94A3B8] touch-manipulation"
+                className="h-[62px] flex-1 bg-surface border border-border-strong rounded-none px-4 text-2xl font-bold text-fg outline-none focus:border-2 focus:border-primary placeholder:text-subtle touch-manipulation"
               />
               <button 
                 type="submit" 
                 disabled={!phone.trim() || loading}
-                className="h-[62px] min-w-[140px] bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#1E40AF] disabled:opacity-40 text-white font-black text-lg rounded-none transition-all touch-manipulation active:scale-[0.98]"
+                className="h-[62px] min-w-[140px] bg-primary hover:bg-primary-hover active:bg-primary-hover disabled:opacity-40 text-white font-black text-lg rounded-none transition-all touch-manipulation active:scale-[0.98]"
               >
                 {loading ? 'SEARCHING...' : 'SEARCH'}
               </button>
@@ -107,7 +107,7 @@ export function CustomerSearchPanel() {
                 key={d} 
                 type="button"
                 onClick={() => append(d)} 
-                className="h-[72px] bg-[#F8FAFC] text-[#0F172A] font-black text-3xl border border-[#CBD5E1] rounded-none hover:bg-[#F1F5F9] active:bg-[#E2E8F0] flex items-center justify-center transition-all select-none touch-manipulation active:scale-[0.98]"
+                className="h-[72px] bg-surface text-fg font-black text-3xl border border-border-strong rounded-none hover:bg-surface-2 active:bg-border flex items-center justify-center transition-all select-none touch-manipulation active:scale-[0.98]"
               >
                 {d}
               </button>
@@ -117,7 +117,7 @@ export function CustomerSearchPanel() {
             <button 
               type="button"
               onClick={backspace} 
-              className="h-[72px] bg-[#FEF2F2] text-[#E11D48] font-black text-2xl border border-[#FECDD3] rounded-none hover:bg-[#FEE2E2] active:bg-[#FCA5A5] flex items-center justify-center transition-all select-none touch-manipulation active:scale-[0.98]"
+              className="h-[72px] bg-danger-soft text-danger font-black text-2xl border border-danger-border rounded-none hover:bg-danger-soft active:bg-[#FCA5A5] flex items-center justify-center transition-all select-none touch-manipulation active:scale-[0.98]"
               title="Backspace"
             >
               ⌫
@@ -127,7 +127,7 @@ export function CustomerSearchPanel() {
             <button 
               type="button"
               onClick={() => append('0')} 
-              className="h-[72px] bg-[#F8FAFC] text-[#0F172A] font-black text-3xl border border-[#CBD5E1] rounded-none hover:bg-[#F1F5F9] active:bg-[#E2E8F0] flex items-center justify-center transition-all select-none touch-manipulation active:scale-[0.98]"
+              className="h-[72px] bg-surface text-fg font-black text-3xl border border-border-strong rounded-none hover:bg-surface-2 active:bg-border flex items-center justify-center transition-all select-none touch-manipulation active:scale-[0.98]"
             >
               0
             </button>
@@ -136,7 +136,7 @@ export function CustomerSearchPanel() {
             <button 
               type="button"
               onClick={clearPhone} 
-              className="h-[72px] bg-[#FEF2F2] text-[#E11D48] font-black text-lg border border-[#FECDD3] rounded-none hover:bg-[#FEE2E2] active:bg-[#FCA5A5] flex items-center justify-center transition-all select-none touch-manipulation active:scale-[0.98]"
+              className="h-[72px] bg-danger-soft text-danger font-black text-lg border border-danger-border rounded-none hover:bg-danger-soft active:bg-[#FCA5A5] flex items-center justify-center transition-all select-none touch-manipulation active:scale-[0.98]"
             >
               CLEAR
             </button>
@@ -144,27 +144,27 @@ export function CustomerSearchPanel() {
 
           {/* DYNAMIC RESULTS SECTION */}
           {(loading || searched) && (
-            <div className="mt-2 border-t border-[#CBD5E1] pt-3 flex flex-col gap-2">
-              <span className="text-xs font-black text-[#2563EB] uppercase tracking-wider block">
+            <div className="mt-2 border-t border-border-strong pt-3 flex flex-col gap-2">
+              <span className="text-xs font-black text-primary uppercase tracking-wider block">
                 SEARCH RESULTS
               </span>
 
               {loading && (
-                <div className="p-6 bg-[#EFF6FF] border border-[#BFDBFE] text-[#2563EB] font-black text-xl text-center animate-pulse">
+                <div className="p-6 bg-primary-soft border border-primary-border text-primary font-black text-xl text-center animate-pulse">
                   SEARCHING FOR {phone}...
                 </div>
               )}
 
               {!loading && searched && searchError && (
-                <div role="alert" className="bg-[#FEF2F2] border-2 border-[#FECDD3] p-5 rounded-none flex flex-col items-center justify-center text-center gap-2">
-                  <span className="text-xl font-black text-[#E11D48] uppercase">
+                <div role="alert" className="bg-danger-soft border-2 border-danger-border p-5 rounded-none flex flex-col items-center justify-center text-center gap-2">
+                  <span className="text-xl font-black text-danger uppercase">
                     SEARCH FAILED
                   </span>
-                  <span className="text-base font-bold text-slate-700">{searchError}</span>
+                  <span className="text-base font-bold text-muted">{searchError}</span>
                   <button
                     type="button"
                     onClick={() => handleSearch()}
-                    className="mt-1 h-[52px] px-8 bg-white border-2 border-[#E11D48] text-[#E11D48] font-black text-base rounded-none hover:bg-[#FEE2E2] active:bg-[#FECDD3] transition-all touch-manipulation active:scale-[0.98]"
+                    className="mt-1 h-[52px] px-8 bg-white border-2 border-danger text-danger font-black text-base rounded-none hover:bg-danger-soft active:bg-danger-border transition-all touch-manipulation active:scale-[0.98]"
                   >
                     RETRY
                   </button>
@@ -172,14 +172,14 @@ export function CustomerSearchPanel() {
               )}
 
               {!loading && searched && !searchError && results.length === 0 && (
-                <div className="bg-[#FEF2F2] border-2 border-[#FECDD3] p-5 rounded-none flex flex-col items-center justify-center text-center gap-2">
-                  <span className="text-xl font-black text-[#E11D48] uppercase">
+                <div className="bg-danger-soft border-2 border-danger-border p-5 rounded-none flex flex-col items-center justify-center text-center gap-2">
+                  <span className="text-xl font-black text-danger uppercase">
                     CUSTOMER NOT FOUND
                   </span>
-                  <span className="text-base font-bold text-slate-700">
-                    No customer was found for: <span className="font-black text-[#0F172A]">{phone}</span>
+                  <span className="text-base font-bold text-muted">
+                    No customer was found for: <span className="font-black text-fg">{phone}</span>
                   </span>
-                  <span className="text-xs font-semibold text-slate-500">
+                  <span className="text-xs font-semibold text-subtle">
                     You can type the name directly in the Customer Name field on the main label panel.
                   </span>
                 </div>
@@ -191,11 +191,11 @@ export function CustomerSearchPanel() {
                     <div 
                       key={r.id} 
                       onClick={() => handleSelect(r.name, r.phone_number)}
-                      className="min-h-[68px] bg-white border border-[#CBD5E1] hover:border-[#2563EB] hover:bg-[#EFF6FF] active:bg-[#DBEAFE] p-3 px-5 flex items-center justify-between cursor-pointer transition-all touch-manipulation"
+                      className="min-h-[68px] bg-white border border-border-strong hover:border-primary hover:bg-primary-soft active:bg-primary-border p-3 px-5 flex items-center justify-between cursor-pointer transition-all touch-manipulation"
                     >
                       <div className="flex flex-col justify-center">
-                        <span className="text-xl font-extrabold text-[#0F172A]">{r.name}</span>
-                        <span className="text-base font-bold text-slate-600">{r.phone_number}</span>
+                        <span className="text-xl font-extrabold text-fg">{r.name}</span>
+                        <span className="text-base font-bold text-muted">{r.phone_number}</span>
                       </div>
                       <button
                         type="button"
@@ -203,7 +203,7 @@ export function CustomerSearchPanel() {
                           e.stopPropagation();
                           handleSelect(r.name, r.phone_number);
                         }}
-                        className="h-[46px] px-6 bg-[#059669] hover:bg-[#047857] active:bg-[#065F46] text-white font-black text-base rounded-none border border-[#059669] transition-all touch-manipulation active:scale-[0.98]"
+                        className="h-[46px] px-6 bg-success hover:bg-success active:bg-success text-white font-black text-base rounded-none border border-success transition-all touch-manipulation active:scale-[0.98]"
                       >
                         SELECT
                       </button>

@@ -43,37 +43,37 @@ function formatQty(qty: number, isFraction: boolean): string {
 }
 
 function getChipIcon(key: string) {
-  if (key.startsWith('EXP')) return <Calendar size={13} className="text-[#2563EB]" />;
-  if (key.includes('STAT')) return <Zap size={13} className="text-[#E11D48]" />;
+  if (key.startsWith('EXP')) return <Calendar size={13} className="text-primary" />;
+  if (key.includes('STAT')) return <Zap size={13} className="text-danger" />;
   if (key.includes('FOOD')) return <Utensils size={13} className="text-[#7C3AED]" />;
-  if (key.includes('EMPTY')) return <MessageSquareText size={13} className="text-[#D97706]" />;
+  if (key.includes('EMPTY')) return <MessageSquareText size={13} className="text-warning" />;
   if (key.includes('TILL') || key.includes('AND THIS')) return <CalendarDays size={13} className="text-[#0D9488]" />;
-  if (key.includes('DAILY')) return <CalendarCheck size={13} className="text-[#059669]" />;
-  if (key.includes('WEEKLY')) return <RefreshCcw size={13} className="text-[#2563EB]" />;
+  if (key.includes('DAILY')) return <CalendarCheck size={13} className="text-success" />;
+  if (key.includes('WEEKLY')) return <RefreshCcw size={13} className="text-primary" />;
   if (key.includes('EVENING')) return <Sunset size={13} className="text-[#F97316]" />;
   if (key.includes('CHEWABLE') || key.includes('MOUTH')) return <Pill size={13} className="text-[#7C3AED]" />;
-  if (key.includes('DISSOLVE')) return <GlassWater size={13} className="text-[#2563EB]" />;
-  if (key.includes('ADDRESS')) return <MapPinOff size={13} className="text-[#E11D48]" />;
+  if (key.includes('DISSOLVE')) return <GlassWater size={13} className="text-primary" />;
+  if (key.includes('ADDRESS')) return <MapPinOff size={13} className="text-danger" />;
   if (key.includes('EOD') || key.includes('5H') || key.includes('6H') || key.includes('8H')) {
-    return <Clock size={13} className="text-[#2563EB]" />;
+    return <Clock size={13} className="text-primary" />;
   }
-  return <FileText size={13} className="text-[#2563EB]" />;
+  return <FileText size={13} className="text-primary" />;
 }
 
 function getChipStyle(key: string) {
   if (key.includes('STAT') || key.includes('ADDRESS')) {
-    return 'bg-[#FFF1F2] border-[#FECDD3] text-[#E11D48]';
+    return 'bg-danger-soft border-danger-border text-danger';
   }
   if (key.includes('FOOD') || key.includes('CHEWABLE') || key.includes('MOUTH') || key.includes('TAKE')) {
     return 'bg-[#F5F3FF] border-[#DDD6FE] text-[#7C3AED]';
   }
   if (key.includes('DAILY') || key.includes('AFTER') || key.includes('DISSOLVE')) {
-    return 'bg-[#ECFDF5] border-[#A7F3D0] text-[#059669]';
+    return 'bg-success-soft border-success-border text-success';
   }
   if (key.includes('EMPTY') || key.includes('EVENING') || key.includes('BEFORE')) {
-    return 'bg-[#FFFBEB] border-[#FDE68A] text-[#D97706]';
+    return 'bg-warning-soft border-warning-border text-warning';
   }
-  return 'bg-[#EFF6FF] border-[#BFDBFE] text-[#1D4ED8]';
+  return 'bg-primary-soft border-primary-border text-primary-hover';
 }
 
 export function SelectedInstructionsPanel({ validationError }: SelectedInstructionsPanelProps) {
@@ -175,14 +175,14 @@ export function SelectedInstructionsPanel({ validationError }: SelectedInstructi
   };
 
   return (
-    <div className="w-full bg-white border border-[#DCE7F5] rounded-2xl p-3 shadow-[0_2px_8px_rgba(15,23,42,0.03)] flex flex-col justify-between shrink-0 min-h-[74px]">
+    <div className="w-full bg-white border border-border rounded-ui-lg p-3 shadow-card flex flex-col justify-between shrink-0 min-h-[74px]">
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-[#2563EB] flex items-center justify-center text-white shadow-sm shrink-0">
+          <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center text-white shadow-sm shrink-0">
             <FileText size={15} />
           </div>
-          <h2 className="text-sm font-bold text-[#0F172A] leading-none">
+          <h2 className="text-sm font-bold text-fg leading-none">
             Selected Instructions
           </h2>
         </div>
@@ -191,7 +191,7 @@ export function SelectedInstructionsPanel({ validationError }: SelectedInstructi
           <button
             type="button"
             onClick={handleClearAll}
-            className="px-2.5 py-1 rounded-xl bg-[#EFF6FF] hover:bg-[#DBEAFE] text-[#2563EB] font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer select-none"
+            className="px-2.5 py-1 rounded-ui-lg bg-primary-soft hover:bg-primary-border text-primary font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer select-none"
           >
             <Trash2 size={13} />
             <span>Clear All</span>
@@ -201,7 +201,7 @@ export function SelectedInstructionsPanel({ validationError }: SelectedInstructi
 
       {/* Validation alert or Chips row */}
       {validationError ? (
-        <div className="flex items-center gap-2 text-[#E11D48] font-bold text-xs py-1">
+        <div className="flex items-center gap-2 text-danger font-bold text-xs py-1">
           <AlertTriangle size={15} className="shrink-0" />
           <span className="truncate">{validationError}</span>
         </div>
@@ -233,7 +233,7 @@ export function SelectedInstructionsPanel({ validationError }: SelectedInstructi
               );
             })
           ) : (
-            <span className="text-[#94A3B8] text-xs font-medium italic py-0.5">
+            <span className="text-subtle text-xs font-medium italic py-0.5">
               No instructions selected
             </span>
           )}

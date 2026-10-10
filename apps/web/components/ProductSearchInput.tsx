@@ -198,10 +198,10 @@ export function ProductSearchInput() {
       {/* Product Search Card Container */}
       <div 
         onClick={() => inputRef.current?.focus()}
-        className="w-full h-full bg-white border border-[#DCE7F5] rounded-2xl px-3.5 py-2 flex items-center gap-2.5 shadow-[0_2px_8px_rgba(15,23,42,0.03)] hover:border-[#BFDBFE] transition-colors cursor-text"
+        className="w-full h-full bg-white border border-border rounded-ui-lg px-3.5 py-2 flex items-center gap-2.5 shadow-card hover:border-primary-border transition-colors cursor-text"
       >
         {/* Blue Search Icon */}
-        <Search size={22} className="text-[#2563EB] shrink-0" />
+        <Search size={22} className="text-primary shrink-0" />
 
         {/* Text Input Stack */}
         <div className="flex-1 min-w-0 flex flex-col justify-center">
@@ -213,9 +213,9 @@ export function ProductSearchInput() {
             onFocus={handleFocus}
             onKeyDown={handleKeyDown}
             placeholder="Search product, barcode or brand..."
-            className="w-full bg-transparent text-sm font-bold text-[#0F172A] outline-none placeholder:text-[#94A3B8] placeholder:font-normal leading-tight"
+            className="w-full bg-transparent text-sm font-bold text-fg outline-none placeholder:text-subtle placeholder:font-normal leading-tight"
           />
-          <div className="text-[11px] text-[#94A3B8] font-normal leading-none mt-1 truncate">
+          <div className="text-[11px] text-subtle font-normal leading-none mt-1 truncate">
             Search product, barcode or brand...
           </div>
         </div>
@@ -228,7 +228,7 @@ export function ProductSearchInput() {
               e.stopPropagation();
               handleClear();
             }}
-            className="w-6 h-6 flex items-center justify-center text-[#94A3B8] hover:text-[#0F172A] active:text-black select-none touch-manipulation rounded-full hover:bg-[#F1F5F9] shrink-0"
+            className="w-6 h-6 flex items-center justify-center text-subtle hover:text-fg active:text-black select-none touch-manipulation rounded-full hover:bg-surface-2 shrink-0"
             title="Clear search"
           >
             <X size={15} />
@@ -236,7 +236,7 @@ export function ProductSearchInput() {
         )}
 
         {/* Vertical Divider */}
-        <div className="h-6 w-px bg-[#E2ECF8] shrink-0" />
+        <div className="h-6 w-px bg-border shrink-0" />
 
         {/* Barcode Scanner Icon */}
         <button
@@ -245,7 +245,7 @@ export function ProductSearchInput() {
             e.stopPropagation();
             inputRef.current?.focus();
           }}
-          className="text-[#2563EB] hover:text-[#1D4ED8] p-1 rounded-lg hover:bg-[#EFF6FF] shrink-0 transition-colors"
+          className="text-primary hover:text-primary-hover p-1 rounded-lg hover:bg-primary-soft shrink-0 transition-colors"
           title="Barcode Scanner Ready"
         >
           <ScanBarcode size={22} />
@@ -254,25 +254,25 @@ export function ProductSearchInput() {
       
       {/* Error message */}
       {errorMsg && (
-        <div className="absolute top-[calc(100%+6px)] left-0 mt-1 bg-[#FEF2F2] text-[#E11D48] font-bold text-xs px-3 py-1.5 z-50 border border-[#FECDD3] rounded-xl shadow-md">
+        <div className="absolute top-[calc(100%+6px)] left-0 mt-1 bg-danger-soft text-danger font-bold text-xs px-3 py-1.5 z-50 border border-danger-border rounded-ui-lg shadow-md">
           {errorMsg}
         </div>
       )}
 
       {/* DROPDOWN MENU */}
       {isOpen && searchStatus !== 'idle' && (
-        <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-white border border-[#DCE7F5] rounded-2xl z-50 max-h-[380px] overflow-y-auto shadow-xl py-1">
+        <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-white border border-border rounded-ui-lg z-50 max-h-[380px] overflow-y-auto shadow-pop py-1">
           {searchStatus === 'loading' ? (
-            <div role="status" className="p-4 text-center bg-[#F8FAFC]">
-              <p className="text-xs font-semibold text-slate-500">Searching products…</p>
+            <div role="status" className="p-4 text-center bg-surface">
+              <p className="text-xs font-semibold text-subtle">Searching products…</p>
             </div>
           ) : searchStatus === 'error' ? (
-            <div role="alert" className="p-4 text-center bg-rose-50 space-y-2">
-              <p className="text-xs font-semibold text-rose-800">Product search failed: {searchError}</p>
+            <div role="alert" className="p-4 text-center bg-danger-soft space-y-2">
+              <p className="text-xs font-semibold text-danger">Product search failed: {searchError}</p>
               <button
                 type="button"
                 onClick={() => runSearch(searchTerm)}
-                className="px-3 py-1.5 text-xs font-bold bg-white border border-rose-300 text-rose-800 rounded-lg hover:bg-rose-100 touch-manipulation"
+                className="px-3 py-1.5 text-xs font-bold bg-white border border-danger-border text-danger rounded-lg hover:bg-danger-soft touch-manipulation"
               >
                 Retry
               </button>
@@ -285,41 +285,41 @@ export function ProductSearchInput() {
                   key={r.id || index}
                   type="button"
                   onClick={() => handleSelectProduct(r)}
-                  className={`w-full text-left px-4 py-3 border-b border-[#F8FAFC] last:border-b-0 transition-colors touch-manipulation flex flex-col gap-1 ${
+                  className={`w-full text-left px-4 py-3 border-b border-surface last:border-b-0 transition-colors touch-manipulation flex flex-col gap-1 ${
                     isSelected
-                      ? 'bg-[#EFF6FF] border-l-4 border-l-[#2563EB]'
-                      : 'hover:bg-[#F8FAFC] active:bg-[#F1F5F9]'
+                      ? 'bg-primary-soft border-l-4 border-l-primary'
+                      : 'hover:bg-surface active:bg-surface-2'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-bold text-sm text-[#0F172A] leading-tight">
+                    <span className="font-bold text-sm text-fg leading-tight">
                       {r.name}
                     </span>
                     {r.product_type && (
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-[#EFF6FF] text-[#2563EB] rounded-md border border-[#BFDBFE]">
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-primary-soft text-primary rounded-md border border-primary-border">
                         {r.product_type}
                       </span>
                     )}
                   </div>
                   
-                  <div className="flex items-center gap-3 text-xs text-slate-500 font-medium">
+                  <div className="flex items-center gap-3 text-xs text-subtle font-medium">
                     {r.stock_quantity !== undefined && (
-                      <span>Stock: <strong className="text-slate-800 font-bold">{r.stock_quantity}</strong></span>
+                      <span>Stock: <strong className="text-fg font-bold">{r.stock_quantity}</strong></span>
                     )}
                     {r.expiry_date && (
-                      <span>Exp: <strong className="text-[#E11D48] font-bold">{r.expiry_date}</strong></span>
+                      <span>Exp: <strong className="text-danger font-bold">{r.expiry_date}</strong></span>
                     )}
                     {r.pack_size && (
-                      <span>Pack: <strong className="text-slate-800 font-bold">{r.pack_size}</strong></span>
+                      <span>Pack: <strong className="text-fg font-bold">{r.pack_size}</strong></span>
                     )}
                   </div>
                 </button>
               );
             })
           ) : (
-            <div className="p-4 text-center bg-[#F8FAFC]">
-              <p className="text-xs font-semibold text-slate-600">
-                No products found matching <span className="text-[#E11D48] font-bold">"{searchTerm}"</span>
+            <div className="p-4 text-center bg-surface">
+              <p className="text-xs font-semibold text-muted">
+                No products found matching <span className="text-danger font-bold">"{searchTerm}"</span>
               </p>
             </div>
           )}

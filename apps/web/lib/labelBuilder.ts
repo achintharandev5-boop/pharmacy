@@ -23,7 +23,7 @@ export function buildFinalInstruction(state: any) {
     : (state.reason ? [state.reason] : []);
 
   // Customer Name: check state or global store
-  const customer = state.customerName || useLabelStoreStateCustomer(state);
+  const customer = state.customerName || currentCustomerName(state);
 
   const prodName = state.product?.name || state.productName || '';
 
@@ -191,7 +191,7 @@ export function buildFinalInstruction(state: any) {
   return output;
 }
 
-function useLabelStoreStateCustomer(state: any): string | null {
+function currentCustomerName(state: any): string | null {
   if (state?.customerName && typeof state.customerName === 'string') {
     return state.customerName;
   }

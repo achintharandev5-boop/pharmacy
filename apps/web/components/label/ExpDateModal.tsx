@@ -32,27 +32,27 @@ export function ExpDateModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 select-none animate-in fade-in duration-150">
-      <div className="bg-white rounded-3xl border border-[#DCE7F5] shadow-2xl overflow-hidden w-[500px] max-w-full flex flex-col p-6 relative">
+    <div className="fixed inset-0 z-50 bg-fg/40 flex items-center justify-center p-4 select-none animate-in fade-in duration-150">
+      <div className="bg-white rounded-ui-lg border border-border shadow-pop overflow-hidden w-[500px] max-w-full flex flex-col p-6 relative">
         {/* Close Button */}
         <button
           type="button"
           onClick={closeExpDateModal}
-          className="absolute top-4 right-4 w-8 h-8 rounded-full text-[#94A3B8] hover:text-[#0F172A] hover:bg-[#F1F5F9] flex items-center justify-center transition-colors cursor-pointer"
+          className="absolute top-4 right-4 w-8 h-8 rounded-full text-subtle hover:text-fg hover:bg-surface-2 flex items-center justify-center transition-colors cursor-pointer"
         >
           <X size={18} />
         </button>
 
         {/* Header */}
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-12 h-12 rounded-2xl bg-[#EFF6FF] border border-[#BFDBFE] text-[#2563EB] flex items-center justify-center shadow-sm shrink-0">
+          <div className="w-12 h-12 rounded-ui-lg bg-primary-soft border border-primary-border text-primary flex items-center justify-center shadow-sm shrink-0">
             <Calendar size={24} />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-[#0F172A] leading-tight">
+            <h2 className="text-xl font-bold text-fg leading-tight">
               Expiry Date (EXP)
             </h2>
-            <p className="text-xs text-[#94A3B8] font-medium leading-tight mt-0.5">
+            <p className="text-xs text-subtle font-medium leading-tight mt-0.5">
               Enter custom date or choose a quick preset
             </p>
           </div>
@@ -60,7 +60,7 @@ export function ExpDateModal() {
 
         {/* Input */}
         <div className="mb-4">
-          <label className="text-xs font-bold text-[#475569] block mb-1.5 uppercase tracking-wide">
+          <label className="text-xs font-bold text-muted block mb-1.5 uppercase tracking-wide">
             Expiry Date
           </label>
           <input
@@ -68,13 +68,13 @@ export function ExpDateModal() {
             value={dateInput}
             onChange={(e) => setDateInput(e.target.value)}
             placeholder="e.g. 1/8/2028 or 12/2026"
-            className="w-full h-13 bg-[#F8FAFC] border border-[#DCE7F5] rounded-xl px-4 text-lg font-bold text-[#0F172A] outline-none focus:border-2 focus:border-[#2563EB] transition-colors"
+            className="w-full h-13 bg-surface border border-border rounded-ui-lg px-4 text-lg font-bold text-fg outline-none focus:border-2 focus:border-primary transition-colors"
           />
         </div>
 
         {/* Quick Presets */}
         <div className="mb-6">
-          <label className="text-[11px] font-bold text-[#94A3B8] block mb-1.5 uppercase tracking-wide">
+          <label className="text-[11px] font-bold text-subtle block mb-1.5 uppercase tracking-wide">
             Quick Presets
           </label>
           <div className="grid grid-cols-3 gap-2">
@@ -93,7 +93,7 @@ export function ExpDateModal() {
                   const formatted = `${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
                   setDateInput(formatted);
                 }}
-                className="h-10 bg-white border border-[#DCE7F5] hover:bg-[#EFF6FF] hover:border-[#BFDBFE] active:scale-95 font-bold text-xs text-[#475569] hover:text-[#2563EB] rounded-xl transition-all touch-manipulation cursor-pointer flex items-center justify-center"
+                className="h-10 bg-white border border-border hover:bg-primary-soft hover:border-primary-border active:scale-95 font-bold text-xs text-muted hover:text-primary rounded-ui-lg transition-all touch-manipulation cursor-pointer flex items-center justify-center"
               >
                 {label}
               </button>
@@ -102,11 +102,11 @@ export function ExpDateModal() {
         </div>
 
         {/* Actions Footer */}
-        <div className="grid grid-cols-3 gap-2.5 pt-4 border-t border-[#DCE7F5]">
+        <div className="grid grid-cols-3 gap-2.5 pt-4 border-t border-border">
           <button
             type="button"
             onClick={handleClear}
-            className="h-12 bg-[#FFF1F2] hover:bg-[#FFE4E6] text-[#E11D48] font-bold text-sm rounded-xl transition-all select-none touch-manipulation cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+            className="h-12 bg-danger-soft hover:bg-[#FFE4E6] text-danger font-bold text-sm rounded-ui-lg transition-all select-none touch-manipulation cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
           >
             <Trash2 size={16} />
             <span>Clear</span>
@@ -114,14 +114,14 @@ export function ExpDateModal() {
           <button
             type="button"
             onClick={closeExpDateModal}
-            className="h-12 bg-[#F1F5F9] hover:bg-[#E2E8F0] text-[#475569] font-bold text-sm rounded-xl transition-all select-none touch-manipulation cursor-pointer flex items-center justify-center active:scale-95"
+            className="h-12 bg-surface-2 hover:bg-border text-muted font-bold text-sm rounded-ui-lg transition-all select-none touch-manipulation cursor-pointer flex items-center justify-center active:scale-95"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleSave}
-            className="h-12 bg-[#059669] hover:bg-[#047857] text-white font-bold text-sm rounded-xl shadow-md transition-all select-none touch-manipulation cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+            className="h-12 bg-success hover:bg-success text-white font-bold text-sm rounded-ui-lg shadow-md transition-all select-none touch-manipulation cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
           >
             <Check size={18} strokeWidth={2.5} />
             <span>Save</span>
