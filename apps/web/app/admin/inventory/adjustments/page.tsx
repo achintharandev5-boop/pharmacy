@@ -1,284 +1,225 @@
 'use client';
 
-import React, { useState } from 'react';
-import { SlidersHorizontal, CheckCircle2, ArrowRight, RefreshCw } from 'lucide-react';
+import React, { Suspense, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { adjustStock, getInventoryBatches } from '@/app/actions/inventory';
 import { getAdminProducts } from '@/app/actions/admin';
-import PageHeader from '@/components/admin/PageHeader';
-import InventoryTabs from '@/components/admin/InventoryTabs';
-import { ActionError, ErrorState, LoadingState, MISSING } from '@/components/admin/DataState';
+import { InventoryHeader } from '@/components/shell/InventoryHeader';
+import {
+  Alert,
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  ConfirmDialog,
+  ErrorState,
+  FormField,
+  Input,
+  PageBody,
+  Select,
+  SkeletonRows,
+  Textarea,
+  useToast,
+} from '@/components/ui';
 import { useApiQuery } from '@/lib/useApiQuery';
+import { formatDate, formatNumber, toNumberOrNull } from '@/lib/format';
+import type { ApiData } from '@/lib/api/types';
 
 type AdjustmentType = 'ADJUSTMENT_IN' | 'ADJUSTMENT_OUT' | 'EXPIRED' | 'DAMAGED' | 'RETURNED';
 
-const TYPE_LABELS: Record<AdjustmentType, string> = {
-  ADJUSTMENT_OUT: 'Decrease Stock (Physical Discrepancy / Shrinkage)',
-  ADJUSTMENT_IN: 'Increase Stock (Found Stock / Recount)',
-  DAMAGED: 'Damaged / Broken Units',
-  EXPIRED: 'Expired Batch Write-off',
-  RETURNED: 'Customer Return to Stock',
-};
+const TYPES: { id: AdjustmentType; label: string; decreases: boolean }[] = [
+  { id: 'ADJUSTMENT_OUT', label: 'Decrease: count discrepancy or shrinkage', decreases: true },
+  { id: 'ADJUSTMENT_IN', label: 'Increase: found stock or recount', decreases: false },
+  { id: 'DAMAGED', label: 'Decrease: damaged or broken units', decreases: true },
+  { id: 'EXPIRED', label: 'Decrease: expired stock write-off', decreases: true },
+  { id: 'RETURNED', label: 'Increase: customer return to stock', decreases: false },
+];
 
-export default function StockAdjustmentsPage() {
-  const productsQuery = useApiQuery(() => getAdminProducts(), []);
-  const batchesQuery = useApiQuery(() => getInventoryBatches(), []);
-  const products = productsQuery.data ?? [];
-  const batches = batchesQuery.data ?? [];
+function AdjustmentsInner() {
+  const params = useSearchParams();
+  const toast = useToast();
+  const products = useApiQuery(() => getAdminProducts(), []);
+  const batches = useApiQuery(() => getInventoryBatches(), []);
 
-  const [submitting, setSubmitting] = useState(false);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-
-  const [productId, setProductId] = useState('');
+  const [productId, setProductId] = useState(params.get('product') ?? '');
   const [batchId, setBatchId] = useState('');
-  const [adjustmentType, setAdjustmentType] = useState<AdjustmentType>('ADJUSTMENT_OUT');
+  const [type, setType] = useState<AdjustmentType>('ADJUSTMENT_OUT');
   const [quantity, setQuantity] = useState('');
   const [reason, setReason] = useState('');
+  const [showErrors, setShowErrors] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [idemKey, setIdemKey] = useState(() => `adj-${crypto.randomUUID()}`);
 
-  const selectedProduct = products.find((p) => p.id === productId);
-  const currentStock = typeof selectedProduct?.stock_quantity === 'number' ? selectedProduct.stock_quantity : null;
+  const product = useMemo(() => (products.data ?? []).find((p: ApiData) => p.id === productId), [products.data, productId]);
+  const productBatches = useMemo(
+    () => (batches.data ?? []).filter((b: ApiData) => b.product_id === productId && (toNumberOrNull(b.quantity_available) ?? 0) >= 0),
+    [batches.data, productId],
+  );
+  const batch = productBatches.find((b: ApiData) => b.id === batchId);
+  const meta = TYPES.find((t) => t.id === type)!;
   const qty = Number(quantity);
-  const hasQty = Number.isFinite(qty) && qty > 0;
-  const isDecrease = ['ADJUSTMENT_OUT', 'EXPIRED', 'DAMAGED'].includes(adjustmentType);
-  const newStock = currentStock !== null && hasQty ? Math.max(0, currentStock + (isDecrease ? -qty : qty)) : null;
+  const available = batch ? toNumberOrNull(batch.quantity_available) : toNumberOrNull(product?.stock_quantity);
 
-  const filteredBatches = batches.filter((b) => b.product_id === productId);
+  const errors = {
+    product: productId ? null : 'Select the medicine.',
+    quantity: !/^\d+$/.test(quantity) || qty <= 0 ? 'Enter a whole number above 0.' : meta.decreases && available !== null && qty > available ? `Only ${available} unit(s) recorded.` : null,
+    reason: reason.trim().length < 3 ? 'Explain the adjustment; it is kept in the stock ledger.' : null,
+  };
+  const valid = !errors.product && !errors.quantity && !errors.reason;
 
-  const handleConfirmAdjustment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (submitting) return;
-    if (!selectedProduct) {
-      setSubmitError('Select the medicine to adjust.');
+  const submit = async () => {
+    setBusy(true);
+    setError(null);
+    const res = await adjustStock({ productId, batchId: batchId || undefined, type, quantity: qty, reason: reason.trim() }, idemKey);
+    setBusy(false);
+    setConfirming(false);
+    if (!res.ok) {
+      setError(res.error);
       return;
     }
-    if (!hasQty || !Number.isInteger(qty)) {
-      setSubmitError('Enter a whole number of units greater than zero.');
-      return;
-    }
-    if (!reason.trim()) {
-      setSubmitError('Enter a justification. It is recorded with the stock movement.');
-      return;
-    }
-
-    const confirmed = window.confirm(
-      `${TYPE_LABELS[adjustmentType]}\n\n${selectedProduct.name}: ${isDecrease ? '-' : '+'}${qty} unit(s).\n\nThis changes recorded stock. Continue?`,
-    );
-    if (!confirmed) return;
-
-    setSubmitting(true);
-    setSuccessMsg(null);
-    setSubmitError(null);
-    try {
-      const res = await adjustStock({
-        productId,
-        batchId: batchId || undefined,
-        type: adjustmentType,
-        quantity: qty,
-        reason: reason.trim(),
-      });
-      if (!res.ok) {
-        setSubmitError(`Stock was not adjusted: ${res.error}`);
-        return;
-      }
-      setSuccessMsg(`Stock adjusted for ${selectedProduct.name}: ${isDecrease ? '-' : '+'}${qty} unit(s).`);
-      setQuantity('');
-      setReason('');
-      productsQuery.retry();
-      batchesQuery.retry();
-    } catch {
-      setSubmitError('Stock was not adjusted: the pharmacy server could not be reached.');
-    } finally {
-      setSubmitting(false);
-    }
+    toast.success(`${product?.name}: stock ${formatNumber(res.data?.stockBefore)} → ${formatNumber(res.data?.stockAfter)}.`);
+    setQuantity('');
+    setReason('');
+    setShowErrors(false);
+    setIdemKey(`adj-${crypto.randomUUID()}`);
+    products.retry();
+    batches.retry();
   };
 
-  const header = (
-    <>
-      <PageHeader
-        title="Stock Adjustments"
-        subtitle="Record count corrections, damaged units, expired write-offs and returns."
-        icon={SlidersHorizontal}
-      />
-      <InventoryTabs />
-    </>
-  );
-
-  if (productsQuery.status === 'loading' || batchesQuery.status === 'loading') {
+  if (products.status === 'loading' || batches.status === 'loading') {
     return (
-      <div className="space-y-6 select-none font-sans text-[#0F172A]">
-        {header}
-        <LoadingState label="Loading products and batches…" />
-      </div>
+      <PageBody>
+        <InventoryHeader title="Adjustments" />
+        <Card>
+          <SkeletonRows rows={4} label="Loading medicines and batches" />
+        </Card>
+      </PageBody>
     );
   }
-
-  if (productsQuery.status === 'error' || batchesQuery.status === 'error') {
-    const failed = productsQuery.status === 'error' ? productsQuery : batchesQuery;
-    return (
-      <div className="space-y-6 select-none font-sans text-[#0F172A]">
-        {header}
-        <div className="bg-white rounded-2xl border border-slate-200">
-          <ErrorState
-            title="Could not load the adjustment form"
-            message={failed.error ?? ''}
-            onRetry={() => {
-              productsQuery.retry();
-              batchesQuery.retry();
-            }}
-          />
-        </div>
-      </div>
-    );
-  }
+  const failed = products.status === 'error' ? products : batches.status === 'error' ? batches : null;
 
   return (
-    <div className="space-y-6 select-none font-sans text-[#0F172A]">
-      {header}
-
-      {successMsg && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs font-bold flex items-center justify-between shadow-xs">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-[#10B981]" />
-            <span>{successMsg}</span>
-          </div>
-          <button type="button" onClick={() => setSuccessMsg(null)} className="text-emerald-800 hover:underline">
-            Dismiss
-          </button>
-        </div>
-      )}
-
-      <form onSubmit={handleConfirmAdjustment} className="space-y-5" noValidate>
-        {submitError && <ActionError message={submitError} onDismiss={() => setSubmitError(null)} />}
-
-        <div className="bg-white/90 backdrop-blur-md p-5 sm:p-6 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.03)] space-y-4">
-          <h2 className="text-sm font-bold text-[#0F172A] border-b border-slate-100 pb-3">Adjustment Details</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label htmlFor="adj-product" className="text-xs font-bold text-slate-700">
-                Medicine *
-              </label>
-              <select
-                id="adj-product"
-                value={productId}
-                onChange={(e) => {
-                  setProductId(e.target.value);
-                  setBatchId('');
-                }}
-                className="w-full h-10 px-3 bg-[#F8FBFF] border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-[#2563EB]"
-              >
-                <option value="">Select medicine…</option>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                    {typeof p.stock_quantity === 'number' ? ` (Current: ${p.stock_quantity} units)` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label htmlFor="adj-batch" className="text-xs font-bold text-slate-700">
-                Batch (optional)
-              </label>
-              <select
-                id="adj-batch"
-                value={batchId}
-                onChange={(e) => setBatchId(e.target.value)}
-                disabled={!productId}
-                className="w-full h-10 px-3 bg-[#F8FBFF] border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-[#2563EB] disabled:opacity-60"
-              >
-                <option value="">No specific batch (product total only)</option>
-                {filteredBatches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    Batch {b.batch_number || MISSING} (Exp: {b.expiry_date || MISSING})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label htmlFor="adj-type" className="text-xs font-bold text-slate-700">
-                Adjustment Type *
-              </label>
-              <select
-                id="adj-type"
-                value={adjustmentType}
-                onChange={(e) => setAdjustmentType(e.target.value as AdjustmentType)}
-                className="w-full h-10 px-3 bg-[#F8FBFF] border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-[#2563EB]"
-              >
-                {(Object.keys(TYPE_LABELS) as AdjustmentType[]).map((t) => (
-                  <option key={t} value={t}>
-                    {TYPE_LABELS[t]}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label htmlFor="adj-qty" className="text-xs font-bold text-slate-700">
-                Units *
-              </label>
-              <input
-                id="adj-qty"
-                type="number"
-                min="1"
-                step="1"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                className="w-full h-10 px-3 bg-[#F8FBFF] border border-slate-200 rounded-xl text-xs font-mono font-bold outline-none focus:border-[#2563EB]"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label htmlFor="adj-reason" className="text-xs font-bold text-slate-700">
-              Justification *
-            </label>
-            <input
-              id="adj-reason"
-              type="text"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Why is stock being adjusted? This is recorded with the movement."
-              className="w-full h-10 px-3 bg-[#F8FBFF] border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-[#2563EB]"
-            />
-          </div>
-
-          {/* STOCK PREVIEW */}
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs">
-            <div>
-              <span className="text-slate-400 font-bold block uppercase text-[10px]">Current Stock</span>
-              <span className="text-base font-extrabold text-[#0F172A]">
-                {currentStock !== null ? `${currentStock} units` : MISSING}
-              </span>
-            </div>
-            <ArrowRight className="w-4 h-4 text-slate-400" />
-            <div>
-              <span className="text-slate-400 font-bold block uppercase text-[10px]">Change</span>
-              <span className={`text-base font-extrabold ${isDecrease ? 'text-rose-600' : 'text-[#10B981]'}`}>
-                {hasQty ? `${isDecrease ? '-' : '+'}${qty} units` : MISSING}
-              </span>
-            </div>
-            <ArrowRight className="w-4 h-4 text-slate-400" />
-            <div>
-              <span className="text-slate-400 font-bold block uppercase text-[10px]">Expected New Stock</span>
-              <span className="text-base font-extrabold text-[#2563EB]">{newStock !== null ? `${newStock} units` : MISSING}</span>
-            </div>
-          </div>
-
-          <div className="pt-2 flex justify-end">
-            <button
-              type="submit"
-              disabled={submitting || products.length === 0}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#2563EB] to-[#3B82F6] text-white rounded-xl text-xs font-bold shadow-xs hover:brightness-105 disabled:opacity-50"
+    <PageBody>
+      <InventoryHeader title="Adjustments" description="Correct recorded stock. Every adjustment needs a reason and is kept in the stock ledger. Requires the pharmacist or administrator role." />
+      {failed ? (
+        <Card>
+          <ErrorState title="Could not load medicines or batches" message={failed.error ?? ''} onRetry={failed.retry} />
+        </Card>
+      ) : (
+        <Card className="max-w-3xl">
+          <CardHeader title="New adjustment" />
+          <CardBody>
+            <form
+              noValidate
+              onSubmit={(e) => {
+                e.preventDefault();
+                setShowErrors(true);
+                if (valid) setConfirming(true);
+              }}
+              className="grid grid-cols-1 gap-4 sm:grid-cols-2"
             >
-              {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-              <span>{submitting ? 'Saving…' : 'Record Adjustment'}</span>
-            </button>
-          </div>
-        </div>
-      </form>
-    </div>
+              {error && (
+                <Alert className="sm:col-span-2" title="Stock was not adjusted" onDismiss={() => setError(null)}>
+                  {error}
+                </Alert>
+              )}
+              <FormField label="Medicine" required error={showErrors ? errors.product : null} className="sm:col-span-2">
+                {(f) => (
+                  <Select
+                    {...f}
+                    value={productId}
+                    onChange={(e) => {
+                      setProductId(e.target.value);
+                      setBatchId('');
+                    }}
+                  >
+                    <option value="">Select medicine</option>
+                    {(products.data ?? []).map((p: ApiData) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} · {formatNumber(p.stock_quantity)} in stock
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </FormField>
+              <FormField label="Batch" hint={productBatches.length === 0 && productId ? 'This medicine has no batch records; only the stock total changes.' : 'Choose the batch when the units come from a specific one.'}>
+                {(f) => (
+                  <Select {...f} value={batchId} onChange={(e) => setBatchId(e.target.value)} disabled={!productId || productBatches.length === 0}>
+                    <option value="">No specific batch (stock total only)</option>
+                    {productBatches.map((b: ApiData) => (
+                      <option key={b.id} value={b.id}>
+                        {b.batch_number} · exp {formatDate(b.expiry_date)} · {formatNumber(b.quantity_available)} left
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </FormField>
+              <FormField label="Type" required>
+                {(f) => (
+                  <Select {...f} value={type} onChange={(e) => setType(e.target.value as AdjustmentType)}>
+                    {TYPES.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </FormField>
+              <FormField
+                label="Quantity (units)"
+                required
+                error={showErrors ? errors.quantity : null}
+                hint={available !== null ? `${formatNumber(available)} unit(s) recorded ${batch ? 'in this batch' : 'in total'}` : undefined}
+              >
+                {(f) => <Input {...f} inputMode="numeric" value={quantity} onChange={(e) => setQuantity(e.target.value)} />}
+              </FormField>
+              <div className="hidden sm:block" />
+              <FormField label="Reason" required error={showErrors ? errors.reason : null} className="sm:col-span-2">
+                {(f) => <Textarea {...f} rows={3} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Monthly count found 2 fewer strips" />}
+              </FormField>
+              <div className="sm:col-span-2 flex justify-end">
+                <Button type="submit" variant="primary">
+                  Review adjustment
+                </Button>
+              </div>
+            </form>
+          </CardBody>
+        </Card>
+      )}
+      <ConfirmDialog
+        open={confirming}
+        onCancel={() => setConfirming(false)}
+        onConfirm={submit}
+        busy={busy}
+        tone={meta.decreases ? 'danger' : 'primary'}
+        title="Record this adjustment?"
+        description="This changes recorded stock and cannot be undone from this screen (record a correcting adjustment instead)."
+        confirmLabel="Record adjustment"
+      >
+        <dl className="grid grid-cols-2 gap-2 text-sm">
+          <dt className="text-subtle">Medicine</dt>
+          <dd className="text-fg">{product?.name}</dd>
+          <dt className="text-subtle">Batch</dt>
+          <dd className="text-fg">{batch?.batch_number ?? 'Stock total only'}</dd>
+          <dt className="text-subtle">Change</dt>
+          <dd className={`tabular font-semibold ${meta.decreases ? 'text-danger' : 'text-success'}`}>
+            {meta.decreases ? '−' : '+'}
+            {quantity}
+          </dd>
+          <dt className="text-subtle">Reason</dt>
+          <dd className="text-fg">{reason}</dd>
+        </dl>
+      </ConfirmDialog>
+    </PageBody>
+  );
+}
+
+export default function AdjustmentsPage() {
+  return (
+    <Suspense>
+      <AdjustmentsInner />
+    </Suspense>
   );
 }

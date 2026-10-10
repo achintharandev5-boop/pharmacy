@@ -1,189 +1,227 @@
 'use client';
 
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { Users, Search, ArrowRight } from 'lucide-react';
-import { getAllCustomers } from '@/app/actions/customers';
-import PageHeader from '@/components/admin/PageHeader';
-import FilterTabs from '@/components/admin/FilterTabs';
-import EmptyState from '@/components/admin/EmptyState';
-import { ErrorState, LoadingState, MISSING } from '@/components/admin/DataState';
+import React, { Suspense, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { UserPlus, Users } from 'lucide-react';
+import { getAllCustomers, createNewPerson, type PersonData } from '@/app/actions/customers';
+import {
+  Alert,
+  Button,
+  Card,
+  DataTable,
+  Dialog,
+  EmptyState,
+  FormField,
+  Input,
+  PageBody,
+  PageHeader,
+  QueryView,
+  SearchInput,
+  Select,
+  Textarea,
+  useToast,
+  type Column,
+} from '@/components/ui';
 import { useApiQuery } from '@/lib/useApiQuery';
-import type { ApiData } from '@/lib/api/types';
+import { formatDate, text } from '@/lib/format';
 
-export default function PatientDirectoryPage() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filter, setFilter] = useState('All');
-  const patientsQuery = useApiQuery(() => getAllCustomers(), []);
-  const patients: ApiData[] = patientsQuery.data ?? [];
+const ALLERGY_OPTIONS = [
+  { value: '', label: 'Not recorded' },
+  { value: 'NONE_KNOWN', label: 'No known allergies (confirmed with patient)' },
+  { value: 'HAS_ALLERGIES', label: 'Has allergies' },
+];
 
-  const filteredPatients = patients.filter((p) => {
-    const q = searchTerm.toLowerCase();
-    const nameMatch = p.name?.toLowerCase().includes(q);
-    const phoneMatch = p.phone_number?.includes(q);
-    const addressMatch = p.address?.toLowerCase().includes(q);
+const columns: Column<PersonData>[] = [
+  { key: 'name', header: 'Patient', cell: (p) => p.name },
+  { key: 'phone', header: 'Mobile', cell: (p) => <span className="tabular">{p.phone_number}</span> },
+  { key: 'age', header: 'Age / gender', hideOnMobile: true, cell: (p) => [p.age, p.gender].filter(Boolean).join(' · ') || '—' },
+  { key: 'address', header: 'Address', hideOnMobile: true, cell: (p) => <span className="line-clamp-1">{text(p.address)}</span> },
+  { key: 'created', header: 'Registered', hideOnMobile: true, cell: (p) => formatDate(p.created_at) },
+];
 
-    if (filter === 'Added today') {
-      // Patient record created today
-      const today = new Date().toISOString().split('T')[0];
-      const createdDate = p.created_at?.split('T')[0];
-      if (createdDate !== today) return false;
+function AddPatientDialog({ open, onClose, onSaved }: { open: boolean; onClose: () => void; onSaved: (p: PersonData) => void }) {
+  const empty = { name: '', phone_number: '', age: '', gender: '', address: '', medical_notes: '', allergy_status: '', allergies: '' };
+  const [form, setForm] = useState(empty);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const set = (k: keyof typeof empty) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
+    setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const close = () => {
+    if (saving) return;
+    setForm(empty);
+    setErrors({});
+    setSaveError(null);
+    onClose();
+  };
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const next: Record<string, string> = {};
+    if (!form.name.trim()) next.name = 'Enter the patient’s name.';
+    if (!/^[+\d\s-]{7,20}$/.test(form.phone_number.trim())) next.phone_number = 'Enter a phone number (digits, spaces, + or -).';
+    if (form.allergy_status === 'HAS_ALLERGIES' && !form.allergies.trim()) next.allergies = 'List the allergies.';
+    setErrors(next);
+    if (Object.keys(next).length > 0) return;
+
+    setSaving(true);
+    setSaveError(null);
+    const payload: Record<string, string> = {};
+    for (const [k, v] of Object.entries(form)) if (v.trim()) payload[k] = v.trim();
+    const res = await createNewPerson(payload as unknown as PersonData);
+    setSaving(false);
+    if (!res.success || !res.data) {
+      setSaveError(res.error ?? 'The patient was not saved.');
+      return;
     }
-
-    return nameMatch || phoneMatch || addressMatch;
-  });
+    setForm(empty);
+    onSaved(res.data);
+  };
 
   return (
-    <div className="space-y-6 select-none font-sans text-[#0F172A]">
-      {/* PAGE HEADER */}
+    <Dialog
+      open={open}
+      onClose={close}
+      busy={saving}
+      title="Add patient"
+      description="Saved to the patient register. Required fields are marked *."
+      size="lg"
+      footer={
+        <>
+          <Button onClick={close} disabled={saving}>
+            Cancel
+          </Button>
+          <Button type="submit" form="add-patient" variant="primary" loading={saving}>
+            Save patient
+          </Button>
+        </>
+      }
+    >
+      <form id="add-patient" onSubmit={submit} noValidate className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {saveError && (
+          <Alert className="sm:col-span-2" title="Patient not saved">
+            {saveError}
+          </Alert>
+        )}
+        <FormField label="Full name" required error={errors.name}>
+          {(f) => <Input {...f} value={form.name} onChange={set('name')} autoComplete="off" data-autofocus />}
+        </FormField>
+        <FormField label="Mobile number" required error={errors.phone_number}>
+          {(f) => <Input {...f} value={form.phone_number} onChange={set('phone_number')} inputMode="tel" placeholder="07X XXX XXXX" />}
+        </FormField>
+        <FormField label="Age">
+          {(f) => <Input {...f} value={form.age} onChange={set('age')} inputMode="numeric" />}
+        </FormField>
+        <FormField label="Gender">
+          {(f) => (
+            <Select {...f} value={form.gender} onChange={set('gender')}>
+              <option value="">Not recorded</option>
+              <option value="Female">Female</option>
+              <option value="Male">Male</option>
+              <option value="Other">Other</option>
+            </Select>
+          )}
+        </FormField>
+        <FormField label="Address" className="sm:col-span-2">
+          {(f) => <Input {...f} value={form.address} onChange={set('address')} />}
+        </FormField>
+        <FormField label="Allergy status" hint="Leave as “Not recorded” unless you have asked the patient." className="sm:col-span-2">
+          {(f) => (
+            <Select {...f} value={form.allergy_status} onChange={set('allergy_status')}>
+              {ALLERGY_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </Select>
+          )}
+        </FormField>
+        {form.allergy_status === 'HAS_ALLERGIES' && (
+          <FormField label="Allergies" required error={errors.allergies} className="sm:col-span-2">
+            {(f) => <Input {...f} value={form.allergies} onChange={set('allergies')} placeholder="e.g. Penicillin (rash)" />}
+          </FormField>
+        )}
+        <FormField label="Medical notes" className="sm:col-span-2">
+          {(f) => <Textarea {...f} value={form.medical_notes} onChange={set('medical_notes')} />}
+        </FormField>
+      </form>
+    </Dialog>
+  );
+}
+
+function PatientsInner() {
+  const params = useSearchParams();
+  const [search, setSearch] = useState(params.get('search') ?? '');
+  const [adding, setAdding] = useState(false);
+  const toast = useToast();
+  const patients = useApiQuery(() => getAllCustomers(), []);
+
+  const filter = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const digits = q.replace(/[\s-]/g, '');
+    return (p: PersonData) =>
+      !q || p.name?.toLowerCase().includes(q) || (digits.length > 0 && p.phone_number?.replace(/[\s-]/g, '').includes(digits));
+  }, [search]);
+
+  return (
+    <PageBody>
       <PageHeader
-        title="Patient Directory"
-        subtitle="Manage patient profiles, prescription history and customer details."
-        icon={Users}
-        actions={[
-          {
-            label: '+ New Patient / Prescription',
-            href: '/label',
-            variant: 'primary',
-          },
-        ]}
+        title="Patients"
+        description="The patient register used by the label workstation."
+        actions={
+          <Button variant="primary" icon={UserPlus} onClick={() => setAdding(true)}>
+            Add patient
+          </Button>
+        }
       />
-
-      {/* SEARCH & FILTERS BAR */}
-      <div className="bg-white/88 backdrop-blur-md p-4 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.03)] flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="relative w-full sm:w-96">
-          <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400 pointer-events-none" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by patient name or phone number..."
-            className="w-full h-[40px] pl-10 pr-4 bg-[#F8FBFF] border border-slate-200 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 rounded-xl text-xs font-semibold outline-none transition-all placeholder:text-slate-400"
-          />
+      <Card>
+        <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between">
+          <SearchInput value={search} onChange={setSearch} label="Search patients" placeholder="Name or mobile number" />
+          {patients.status === 'success' && (
+            <p className="text-sm text-subtle tabular">{patients.data.filter(filter).length} of {patients.data.length} patients</p>
+          )}
         </div>
+        <QueryView
+          query={patients}
+          errorTitle="Could not load patients"
+          isEmpty={(d) => d.length === 0}
+          empty={
+            <EmptyState
+              icon={Users}
+              title="No patients registered yet"
+              description="Add a patient here or from the label workstation."
+              action={<Button icon={UserPlus} onClick={() => setAdding(true)}>Add patient</Button>}
+            />
+          }
+        >
+          {(rows) => {
+            const shown = rows.filter(filter);
+            return shown.length === 0 ? (
+              <EmptyState title="No patients match your search" description="Check the spelling or search by mobile number." />
+            ) : (
+              <DataTable caption="Patients" columns={columns} rows={shown} rowKey={(p) => p.id ?? p.phone_number} rowHref={(p) => (p.id ? `/admin/patients/${p.id}` : null)} />
+            );
+          }}
+        </QueryView>
+      </Card>
+      <AddPatientDialog
+        open={adding}
+        onClose={() => setAdding(false)}
+        onSaved={(p) => {
+          setAdding(false);
+          toast.success(`${p.name} was added to the patient register.`);
+          patients.retry();
+        }}
+      />
+    </PageBody>
+  );
+}
 
-        <FilterTabs
-          tabs={['All', 'Added today']}
-          activeTab={filter}
-          onChange={(tab) => setFilter(tab)}
-        />
-      </div>
-
-      {/* PATIENTS TABLE */}
-      <div className="bg-white/96 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.03)] overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-400 font-bold uppercase tracking-wider text-[11px]">
-                <th className="py-3.5 px-4">Patient</th>
-                <th className="py-3.5 px-4">Mobile</th>
-                <th className="py-3.5 px-4">Age / Gender</th>
-                <th className="py-3.5 px-4">Address</th>
-                <th className="py-3.5 px-4 text-center">Total Rx</th>
-                <th className="py-3.5 px-4">Last Updated</th>
-                <th className="py-3.5 px-4 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 font-medium">
-              {patientsQuery.status === 'loading' ? (
-                <tr>
-                  <td colSpan={7}>
-                    <LoadingState label="Loading patients…" />
-                  </td>
-                </tr>
-              ) : patientsQuery.status === 'error' ? (
-                <tr>
-                  <td colSpan={7}>
-                    <ErrorState title="Could not load patients" message={patientsQuery.error} onRetry={patientsQuery.retry} />
-                  </td>
-                </tr>
-              ) : filteredPatients.length > 0 ? (
-                filteredPatients.map((p, idx) => {
-                  const initial = p.name ? p.name.charAt(0).toUpperCase() : '?';
-                  const rxCount = Array.isArray(p.prescriptions) ? p.prescriptions.length : null;
-                  const updatedAt = p.updated_at || p.created_at;
-                  const lastUpdated = updatedAt
-                    ? new Date(updatedAt).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })
-                    : MISSING;
-
-                  return (
-                    <tr key={p.id || idx} className="hover:bg-blue-50/40 transition-colors group">
-                      <td className="py-3.5 px-4 font-bold text-slate-900">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-blue-50 border border-blue-100 text-[#2563EB] font-black text-xs flex items-center justify-center shrink-0 shadow-2xs">
-                            {initial}
-                          </div>
-                          <div>
-                            <span className="text-[13px] font-bold text-[#0F172A] block leading-tight">
-                              {p.name || MISSING}
-                            </span>
-                            {p.medical_notes && (
-                              <span className="text-[10px] text-amber-600 font-medium block truncate max-w-[150px]">
-                                Note: {p.medical_notes}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 font-mono font-bold text-slate-700">
-                        {p.phone_number || MISSING}
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-600 font-semibold">
-                        {p.age ? `${p.age} yrs` : MISSING} • {p.gender || MISSING}
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-500 font-medium truncate max-w-[180px]">
-                        {p.address || MISSING}
-                      </td>
-                      <td className="py-3.5 px-4 text-center">
-                        {rxCount !== null ? (
-                          <span className="px-2.5 py-0.5 bg-blue-50 border border-blue-200 text-[#2563EB] rounded-full text-xs font-bold inline-block">
-                            {rxCount} Rx
-                          </span>
-                        ) : (
-                          MISSING
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-500 font-medium text-[11px]">
-                        {lastUpdated}
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
-                        {p.id && (
-                        <Link
-                          href={`/admin/patients/${p.id}`}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-blue-50 text-[#2563EB] border border-blue-200 hover:border-blue-300 font-bold rounded-xl text-xs transition-all shadow-2xs group/btn"
-                        >
-                          <span>View Profile</span>
-                          <ArrowRight className="w-3.5 h-3.5 text-[#2563EB] group-hover/btn:translate-x-0.5 transition-transform" />
-                        </Link>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={7}>
-                    <EmptyState
-                      title="No patients found"
-                      description={
-                        searchTerm || filter !== 'All'
-                          ? 'No patients match the current search or filter.'
-                          : 'No patient records exist yet. Patients are added from the label workstation.'
-                      }
-                      actionText="Create New Patient / Rx"
-                      actionHref="/label"
-                    />
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+export default function PatientsPage() {
+  return (
+    <Suspense>
+      <PatientsInner />
+    </Suspense>
   );
 }

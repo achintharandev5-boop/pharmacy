@@ -1,147 +1,106 @@
 'use client';
 
 import React, { useState } from 'react';
-import { History, Search, TrendingDown, TrendingUp } from 'lucide-react';
+import { ArrowLeftRight } from 'lucide-react';
 import { getInventoryMovements } from '@/app/actions/inventory';
-import PageHeader from '@/components/admin/PageHeader';
-import InventoryTabs from '@/components/admin/InventoryTabs';
-import FilterTabs from '@/components/admin/FilterTabs';
-import EmptyState from '@/components/admin/EmptyState';
-import { ErrorState, LoadingState, MISSING } from '@/components/admin/DataState';
+import { InventoryHeader } from '@/components/shell/InventoryHeader';
+import { Card, DataTable, EmptyState, PageBody, QueryView, SearchInput, Select, StatusBadge, type Column } from '@/components/ui';
 import { useApiQuery } from '@/lib/useApiQuery';
+import { formatDateTime, formatNumber, toNumberOrNull } from '@/lib/format';
+import type { ApiData } from '@/lib/api/types';
 
-export default function StockMovementsPage() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState('ALL');
-  const movementsQuery = useApiQuery(() => getInventoryMovements(searchTerm, typeFilter), [searchTerm, typeFilter]);
-  const movements = movementsQuery.data ?? [];
+const TYPES = [
+  ['ALL', 'All movement types'],
+  ['DISPENSE', 'Dispensed'],
+  ['STOCK_RECEIVED', 'Received'],
+  ['ADJUSTMENT_IN', 'Adjustment in'],
+  ['ADJUSTMENT_OUT', 'Adjustment out'],
+  ['EXPIRED', 'Expired write-off'],
+  ['DAMAGED', 'Damaged'],
+  ['RETURNED', 'Returned'],
+];
+
+const columns: Column<ApiData>[] = [
+  { key: 'date', header: 'Date', cell: (m) => formatDateTime(m.created_at) },
+  {
+    key: 'product',
+    header: 'Medicine',
+    cell: (m) => (
+      <span>
+        {m.products?.name ?? 'Unknown medicine'}
+        {m.product_batches?.batch_number && <span className="block font-mono text-xs text-subtle">Batch {m.product_batches.batch_number}</span>}
+      </span>
+    ),
+  },
+  { key: 'type', header: 'Type', cell: (m) => <StatusBadge status={m.movement_type} /> },
+  {
+    key: 'qty',
+    header: 'Change',
+    align: 'right',
+    cell: (m) => {
+      const q = toNumberOrNull(m.quantity);
+      return <span className={`tabular font-medium ${q !== null && q < 0 ? 'text-danger' : 'text-success'}`}>{q === null ? '—' : q > 0 ? `+${q}` : q}</span>;
+    },
+  },
+  {
+    key: 'balance',
+    header: 'Before → after',
+    align: 'right',
+    hideOnMobile: true,
+    cell: (m) => <span className="tabular text-muted">{formatNumber(m.stock_before)} → {formatNumber(m.stock_after)}</span>,
+  },
+  {
+    key: 'ref',
+    header: 'Reference / reason',
+    hideOnMobile: true,
+    cell: (m) => <span className="line-clamp-2">{m.prescriptions?.prescription_number ?? m.reason ?? '—'}</span>,
+  },
+];
+
+export default function MovementsPage() {
+  const [search, setSearch] = useState('');
+  const [type, setType] = useState('ALL');
+  const movements = useApiQuery(() => getInventoryMovements(undefined, type), [type]);
+  const q = search.trim().toLowerCase();
 
   return (
-    <div className="space-y-6 select-none font-sans text-[#0F172A]">
-      <PageHeader
-        title="Stock Movement Audit Ledger"
-        subtitle="Transaction history of stock receipts, dispenses, adjustments, and returns."
-        icon={History}
-      />
-
-      <InventoryTabs />
-
-      {/* SEARCH & FILTERS BAR */}
-      <div className="bg-white/88 backdrop-blur-md p-4 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.03)] flex flex-col lg:flex-row items-center justify-between gap-4">
-        <div className="relative w-full lg:w-96">
-          <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400 pointer-events-none" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search product, batch number, or prescription RX..."
-            className="w-full h-[40px] pl-10 pr-4 bg-[#F8FBFF] border border-slate-200 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 rounded-xl text-xs font-semibold outline-none transition-all placeholder:text-slate-400"
-          />
+    <PageBody>
+      <InventoryHeader title="Stock movements" description="The stock ledger: every dispense, receipt and adjustment (500 most recent)." />
+      <Card>
+        <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center">
+          <SearchInput value={search} onChange={setSearch} label="Search movements" placeholder="Medicine, batch or RX number" />
+          <div className="w-full sm:w-56">
+            <Select aria-label="Movement type" value={type} onChange={(e) => setType(e.target.value)}>
+              {TYPES.map(([id, label]) => (
+                <option key={id} value={id}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </div>
         </div>
-
-        <FilterTabs
-          tabs={[
-            { id: 'ALL', label: 'All Movements' },
-            { id: 'DISPENSED', label: 'Dispensed' },
-            { id: 'STOCK_RECEIVED', label: 'Received (GRN)' },
-            { id: 'ADJUSTMENT', label: 'Adjustments' },
-            { id: 'EXPIRED', label: 'Quarantined' },
-          ]}
-          activeTab={typeFilter}
-          onChange={(tab) => setTypeFilter(tab)}
-        />
-      </div>
-
-      {/* MOVEMENTS TABLE */}
-      <div className="bg-white/96 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.03)] overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-400 font-bold uppercase tracking-wider text-[11px]">
-                <th className="py-3.5 px-4">Type</th>
-                <th className="py-3.5 px-4">Medicine / SKU</th>
-                <th className="py-3.5 px-4">Batch Number</th>
-                <th className="py-3.5 px-4 text-center">Change</th>
-                <th className="py-3.5 px-4">Description / Reference</th>
-                <th className="py-3.5 px-4">Date & Time</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 font-medium">
-              {movementsQuery.status === 'loading' ? (
-                <tr>
-                  <td colSpan={6}>
-                    <LoadingState label="Loading stock movements…" />
-                  </td>
-                </tr>
-              ) : movementsQuery.status === 'error' ? (
-                <tr>
-                  <td colSpan={6}>
-                    <ErrorState title="Could not load stock movements" message={movementsQuery.error} onRetry={movementsQuery.retry} />
-                  </td>
-                </tr>
-              ) : movements.length > 0 ? (
-                movements.map((m) => {
-                  const isDeduction = m.quantity_change < 0;
-                  return (
-                    <tr key={m.id} className="hover:bg-blue-50/40 transition-colors">
-                      <td className="py-3.5 px-4">
-                        <span
-                          className={`inline-flex items-center gap-1 font-bold text-xs ${
-                            isDeduction ? 'text-rose-600' : 'text-[#10B981]'
-                          }`}
-                        >
-                          {isDeduction ? (
-                            <TrendingDown className="w-3.5 h-3.5" />
-                          ) : (
-                            <TrendingUp className="w-3.5 h-3.5" />
-                          )}
-                          <span>{m.movement_type}</span>
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 font-bold text-slate-900">
-                        {m.product?.name || m.product_name || MISSING}
-                      </td>
-                      <td className="py-3.5 px-4 font-mono font-bold text-slate-600">
-                        {m.batch?.batch_number || m.batch_number || MISSING}
-                      </td>
-                      <td className="py-3.5 px-4 font-mono font-bold text-center">
-                        <span
-                          className={`px-2 py-0.5 rounded text-xs ${
-                            isDeduction
-                              ? 'bg-rose-50 text-rose-600 border border-rose-100'
-                              : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
-                          }`}
-                        >
-                          {isDeduction ? m.quantity_change : `+${m.quantity_change}`}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-600 max-w-[250px] truncate" title={m.notes}>
-                        {m.notes || MISSING}
-                      </td>
-                      <td className="py-3.5 px-4 font-mono text-slate-500 text-[11px]">
-                        {m.created_at ? new Date(m.created_at).toLocaleString() : MISSING}
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={6}>
-                    <EmptyState
-                      title="No movements recorded"
-                      description={
-                        searchTerm || typeFilter !== 'ALL'
-                          ? 'No stock movements match the current search or filter.'
-                          : 'No stock movements have been recorded yet.'
-                      }
-                    />
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+        <QueryView
+          query={movements}
+          errorTitle="Could not load stock movements"
+          isEmpty={(d) => d.length === 0}
+          empty={<EmptyState icon={ArrowLeftRight} title="No stock movements recorded" />}
+        >
+          {(rows) => {
+            const shown = rows.filter(
+              (m: ApiData) =>
+                !q ||
+                m.products?.name?.toLowerCase().includes(q) ||
+                m.product_batches?.batch_number?.toLowerCase().includes(q) ||
+                m.prescriptions?.prescription_number?.toLowerCase().includes(q),
+            );
+            return shown.length === 0 ? (
+              <EmptyState title="No movements match your search" />
+            ) : (
+              <DataTable caption="Stock movements" columns={columns} rows={shown} rowKey={(m) => m.id} rowHref={(m) => (m.product_id ? `/admin/products/${m.product_id}` : null)} />
+            );
+          }}
+        </QueryView>
+      </Card>
+    </PageBody>
   );
 }

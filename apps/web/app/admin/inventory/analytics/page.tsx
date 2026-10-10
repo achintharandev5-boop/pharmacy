@@ -1,143 +1,88 @@
 'use client';
 
-import type { ApiData } from '@/lib/api/types';
 import React, { useState } from 'react';
-import { ChartNoAxesCombined, TrendingUp, TrendingDown } from 'lucide-react';
-import { getInventoryAnalytics, getInventorySummary } from '@/app/actions/inventory';
-import PageHeader from '@/components/admin/PageHeader';
-import InventoryTabs from '@/components/admin/InventoryTabs';
-import FilterTabs from '@/components/admin/FilterTabs';
-import { ErrorState, LoadingState, MISSING } from '@/components/admin/DataState';
+import { getInventoryAnalytics } from '@/app/actions/inventory';
+import { InventoryHeader } from '@/components/shell/InventoryHeader';
+import { Card, CardHeader, DataTable, EmptyState, PageBody, QueryView, SegmentedControl, type Column } from '@/components/ui';
+import { ChartTable, HorizontalBarChart } from '@/components/ui/Charts';
 import { useApiQuery } from '@/lib/useApiQuery';
+import { formatDate, formatLkr, formatNumber } from '@/lib/format';
+import type { ApiData } from '@/lib/api/types';
 
-function formatLkr(value: unknown) {
-  return typeof value === 'number' && Number.isFinite(value) ? `LKR ${value.toLocaleString()}` : MISSING;
-}
+const RANGES = [
+  { id: '7d', label: '7 days' },
+  { id: '30d', label: '30 days' },
+  { id: '90d', label: '90 days' },
+];
+
+const slowColumns: Column<ApiData>[] = [
+  { key: 'name', header: 'Medicine', cell: (r) => r.name },
+  { key: 'stock', header: 'In stock', align: 'right', cell: (r) => <span className="tabular">{formatNumber(r.stockQty)}</span> },
+  { key: 'value', header: 'Value at cost', align: 'right', cell: (r) => (r.stockValue == null ? <span className="text-subtle">No costed batches</span> : <span className="tabular">{formatLkr(r.stockValue)}</span>) },
+  { key: 'last', header: 'Last dispensed', align: 'right', hideOnMobile: true, cell: (r) => (r.lastDispensedAt ? `${formatDate(r.lastDispensedAt)} (${r.daysSinceDispensed} d)` : 'Never') },
+];
 
 export default function InventoryAnalyticsPage() {
   const [range, setRange] = useState('30d');
-  const summaryQuery = useApiQuery(() => getInventorySummary(), []);
-  const analyticsQuery = useApiQuery(() => getInventoryAnalytics(range), [range]);
-
-  const valuation = summaryQuery.data?.valuation;
-  const marginPct =
-    typeof valuation?.potentialMargin === 'number' && typeof valuation?.retail === 'number' && valuation.retail > 0
-      ? Math.round((valuation.potentialMargin / valuation.retail) * 100)
-      : null;
-  const fastMoving: ApiData[] = Array.isArray(analyticsQuery.data?.fastMoving) ? analyticsQuery.data.fastMoving : [];
-  const slowMoving: ApiData[] = Array.isArray(analyticsQuery.data?.slowMoving) ? analyticsQuery.data.slowMoving : [];
-
-  const valuationCards = [
-    { label: 'Total Inventory Cost', value: formatLkr(valuation?.cost), note: 'Stock at purchase cost', tone: 'text-[#0F172A]' },
-    { label: 'Estimated Retail Value', value: formatLkr(valuation?.retail), note: 'Stock at retail price', tone: 'text-[#2563EB]' },
-    {
-      label: 'Unrealized Gross Margin',
-      value: formatLkr(valuation?.potentialMargin),
-      note: marginPct !== null ? `~${marginPct}% of retail value` : 'Retail value minus cost',
-      tone: 'text-[#10B981]',
-    },
-  ];
-
-  const renderMovers = (list: ApiData[], kind: 'fast' | 'slow') => {
-    if (analyticsQuery.status === 'loading') return <LoadingState label="Loading…" />;
-    if (analyticsQuery.status === 'error') {
-      return <ErrorState title="Could not load analytics" message={analyticsQuery.error} onRetry={analyticsQuery.retry} compact />;
-    }
-    if (list.length === 0) {
-      return <p className="text-center text-slate-500 py-6 text-xs font-semibold">No data for this period.</p>;
-    }
-    return list.map((m: ApiData, i: number) => (
-      <div key={m.id || i} className="flex items-center justify-between p-3 rounded-xl bg-slate-50/70 border border-slate-100 text-xs">
-        <span className="font-bold text-slate-900">{m.name || MISSING}</span>
-        <div className="flex items-center gap-3">
-          <span className="font-mono font-bold text-slate-700">{m.units ?? MISSING} units</span>
-          {kind === 'fast' && m.growth && (
-            <span className="font-mono font-bold text-[#10B981] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">{m.growth}</span>
-          )}
-          {kind === 'slow' && m.daysInStock !== undefined && m.daysInStock !== null && (
-            <span className="font-mono font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">
-              {m.daysInStock} days
-            </span>
-          )}
-        </div>
-      </div>
-    ));
-  };
+  const analytics = useApiQuery(() => getInventoryAnalytics(range), [range]);
+  const label = RANGES.find((r) => r.id === range)?.label;
 
   return (
-    <div className="space-y-6 select-none font-sans text-[#0F172A]">
-      <PageHeader
-        title="Inventory Analytics & Valuation"
-        subtitle="Stock valuation and fast/slow-moving medicines."
-        icon={ChartNoAxesCombined}
+    <PageBody>
+      <InventoryHeader
+        title="Stock analytics"
+        description="Computed from dispensing records and batch costs."
+        actions={<SegmentedControl label="Time range" options={RANGES} value={range} onChange={setRange} />}
       />
-
-      <InventoryTabs />
-
-      {/* FILTER TABS */}
-      <div className="bg-white/88 backdrop-blur-md p-2 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.03)] flex flex-wrap items-center justify-between gap-3">
-        <FilterTabs
-          tabs={[
-            { id: '7d', label: '7 Days' },
-            { id: '30d', label: '30 Days' },
-            { id: '90d', label: '3 Months' },
-            { id: '180d', label: '6 Months' },
-          ]}
-          activeTab={range}
-          onChange={(r) => setRange(r)}
-        />
-      </div>
-
-      {/* VALUATION ROW */}
-      {summaryQuery.status === 'error' ? (
-        <div className="bg-white rounded-2xl border border-slate-200">
-          <ErrorState title="Could not load stock valuation" message={summaryQuery.error} onRetry={summaryQuery.retry} compact />
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5" aria-busy={summaryQuery.status === 'loading'}>
-          {valuationCards.map((card) => (
-            <div
-              key={card.label}
-              className="bg-white/90 backdrop-blur-md p-5 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.03)] space-y-1"
-            >
-              <span className="text-slate-400 font-bold uppercase text-[11px] tracking-wider">{card.label}</span>
-              <span className={`text-3xl font-extrabold block ${card.tone}`}>
-                {summaryQuery.status === 'loading' ? (
-                  <span className="inline-block h-8 w-28 rounded bg-slate-100 animate-pulse" aria-hidden="true" />
+      <QueryView query={analytics} errorTitle="Could not load stock analytics">
+        {(a) => {
+          const fast: ApiData[] = Array.isArray(a.fastMoving) ? a.fastMoving : [];
+          const slow: ApiData[] = Array.isArray(a.slowMoving) ? a.slowMoving : [];
+          const cats: ApiData[] = Array.isArray(a.stockByCategory) ? a.stockByCategory : [];
+          return (
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+              <Card>
+                <CardHeader title="Fastest moving" description={`Units dispensed, last ${label}`} />
+                <div className="p-5">
+                  {fast.length === 0 ? (
+                    <EmptyState title="Nothing dispensed in this period" />
+                  ) : (
+                    <>
+                      <HorizontalBarChart data={fast.map((f) => ({ name: f.name, value: f.dispensedQty }))} valueName="Units dispensed" />
+                      <ChartTable caption="Units dispensed by medicine" columns={['Medicine', 'Category', 'Units']} rows={fast.map((f) => [f.name, f.category ?? '—', f.dispensedQty])} />
+                    </>
+                  )}
+                </div>
+              </Card>
+              <Card>
+                <CardHeader title="Stock value by category" description="Batches with stock, at purchase cost" />
+                <div className="p-5">
+                  {cats.length === 0 ? (
+                    <EmptyState title="No costed batches in stock" description="Values come from the unit cost recorded when stock is received." />
+                  ) : (
+                    <>
+                      <HorizontalBarChart data={cats.map((c) => ({ name: c.category, value: Math.round(c.value) }))} valueName="Value at cost (LKR)" />
+                      <ChartTable
+                        caption="Stock value by category"
+                        columns={['Category', 'Value (LKR)', 'Share %']}
+                        rows={cats.map((c) => [c.category, Math.round(c.value), c.percentage])}
+                      />
+                    </>
+                  )}
+                </div>
+              </Card>
+              <Card className="xl:col-span-2">
+                <CardHeader title="Not dispensed in this period" description={`Medicines with stock and no dispensing in the last ${label}, highest value first`} />
+                {slow.length === 0 ? (
+                  <EmptyState title="Every stocked medicine was dispensed in this period" />
                 ) : (
-                  card.value
+                  <DataTable caption="Slow-moving medicines" columns={slowColumns} rows={slow} rowKey={(r) => r.productId} rowHref={(r) => `/admin/products/${r.productId}`} />
                 )}
-              </span>
-              <span className="text-xs text-slate-500 font-semibold block">{card.note}</span>
+              </Card>
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* FAST AND SLOW MOVING */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl border border-slate-200/70 p-5 shadow-[0_4px_20px_rgba(15,23,42,0.03)] space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h3 className="text-sm font-bold text-[#0F172A] flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-[#10B981]" />
-              <span>Fast-Moving Medicines</span>
-            </h3>
-            <span className="text-xs font-semibold text-slate-500">Most units dispensed</span>
-          </div>
-          <div className="space-y-2.5">{renderMovers(fastMoving, 'fast')}</div>
-        </div>
-
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl border border-slate-200/70 p-5 shadow-[0_4px_20px_rgba(15,23,42,0.03)] space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h3 className="text-sm font-bold text-[#0F172A] flex items-center gap-2">
-              <TrendingDown className="w-4 h-4 text-amber-500" />
-              <span>Slow-Moving Medicines</span>
-            </h3>
-            <span className="text-xs font-semibold text-slate-500">Fewest units dispensed</span>
-          </div>
-          <div className="space-y-2.5">{renderMovers(slowMoving, 'slow')}</div>
-        </div>
-      </div>
-    </div>
+          );
+        }}
+      </QueryView>
+    </PageBody>
   );
 }

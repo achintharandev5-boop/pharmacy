@@ -1,181 +1,149 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
-import { Clock3, CheckCircle2, ShieldAlert } from 'lucide-react';
-import { getInventoryExpiryMatrix, adjustStock } from '@/app/actions/inventory';
-import PageHeader from '@/components/admin/PageHeader';
-import InventoryTabs from '@/components/admin/InventoryTabs';
-import FilterTabs from '@/components/admin/FilterTabs';
-import StatusBadge from '@/components/admin/StatusBadge';
-import EmptyState from '@/components/admin/EmptyState';
-import { ActionError, ErrorState, LoadingState, MISSING } from '@/components/admin/DataState';
+import { CalendarCheck } from 'lucide-react';
+import { adjustStock, getInventoryExpiryMatrix } from '@/app/actions/inventory';
+import { InventoryHeader } from '@/components/shell/InventoryHeader';
+import {
+  Alert,
+  Button,
+  Card,
+  ConfirmDialog,
+  DataTable,
+  EmptyState,
+  FormField,
+  PageBody,
+  QueryView,
+  SegmentedControl,
+  Textarea,
+  useToast,
+  type Column,
+} from '@/components/ui';
 import { useApiQuery } from '@/lib/useApiQuery';
+import { daysUntil, formatDate, formatNumber, text, toNumberOrNull } from '@/lib/format';
 import type { ApiData } from '@/lib/api/types';
 
-export default function ExpiryManagementPage() {
-  const [activeCategory, setActiveCategory] = useState<'expired' | 'expiring30' | 'expiring60' | 'expiring90'>('expired');
-  const [actionMsg, setActionMsg] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [pendingBatchId, setPendingBatchId] = useState<string | null>(null);
-  const matrixQuery = useApiQuery(() => getInventoryExpiryMatrix(), []);
-  const matrix = matrixQuery.data ?? {};
+type Bucket = 'expired' | 'expiring30' | 'expiring60' | 'expiring90' | 'noExpiryDate';
 
-  const handleQuarantineBatch = async (batch: ApiData) => {
-    const qty = Number(batch.quantity_available ?? batch.current_quantity);
-    if (!batch.product_id || !Number.isFinite(qty) || qty <= 0) {
-      setActionError(`Batch ${batch.batch_number || ''} has no recorded remaining quantity to write off.`);
-      return;
-    }
-    const confirmed = window.confirm(
-      `Write off ${qty} unit(s) of expired batch ${batch.batch_number} (${batch.product?.name || batch.product_name || 'unknown product'})?\n\nThis reduces recorded stock and cannot be undone from this screen.`,
-    );
-    if (!confirmed) return;
+export default function ExpiryPage() {
+  const toast = useToast();
+  const [bucket, setBucket] = useState<Bucket>('expired');
+  const matrix = useApiQuery(() => getInventoryExpiryMatrix(), []);
+  const [target, setTarget] = useState<ApiData | null>(null);
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [idemKey, setIdemKey] = useState('');
 
-    setActionMsg(null);
-    setActionError(null);
-    setPendingBatchId(batch.id);
-    try {
-      const res = await adjustStock({
-        productId: batch.product_id,
-        batchId: batch.id,
-        type: 'EXPIRED',
-        quantity: qty,
-        reason: 'Quarantined due to batch expiration',
-      });
-      if (!res.ok) {
-        setActionError(`Write-off failed: ${res.error}`);
-        return;
-      }
-      setActionMsg(`Expired batch ${batch.batch_number}: ${qty} unit(s) written off.`);
-      matrixQuery.retry();
-    } catch {
-      setActionError('Write-off failed: the pharmacy server could not be reached.');
-    } finally {
-      setPendingBatchId(null);
-    }
+  const openWriteOff = (b: ApiData) => {
+    setError(null);
+    setReason(`Expired batch ${b.batch_number} removed from stock`);
+    setIdemKey(`adj-${crypto.randomUUID()}`);
+    setTarget(b);
   };
 
-  const list = matrix[activeCategory] || [];
+  const writeOff = async () => {
+    if (!target) return;
+    const qty = toNumberOrNull(target.quantity_available);
+    if (!qty || qty <= 0 || reason.trim().length < 3) return;
+    setBusy(true);
+    const res = await adjustStock({ productId: target.product_id, batchId: target.id, type: 'EXPIRED', quantity: qty, reason: reason.trim() }, idemKey);
+    setBusy(false);
+    if (!res.ok) {
+      setError(`Write-off not recorded: ${res.error}`);
+      setTarget(null);
+      return;
+    }
+    toast.success(`Batch ${target.batch_number}: ${qty} unit(s) written off.`);
+    setTarget(null);
+    matrix.retry();
+  };
+
+  const columns: Column<ApiData>[] = [
+    { key: 'product', header: 'Medicine', cell: (b) => b.products?.name ?? 'Unknown medicine' },
+    { key: 'batch', header: 'Batch', cell: (b) => <span className="font-mono">{b.batch_number}</span> },
+    {
+      key: 'expiry',
+      header: 'Expiry',
+      cell: (b) => {
+        const d = daysUntil(b.expiry_date);
+        return (
+          <span className="flex flex-col">
+            <span>{b.expiry_date ? formatDate(b.expiry_date) : 'Not recorded'}</span>
+            {d !== null && <span className={`text-xs font-medium ${d < 0 ? 'text-danger' : 'text-warning'}`}>{d < 0 ? `${-d} day(s) ago` : `in ${d} day(s)`}</span>}
+          </span>
+        );
+      },
+    },
+    { key: 'qty', header: 'Units left', align: 'right', cell: (b) => <span className="tabular">{formatNumber(b.quantity_available)}</span> },
+    { key: 'supplier', header: 'Supplier', hideOnMobile: true, cell: (b) => text(b.suppliers?.name) },
+    {
+      key: 'action',
+      header: <span className="sr-only">Action</span>,
+      align: 'right',
+      cell: (b) =>
+        bucket === 'expired' ? (
+          <Button size="sm" variant="danger-soft" onClick={() => openWriteOff(b)}>
+            Write off
+          </Button>
+        ) : null,
+    },
+  ];
+
+  const counts = matrix.data;
+  const options = [
+    { id: 'expired', label: 'Expired', count: counts?.expired?.length },
+    { id: 'expiring30', label: '≤ 30 days', count: counts?.expiring30?.length },
+    { id: 'expiring60', label: '31–60 days', count: counts?.expiring60?.length },
+    { id: 'expiring90', label: '61–90 days', count: counts?.expiring90?.length },
+    { id: 'noExpiryDate', label: 'No expiry recorded', count: counts?.noExpiryDate?.length },
+  ];
 
   return (
-    <div className="space-y-6 select-none font-sans text-[#0F172A]">
-      <PageHeader
-        title="Batch Expiry"
-        subtitle="Expired batches and batches expiring within 30, 60 and 90 days."
-        icon={Clock3}
-      />
-
-      <InventoryTabs />
-
-      {actionMsg && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs font-bold flex items-center justify-between shadow-xs">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-[#10B981]" />
-            <span>{actionMsg}</span>
-          </div>
-          <button type="button" onClick={() => setActionMsg(null)} className="text-emerald-800 hover:underline">
-            Dismiss
-          </button>
-        </div>
+    <PageBody>
+      <InventoryHeader title="Expiry" description="Batches with stock remaining, grouped by expiry. Expired stock cannot be dispensed." />
+      {error && (
+        <Alert title="Write-off failed" onDismiss={() => setError(null)}>
+          {error}
+        </Alert>
       )}
-      {actionError && <ActionError message={actionError} onDismiss={() => setActionError(null)} />}
-
-      {/* FILTER TABS */}
-      <div className="bg-white/88 backdrop-blur-md p-2 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.03)] flex flex-wrap items-center justify-between gap-3">
-        <FilterTabs
-          tabs={[
-            { id: 'expired', label: 'Expired Batches', count: matrix.expired?.length },
-            { id: 'expiring30', label: 'Within 30 Days', count: matrix.expiring30?.length },
-            { id: 'expiring60', label: 'Within 60 Days', count: matrix.expiring60?.length },
-            { id: 'expiring90', label: 'Within 90 Days', count: matrix.expiring90?.length },
-          ]}
-          activeTab={activeCategory}
-          onChange={(tab: ApiData) => setActiveCategory(tab)}
-        />
-      </div>
-
-      {/* TABLE */}
-      <div className="bg-white/96 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.03)] overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-400 font-bold uppercase tracking-wider text-[11px]">
-                <th className="py-3.5 px-4">Batch Number</th>
-                <th className="py-3.5 px-4">Medicine Name</th>
-                <th className="py-3.5 px-4 text-center">Units Remaining</th>
-                <th className="py-3.5 px-4">Expiry Date</th>
-                <th className="py-3.5 px-4">Status</th>
-                <th className="py-3.5 px-4 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 font-medium">
-              {matrixQuery.status === 'loading' ? (
-                <tr>
-                  <td colSpan={6}>
-                    <LoadingState label="Loading batch expiry data…" />
-                  </td>
-                </tr>
-              ) : matrixQuery.status === 'error' ? (
-                <tr>
-                  <td colSpan={6}>
-                    <ErrorState title="Could not load batch expiry data" message={matrixQuery.error} onRetry={matrixQuery.retry} />
-                  </td>
-                </tr>
-              ) : list.length > 0 ? (
-                list.map((batch: ApiData) => (
-                  <tr key={batch.id} className="hover:bg-blue-50/40 transition-colors">
-                    <td className="py-3.5 px-4 font-mono font-bold text-[#2563EB]">
-                      {batch.batch_number || MISSING}
-                    </td>
-                    <td className="py-3.5 px-4 font-bold text-slate-900">
-                      {batch.product?.name || batch.product_name || MISSING}
-                    </td>
-                    <td className="py-3.5 px-4 font-mono font-bold text-center text-slate-900">
-                      {batch.quantity_available ?? batch.current_quantity ?? MISSING}
-                    </td>
-                    <td className="py-3.5 px-4 font-mono text-slate-700">
-                      {batch.expiry_date || MISSING}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <StatusBadge status={activeCategory === 'expired' ? 'Expired' : 'Expiring'} />
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      {activeCategory === 'expired' ? (
-                        <button
-                          type="button"
-                          onClick={() => handleQuarantineBatch(batch)}
-                          disabled={pendingBatchId !== null}
-                          className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold rounded-xl text-xs transition-colors shadow-2xs inline-flex items-center gap-1.5"
-                        >
-                          <ShieldAlert className="w-3.5 h-3.5" />
-                          <span>{pendingBatchId === batch.id ? 'Writing off…' : 'Write off'}</span>
-                        </button>
-                      ) : batch.product_id ? (
-                        <Link
-                          href={`/admin/products/${batch.product_id}`}
-                          className="px-3 py-1.5 bg-white hover:bg-blue-50 text-[#2563EB] border border-blue-200 font-bold rounded-xl text-xs transition-colors shadow-2xs"
-                        >
-                          View product
-                        </Link>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={6}>
-                    <EmptyState
-                      title="No batches in this expiry window"
-                      description="No batches currently match the selected threshold."
-                    />
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+      <Card>
+        <div className="border-b border-border p-4">
+          <SegmentedControl label="Expiry window" options={options} value={bucket} onChange={(v) => setBucket(v as Bucket)} />
         </div>
-      </div>
-    </div>
+        <QueryView query={matrix} errorTitle="Could not load expiry data">
+          {(m) => {
+            const rows: ApiData[] = Array.isArray(m[bucket]) ? m[bucket] : [];
+            return rows.length === 0 ? (
+              <EmptyState icon={CalendarCheck} title={bucket === 'expired' ? 'No expired stock' : 'No batches in this window'} />
+            ) : (
+              <DataTable caption="Batches by expiry" columns={columns} rows={rows} rowKey={(b) => b.id} />
+            );
+          }}
+        </QueryView>
+      </Card>
+      <ConfirmDialog
+        open={Boolean(target)}
+        onCancel={() => setTarget(null)}
+        onConfirm={writeOff}
+        busy={busy}
+        tone="danger"
+        title="Write off expired batch?"
+        description="This reduces recorded stock and is kept in the stock ledger. Requires the pharmacist or administrator role."
+        confirmLabel="Write off"
+      >
+        {target && (
+          <div className="space-y-3 text-sm">
+            <p>
+              <strong>{target.products?.name}</strong>, batch <span className="font-mono">{target.batch_number}</span>: remove{' '}
+              <strong className="tabular">{formatNumber(target.quantity_available)}</strong> unit(s).
+            </p>
+            <FormField label="Reason" required hint="Recorded with the stock movement." error={reason.trim().length < 3 ? 'Enter a reason.' : null}>
+              {(f) => <Textarea {...f} rows={2} value={reason} onChange={(e) => setReason(e.target.value)} />}
+            </FormField>
+          </div>
+        )}
+      </ConfirmDialog>
+    </PageBody>
   );
 }

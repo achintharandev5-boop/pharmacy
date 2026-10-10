@@ -1,19 +1,36 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Truck, Plus, Trash2, CheckCircle2, RefreshCw } from 'lucide-react';
+import { CheckCircle2, Plus, Trash2 } from 'lucide-react';
 import { receiveStock } from '@/app/actions/inventory';
 import { getSuppliers } from '@/app/actions/suppliers';
 import { getAdminProducts } from '@/app/actions/admin';
-import PageHeader from '@/components/admin/PageHeader';
-import InventoryTabs from '@/components/admin/InventoryTabs';
-import { ActionError, ErrorState, LoadingState } from '@/components/admin/DataState';
+import { InventoryHeader } from '@/components/shell/InventoryHeader';
+import {
+  Alert,
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  ConfirmDialog,
+  ErrorState,
+  FormField,
+  IconButton,
+  Input,
+  LinkButton,
+  PageBody,
+  Select,
+  SkeletonRows,
+  Textarea,
+} from '@/components/ui';
 import { useApiQuery } from '@/lib/useApiQuery';
+import { formatLkr, formatNumber } from '@/lib/format';
+import type { ApiData } from '@/lib/api/types';
 
-interface GrnLine {
+interface Line {
+  key: string;
   productId: string;
-  productName: string;
   batchNumber: string;
   quantity: string;
   purchaseCost: string;
@@ -21,409 +38,287 @@ interface GrnLine {
   expiryDate: string;
 }
 
-// Every line starts blank: batch numbers, quantities, prices and expiry dates must come from the delivery.
-const emptyLine = (): GrnLine => ({
-  productId: '',
-  productName: '',
-  batchNumber: '',
-  quantity: '',
-  purchaseCost: '',
-  retailPrice: '',
-  expiryDate: '',
-});
+// Every value must come from the delivery: lines start blank, nothing is pre-filled or guessed.
+const newLine = (): Line => ({ key: crypto.randomUUID(), productId: '', batchNumber: '', quantity: '', purchaseCost: '', retailPrice: '', expiryDate: '' });
 
-export default function StockReceivingWizardPage() {
-  const suppliersQuery = useApiQuery(() => getSuppliers(), []);
-  const productsQuery = useApiQuery(() => getAdminProducts(), []);
-  const suppliers = suppliersQuery.data ?? [];
-  const products = productsQuery.data ?? [];
+function localToday(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [successResult, setSuccessResult] = useState<{ grnNumber?: string; lines: number; units: number } | null>(null);
+type LineErrors = Partial<Record<keyof Line, string>>;
+
+function validateLine(l: Line, today: string): LineErrors {
+  const e: LineErrors = {};
+  if (!l.productId) e.productId = 'Select the medicine.';
+  if (!l.batchNumber.trim()) e.batchNumber = 'Enter the batch number from the pack.';
+  if (!/^\d+$/.test(l.quantity) || Number(l.quantity) <= 0) e.quantity = 'Whole number above 0.';
+  if (!/^\d+(\.\d{1,2})?$/.test(l.purchaseCost)) e.purchaseCost = 'Enter the unit cost.';
+  if (l.retailPrice && !/^\d+(\.\d{1,2})?$/.test(l.retailPrice)) e.retailPrice = 'Invalid price.';
+  if (!l.expiryDate) e.expiryDate = 'Enter the expiry date from the pack.';
+  else if (l.expiryDate < today) e.expiryDate = 'This date has passed: expired stock cannot be received.';
+  return e;
+}
+
+export default function ReceiveStockPage() {
+  const suppliers = useApiQuery(() => getSuppliers(), []);
+  const products = useApiQuery(() => getAdminProducts(), []);
+  const today = localToday();
 
   const [supplierId, setSupplierId] = useState('');
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [grnNumber, setGrnNumber] = useState('');
-  const [receivedDate, setReceivedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [notes] = useState('');
-  const [items, setItems] = useState<GrnLine[]>([emptyLine()]);
+  const [receivedDate, setReceivedDate] = useState(today);
+  const [notes, setNotes] = useState('');
+  const [lines, setLines] = useState<Line[]>([newLine()]);
+  const [showErrors, setShowErrors] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [result, setResult] = useState<ApiData | null>(null);
+  // One key per receipt: a retry after a lost response cannot receive the stock twice.
+  const [idemKey, setIdemKey] = useState(() => `grn-${crypto.randomUUID()}`);
 
-  const totalUnits = items.reduce((acc, i) => acc + (Number(i.quantity) || 0), 0);
+  const productById = useMemo(() => new Map((products.data ?? []).map((p: ApiData) => [p.id, p])), [products.data]);
+  const lineErrors = lines.map((l) => validateLine(l, today));
+  const supplierError = supplierId ? null : 'Select the supplier.';
+  const dateError = !receivedDate ? 'Enter the date received.' : receivedDate > today ? 'Cannot be in the future.' : null;
+  const valid = !supplierError && !dateError && lineErrors.every((e) => Object.keys(e).length === 0);
+  const totalUnits = lines.reduce((n, l) => n + (Number(l.quantity) || 0), 0);
+  const totalCost = lines.reduce((n, l) => n + (Number(l.quantity) || 0) * (Number(l.purchaseCost) || 0), 0);
 
-  const handleAddItemRow = () => setItems([...items, emptyLine()]);
+  const update = (key: string, field: keyof Line, value: string) => setLines((ls) => ls.map((l) => (l.key === key ? { ...l, [field]: value } : l)));
 
-  const handleRemoveItemRow = (idx: number) => {
-    if (items.length <= 1) return;
-    setItems(items.filter((_, i) => i !== idx));
+  const review = (e: React.FormEvent) => {
+    e.preventDefault();
+    setShowErrors(true);
+    setSubmitError(null);
+    if (valid) setConfirming(true);
   };
 
-  const handleItemChange = (idx: number, field: keyof GrnLine, value: string) => {
-    const updated = items.map((row, i) => (i === idx ? { ...row, [field]: value } : row));
-    if (field === 'productId') {
-      const p = products.find((prod) => prod.id === value);
-      updated[idx].productName = p?.name ?? '';
+  const submit = async () => {
+    setSubmitting(true);
+    const res = await receiveStock(
+      {
+        supplierId,
+        invoiceNumber: invoiceNumber.trim() || undefined,
+        grnNumber: grnNumber.trim() || undefined,
+        receivedDate,
+        notes: notes.trim() || undefined,
+        items: lines.map((l) => ({
+          productId: l.productId,
+          batchNumber: l.batchNumber.trim(),
+          quantity: Number(l.quantity),
+          purchaseCost: Number(l.purchaseCost),
+          retailPrice: l.retailPrice ? Number(l.retailPrice) : undefined,
+          expiryDate: l.expiryDate,
+        })),
+      },
+      idemKey,
+    );
+    setSubmitting(false);
+    setConfirming(false);
+    if (!res.ok) {
+      setSubmitError(res.error);
+      return;
     }
-    setItems(updated);
+    setResult(res.data);
   };
 
-  const resetForm = () => {
+  const reset = () => {
     setSupplierId('');
     setInvoiceNumber('');
     setGrnNumber('');
-    setReceivedDate(new Date().toISOString().split('T')[0]);
-    setItems([emptyLine()]);
+    setReceivedDate(localToday());
+    setNotes('');
+    setLines([newLine()]);
+    setShowErrors(false);
+    setResult(null);
+    setIdemKey(`grn-${crypto.randomUUID()}`);
   };
 
-  const handleSubmitGRN = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (submitting) return;
-
-    const invalid = items.findIndex(
-      (i) => !i.productId || !i.batchNumber.trim() || !(Number(i.quantity) > 0) || i.purchaseCost === '' || !i.expiryDate,
-    );
-    if (!supplierId) {
-      setSubmitError('Select the supplier for this delivery.');
-      return;
-    }
-    if (invalid !== -1) {
-      setSubmitError(`Line ${invalid + 1} is incomplete: product, batch number, quantity, cost and expiry date are required.`);
-      return;
-    }
-
-    setSubmitting(true);
-    setSubmitError(null);
-    try {
-      const res = await receiveStock({
-        supplierId,
-        invoiceNumber,
-        grnNumber: grnNumber.trim() || undefined,
-        receivedDate,
-        notes,
-        items: items.map((i) => ({
-          productId: i.productId,
-          productName: i.productName,
-          batchNumber: i.batchNumber.trim(),
-          quantity: Number(i.quantity),
-          purchaseCost: Number(i.purchaseCost),
-          retailPrice: i.retailPrice === '' ? undefined : Number(i.retailPrice),
-          expiryDate: i.expiryDate,
-        })),
-      });
-      if (!res.ok) {
-        setSubmitError(`Stock was not received: ${res.error}`);
-        return;
-      }
-      setSuccessResult({ grnNumber: res.data?.grnNumber, lines: items.length, units: totalUnits });
-      resetForm();
-    } catch {
-      setSubmitError('Stock was not received: the pharmacy server could not be reached.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  if (successResult) {
+  if (result) {
     return (
-      <div className="bg-white/96 rounded-2xl border border-slate-200/70 shadow-[0_8px_30px_rgba(15,23,42,0.04)] p-8 max-w-2xl mx-auto space-y-6 text-center select-none font-sans mt-6">
-        <div className="w-16 h-16 rounded-full bg-emerald-50 text-[#10B981] mx-auto flex items-center justify-center border border-emerald-200">
-          <CheckCircle2 className="w-8 h-8" />
-        </div>
-        <div className="space-y-1">
-          <h1 className="text-2xl font-extrabold text-[#0F172A]">Stock Receipt Recorded</h1>
-          <p className="text-xs text-slate-500 font-medium">The server confirmed this goods received note.</p>
-        </div>
-
-        <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-left text-xs font-semibold text-slate-700 space-y-1.5">
-          {successResult.grnNumber && (
+      <PageBody>
+        <InventoryHeader title="Receive stock" />
+        <Card className="mx-auto max-w-xl">
+          <CardBody className="space-y-4 text-center">
+            <CheckCircle2 size={40} className="mx-auto text-success" aria-hidden="true" />
             <div>
-              GRN Reference: <strong className="font-mono text-slate-900">{successResult.grnNumber}</strong>
+              <h2 className="text-lg font-semibold text-fg">Stock received</h2>
+              <p className="text-sm text-subtle">The server recorded this receipt, its batches and stock movements.</p>
             </div>
-          )}
-          <div>
-            Lines received: <strong>{successResult.lines}</strong>
-          </div>
-          <div>
-            Units received: <strong>{successResult.units}</strong>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-center gap-3 pt-2">
-          <Link
-            href="/admin/inventory/batches"
-            className="px-4 py-2.5 bg-gradient-to-r from-[#2563EB] to-[#3B82F6] text-white rounded-xl text-xs font-bold shadow-xs hover:brightness-105"
-          >
-            View Batches
-          </Link>
-          <button
-            type="button"
-            onClick={() => setSuccessResult(null)}
-            className="px-4 py-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold"
-          >
-            Receive Another Delivery
-          </button>
-        </div>
-      </div>
+            <dl className="mx-auto grid max-w-xs grid-cols-2 gap-2 text-left text-sm">
+              <dt className="text-subtle">GRN</dt>
+              <dd className="font-mono text-fg">{result.grnNumber}</dd>
+              <dt className="text-subtle">Lines</dt>
+              <dd className="tabular text-fg">{formatNumber(result.lineCount)}</dd>
+              <dt className="text-subtle">Units</dt>
+              <dd className="tabular text-fg">{formatNumber(result.unitCount)}</dd>
+            </dl>
+            <div className="flex flex-col justify-center gap-2 sm:flex-row">
+              <Button variant="primary" onClick={reset}>
+                Receive another delivery
+              </Button>
+              <LinkButton href="/admin/inventory/movements">View stock movements</LinkButton>
+            </div>
+          </CardBody>
+        </Card>
+      </PageBody>
     );
   }
 
-  const header = (
-    <>
-      <PageHeader
-        title="Stock Receiving (GRN)"
-        subtitle="Record supplier deliveries with batch numbers, quantities, costs and expiry dates."
-        icon={Truck}
-      />
-      <InventoryTabs />
-    </>
-  );
-
-  if (suppliersQuery.status === 'loading' || productsQuery.status === 'loading') {
-    return (
-      <div className="space-y-6 select-none font-sans text-[#0F172A]">
-        {header}
-        <LoadingState label="Loading suppliers and products…" />
-      </div>
-    );
-  }
-
-  if (suppliersQuery.status === 'error' || productsQuery.status === 'error') {
-    const failed = suppliersQuery.status === 'error' ? suppliersQuery : productsQuery;
-    return (
-      <div className="space-y-6 select-none font-sans text-[#0F172A]">
-        {header}
-        <div className="bg-white rounded-2xl border border-slate-200">
-          <ErrorState
-            title="Could not load the receiving form"
-            message={failed.error ?? ''}
-            onRetry={() => {
-              suppliersQuery.retry();
-              productsQuery.retry();
-            }}
-          />
-        </div>
-      </div>
-    );
-  }
+  const loading = suppliers.status === 'loading' || products.status === 'loading';
+  const loadError = suppliers.status === 'error' ? suppliers : products.status === 'error' ? products : null;
 
   return (
-    <div className="space-y-6 select-none font-sans text-[#0F172A]">
-      {header}
-
-      <form onSubmit={handleSubmitGRN} className="space-y-5" noValidate>
-        {submitError && <ActionError message={submitError} onDismiss={() => setSubmitError(null)} />}
-
-        {/* SUPPLIER & INVOICE */}
-        <div className="bg-white/90 backdrop-blur-md p-5 sm:p-6 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.03)] space-y-4">
-          <h2 className="text-sm font-bold text-[#0F172A] border-b border-slate-100 pb-3">Invoice & Supplier</h2>
-
-          {suppliers.length === 0 && (
-            <p className="text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">
-              No suppliers exist yet.{' '}
-              <Link href="/admin/inventory/suppliers" className="underline">
-                Add a supplier
-              </Link>{' '}
-              before receiving stock.
-            </p>
+    <PageBody>
+      <InventoryHeader title="Receive stock" description="Record a supplier delivery (goods received note). Requires the pharmacist or administrator role." />
+      {loading ? (
+        <Card>
+          <SkeletonRows rows={4} label="Loading suppliers and medicines" />
+        </Card>
+      ) : loadError ? (
+        <Card>
+          <ErrorState title="Could not load suppliers or medicines" message={loadError.error ?? ''} onRetry={loadError.retry} />
+        </Card>
+      ) : (suppliers.data ?? []).length === 0 ? (
+        <Alert tone="info" title="Add a supplier first">
+          Every delivery is recorded against a supplier. <Link href="/admin/inventory/suppliers" className="font-semibold underline">Add a supplier</Link>, then return here.
+        </Alert>
+      ) : (
+        <form onSubmit={review} noValidate className="space-y-6">
+          {submitError && (
+            <Alert title="Stock was not received" onDismiss={() => setSubmitError(null)}>
+              {submitError} Nothing was changed. You can correct the form and submit again.
+            </Alert>
           )}
+          <Card>
+            <CardHeader title="Delivery" />
+            <CardBody className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <FormField label="Supplier" required error={showErrors ? supplierError : null}>
+                {(f) => (
+                  <Select {...f} value={supplierId} onChange={(e) => setSupplierId(e.target.value)}>
+                    <option value="">Select supplier</option>
+                    {(suppliers.data ?? [])
+                      .filter((s: ApiData) => s.active !== false)
+                      .map((s: ApiData) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                  </Select>
+                )}
+              </FormField>
+              <FormField label="Supplier invoice no.">{(f) => <Input {...f} value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} />}</FormField>
+              <FormField label="GRN number" hint="Leave blank to number automatically.">
+                {(f) => <Input {...f} value={grnNumber} onChange={(e) => setGrnNumber(e.target.value)} />}
+              </FormField>
+              <FormField label="Date received" required error={showErrors ? dateError : null}>
+                {(f) => <Input {...f} type="date" max={today} value={receivedDate} onChange={(e) => setReceivedDate(e.target.value)} />}
+              </FormField>
+              <FormField label="Notes" className="sm:col-span-2 lg:col-span-4">
+                {(f) => <Textarea {...f} rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />}
+              </FormField>
+            </CardBody>
+          </Card>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-1.5">
-              <label htmlFor="grn-supplier" className="text-xs font-bold text-slate-700">
-                Supplier *
-              </label>
-              <select
-                id="grn-supplier"
-                required
-                value={supplierId}
-                onChange={(e) => setSupplierId(e.target.value)}
-                className="w-full h-10 px-3 bg-[#F8FBFF] border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-[#2563EB]"
-              >
-                <option value="">Select supplier…</option>
-                {suppliers.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
+          <Card>
+            <CardHeader
+              title={`Items (${lines.length})`}
+              description="Batch number, quantity and expiry exactly as printed on the packs."
+              actions={
+                <Button size="sm" icon={Plus} onClick={() => setLines((ls) => [...ls, newLine()])}>
+                  Add line
+                </Button>
+              }
+            />
+            <ol className="divide-y divide-border">
+              {lines.map((l, i) => {
+                const err = showErrors ? lineErrors[i] : {};
+                return (
+                  <li key={l.key} className="grid grid-cols-2 gap-3 p-4 md:grid-cols-12 md:items-start">
+                    <FormField label={`Medicine (line ${i + 1})`} required error={err.productId} className="col-span-2 md:col-span-4">
+                      {(f) => (
+                        <Select {...f} value={l.productId} onChange={(e) => update(l.key, 'productId', e.target.value)}>
+                          <option value="">Select medicine</option>
+                          {(products.data ?? [])
+                            .filter((p: ApiData) => p.is_active !== false)
+                            .map((p: ApiData) => (
+                              <option key={p.id} value={p.id}>
+                                {p.name}
+                              </option>
+                            ))}
+                        </Select>
+                      )}
+                    </FormField>
+                    <FormField label="Batch no." required error={err.batchNumber} className="md:col-span-2">
+                      {(f) => <Input {...f} value={l.batchNumber} onChange={(e) => update(l.key, 'batchNumber', e.target.value)} />}
+                    </FormField>
+                    <FormField label="Expiry" required error={err.expiryDate} className="md:col-span-2">
+                      {(f) => <Input {...f} type="date" min={today} value={l.expiryDate} onChange={(e) => update(l.key, 'expiryDate', e.target.value)} />}
+                    </FormField>
+                    <FormField label="Quantity" required error={err.quantity} className="md:col-span-1">
+                      {(f) => <Input {...f} inputMode="numeric" value={l.quantity} onChange={(e) => update(l.key, 'quantity', e.target.value)} />}
+                    </FormField>
+                    <FormField label="Unit cost" required error={err.purchaseCost} className="md:col-span-1">
+                      {(f) => <Input {...f} inputMode="decimal" value={l.purchaseCost} onChange={(e) => update(l.key, 'purchaseCost', e.target.value)} />}
+                    </FormField>
+                    <FormField label="Retail price" error={err.retailPrice} className="md:col-span-1">
+                      {(f) => <Input {...f} inputMode="decimal" value={l.retailPrice} onChange={(e) => update(l.key, 'retailPrice', e.target.value)} />}
+                    </FormField>
+                    <div className="flex items-end justify-end md:col-span-1 md:pt-6">
+                      <IconButton
+                        icon={Trash2}
+                        label={`Remove line ${i + 1}`}
+                        disabled={lines.length === 1}
+                        onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))}
+                      />
+                    </div>
+                    {l.productId && productById.get(l.productId)?.stock_quantity != null && (
+                      <p className="col-span-2 text-xs text-subtle md:col-span-12">
+                        Currently in stock: <span className="tabular">{formatNumber(productById.get(l.productId)?.stock_quantity)}</span>
+                      </p>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+            <div className="flex flex-col gap-3 border-t border-border p-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-muted">
+                <span className="tabular font-semibold text-fg">{formatNumber(totalUnits)}</span> unit(s) · cost{' '}
+                <span className="tabular font-semibold text-fg">{formatLkr(totalCost)}</span>
+              </p>
+              <Button type="submit" variant="primary">
+                Review and receive
+              </Button>
             </div>
-
-            <div className="space-y-1.5">
-              <label htmlFor="grn-invoice" className="text-xs font-bold text-slate-700">
-                Invoice / Bill Number
-              </label>
-              <input
-                id="grn-invoice"
-                type="text"
-                value={invoiceNumber}
-                onChange={(e) => setInvoiceNumber(e.target.value)}
-                className="w-full h-10 px-3 bg-[#F8FBFF] border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-[#2563EB]"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label htmlFor="grn-number" className="text-xs font-bold text-slate-700">
-                GRN Number
-              </label>
-              <input
-                id="grn-number"
-                type="text"
-                value={grnNumber}
-                onChange={(e) => setGrnNumber(e.target.value)}
-                placeholder="Assigned by the server if blank"
-                className="w-full h-10 px-3 bg-[#F8FBFF] border border-slate-200 rounded-xl text-xs font-mono font-bold outline-none focus:border-[#2563EB] placeholder:font-sans placeholder:font-medium"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label htmlFor="grn-date" className="text-xs font-bold text-slate-700">
-                Received Date
-              </label>
-              <input
-                id="grn-date"
-                type="date"
-                value={receivedDate}
-                onChange={(e) => setReceivedDate(e.target.value)}
-                className="w-full h-10 px-3 bg-[#F8FBFF] border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-[#2563EB]"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* DELIVERED BATCHES */}
-        <div className="bg-white/96 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.03)] p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h2 className="text-sm font-bold text-[#0F172A]">Delivered Batches & Quantities</h2>
-            <button
-              type="button"
-              onClick={handleAddItemRow}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-[#2563EB] rounded-xl text-xs font-bold border border-blue-200 transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Add Batch Line</span>
-            </button>
-          </div>
-
-          {products.length === 0 && (
-            <p className="text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">
-              No products exist in the catalog yet, so there is nothing to receive stock against.
-            </p>
-          )}
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-400 font-bold uppercase tracking-wider text-[11px]">
-                  <th className="py-2.5 px-3">Product *</th>
-                  <th className="py-2.5 px-3">Batch Number *</th>
-                  <th className="py-2.5 px-3">Units *</th>
-                  <th className="py-2.5 px-3">Cost (LKR) *</th>
-                  <th className="py-2.5 px-3">Retail (LKR)</th>
-                  <th className="py-2.5 px-3">Expiry Date *</th>
-                  <th className="py-2.5 px-3 text-right">Remove</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
-                {items.map((row, idx) => (
-                  <tr key={idx} className="hover:bg-blue-50/30">
-                    <td className="py-2.5 px-3">
-                      <select
-                        aria-label={`Line ${idx + 1} product`}
-                        value={row.productId}
-                        onChange={(e) => handleItemChange(idx, 'productId', e.target.value)}
-                        className="w-full h-8 px-2 bg-[#F8FBFF] border border-slate-200 rounded-lg text-xs font-semibold outline-none focus:border-[#2563EB]"
-                      >
-                        <option value="">Select product…</option>
-                        {products.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="py-2.5 px-3">
-                      <input
-                        aria-label={`Line ${idx + 1} batch number`}
-                        type="text"
-                        value={row.batchNumber}
-                        onChange={(e) => handleItemChange(idx, 'batchNumber', e.target.value)}
-                        className="w-28 h-8 px-2 bg-[#F8FBFF] border border-slate-200 rounded-lg font-mono font-bold text-xs"
-                      />
-                    </td>
-                    <td className="py-2.5 px-3">
-                      <input
-                        aria-label={`Line ${idx + 1} units`}
-                        type="number"
-                        min="1"
-                        value={row.quantity}
-                        onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
-                        className="w-20 h-8 px-2 bg-[#F8FBFF] border border-slate-200 rounded-lg font-mono font-bold text-xs"
-                      />
-                    </td>
-                    <td className="py-2.5 px-3">
-                      <input
-                        aria-label={`Line ${idx + 1} cost`}
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={row.purchaseCost}
-                        onChange={(e) => handleItemChange(idx, 'purchaseCost', e.target.value)}
-                        className="w-24 h-8 px-2 bg-[#F8FBFF] border border-slate-200 rounded-lg font-mono font-bold text-xs"
-                      />
-                    </td>
-                    <td className="py-2.5 px-3">
-                      <input
-                        aria-label={`Line ${idx + 1} retail price`}
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={row.retailPrice}
-                        onChange={(e) => handleItemChange(idx, 'retailPrice', e.target.value)}
-                        className="w-24 h-8 px-2 bg-[#F8FBFF] border border-slate-200 rounded-lg font-mono font-bold text-xs"
-                      />
-                    </td>
-                    <td className="py-2.5 px-3">
-                      <input
-                        aria-label={`Line ${idx + 1} expiry date`}
-                        type="date"
-                        value={row.expiryDate}
-                        onChange={(e) => handleItemChange(idx, 'expiryDate', e.target.value)}
-                        className="w-32 h-8 px-2 bg-[#F8FBFF] border border-slate-200 rounded-lg font-mono text-xs"
-                      />
-                    </td>
-                    <td className="py-2.5 px-3 text-right">
-                      <button
-                        type="button"
-                        aria-label={`Remove line ${idx + 1}`}
-                        onClick={() => handleRemoveItemRow(idx)}
-                        disabled={items.length <= 1}
-                        className="p-1 text-slate-400 hover:text-rose-600 disabled:opacity-30"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">
-              Total Units: <strong className="text-slate-900 font-mono">{totalUnits}</strong>
-            </span>
-
-            <button
-              type="submit"
-              disabled={submitting || suppliers.length === 0 || products.length === 0}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#2563EB] to-[#3B82F6] text-white rounded-xl text-xs font-bold shadow-xs hover:brightness-105 disabled:opacity-50"
-            >
-              {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-              <span>{submitting ? 'Saving…' : 'Receive Stock (GRN)'}</span>
-            </button>
-          </div>
-        </div>
-      </form>
-    </div>
+          </Card>
+        </form>
+      )}
+      <ConfirmDialog
+        open={confirming}
+        onCancel={() => setConfirming(false)}
+        onConfirm={submit}
+        busy={submitting}
+        title="Receive this stock?"
+        description="Adds the units to stock, creates or tops up batches, and records each line in the stock ledger."
+        confirmLabel="Receive stock"
+      >
+        <ul className="divide-y divide-border rounded-ui border border-border text-sm">
+          {lines.map((l) => (
+            <li key={l.key} className="flex justify-between gap-3 px-3 py-2">
+              <span className="min-w-0">
+                <span className="block truncate">{productById.get(l.productId)?.name}</span>
+                <span className="text-xs text-subtle">
+                  Batch {l.batchNumber} · exp {l.expiryDate}
+                </span>
+              </span>
+              <span className="tabular shrink-0">+{l.quantity}</span>
+            </li>
+          ))}
+        </ul>
+      </ConfirmDialog>
+    </PageBody>
   );
 }

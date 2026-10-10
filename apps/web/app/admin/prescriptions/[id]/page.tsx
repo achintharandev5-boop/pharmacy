@@ -1,153 +1,148 @@
 'use client';
 
-import type { ApiData } from '@/lib/api/types';
-import React, { use } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { User, Phone, Printer, ArrowLeft, Pill } from 'lucide-react';
+import { useParams } from 'next/navigation';
+import { Printer } from 'lucide-react';
 import { getAdminPrescriptionById } from '@/app/actions/admin';
-import StatusBadge from '@/components/admin/StatusBadge';
-import { ErrorState, LoadingState, MISSING } from '@/components/admin/DataState';
+import { Badge, Button, Card, CardBody, CardHeader, DetailItem, EmptyState, PageBody, PageHeader, QueryView, StatusBadge } from '@/components/ui';
 import { useApiQuery } from '@/lib/useApiQuery';
+import { formatDate, formatDateTime, formatNumber, text } from '@/lib/format';
 import { REPRINT_UNAVAILABLE_REASON } from '@/lib/reprint';
+import type { ApiData } from '@/lib/api/types';
 
-export default function PrescriptionDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params);
-  const rxId = resolvedParams.id;
+function dosage(item: ApiData): string {
+  const parts = [
+    ['Morning', item.morning_qty],
+    ['Lunch', item.lunch_qty],
+    ['Night', item.night_qty],
+  ]
+    .filter(([, q]) => Number(q) > 0)
+    .map(([label, q]) => `${label} ${q}`);
+  if (item.frequency_type) parts.push(`${item.frequency_type}${item.frequency_qty ? ` ${item.frequency_qty}` : ''}`);
+  if (item.stat_qty) parts.push(`STAT ${item.stat_qty}${item.stat_follow_up ? ` then ${item.stat_follow_up}` : ''}`);
+  return parts.join(' · ');
+}
 
-  const rxQuery = useApiQuery(() => getAdminPrescriptionById(rxId), [rxId]);
+/** The expiry text that was on the label; the date column holds only unambiguous dates. */
+function labelExpiry(item: ApiData): string {
+  return item.instructions_json?.labelExpiryText ?? (item.expiry_date ? formatDate(item.expiry_date) : '—');
+}
 
-  if (rxQuery.status === 'loading') {
-    return <LoadingState label="Loading prescription…" />;
-  }
-
-  if (rxQuery.status === 'error') {
-    return (
-      <div className="space-y-4 select-none font-sans">
-        <Link href="/admin/prescriptions" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900">
-          <ArrowLeft className="w-4 h-4" />
-          Back to prescriptions
-        </Link>
-        <div className="bg-white rounded-2xl border border-slate-200">
-          <ErrorState title="Could not load prescription" message={rxQuery.error} onRetry={rxQuery.retry} />
-        </div>
-      </div>
-    );
-  }
-
-  const rx = rxQuery.data.prescription ?? rxQuery.data;
-  const items: ApiData[] = Array.isArray(rx.prescription_items) ? rx.prescription_items : [];
+export default function PrescriptionDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const query = useApiQuery(() => getAdminPrescriptionById(id), [id]);
+  const rx = query.data?.prescription;
 
   return (
-    <div className="space-y-6 select-none font-sans text-[#0F172A]">
-      {/* HEADER */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/88 backdrop-blur-md p-5 sm:p-6 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.03)]">
-        <div className="flex items-center gap-3.5">
-          <Link
-            href="/admin/prescriptions"
-            aria-label="Back to prescriptions"
-            className="p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl border border-slate-200 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <div>
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-[#2563EB]">
-                {rx.prescription_number || MISSING}
-              </h1>
-              {rx.status && <StatusBadge status={rx.status} />}
-            </div>
-            <p className="text-xs sm:text-[13px] font-medium text-[#64748B] mt-0.5">
-              Prescription details and label instructions as recorded
-            </p>
-          </div>
-        </div>
+    <PageBody>
+      <PageHeader
+        title={rx?.prescription_number ?? 'Prescription'}
+        breadcrumbs={[{ label: 'Prescriptions', href: '/admin/prescriptions' }, { label: rx?.prescription_number ?? 'Prescription' }]}
+        actions={
+          <Button icon={Printer} disabled title={REPRINT_UNAVAILABLE_REASON} aria-describedby="reprint-reason">
+            Reprint label
+          </Button>
+        }
+      />
+      <p id="reprint-reason" className="-mt-3 text-xs text-subtle">
+        {REPRINT_UNAVAILABLE_REASON}
+      </p>
+      <QueryView query={query} errorTitle="Could not load this prescription">
+        {(data) => {
+          const p = data.prescription ?? {};
+          const items: ApiData[] = Array.isArray(p.prescription_items) ? p.prescription_items : [];
+          const events: ApiData[] = Array.isArray(data.events) ? data.events : [];
+          return (
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+              <div className="space-y-6 lg:col-span-2">
+                <Card>
+                  <CardHeader title="Summary" actions={<StatusBadge status={p.status} />} />
+                  <CardBody>
+                    <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                      <DetailItem label="Patient">
+                        {p.customer_id ? (
+                          <Link href={`/admin/patients/${p.customer_id}`} className="text-primary hover:underline">
+                            {text(p.customer_name_text)}
+                          </Link>
+                        ) : (
+                          <>
+                            {text(p.customer_name_text)} <span className="text-xs text-subtle">(not linked)</span>
+                          </>
+                        )}
+                      </DetailItem>
+                      <DetailItem label="Phone">
+                        <span className="tabular">{text(p.customer_phone)}</span>
+                      </DetailItem>
+                      <DetailItem label="Saved">{formatDateTime(p.created_at)}</DetailItem>
+                      <DetailItem label="Last printed">{p.printed_at ? formatDateTime(p.printed_at) : 'Not printed'}</DetailItem>
+                      <DetailItem label="Reprints">
+                        <span className="tabular">{formatNumber(p.print_count)}</span>
+                      </DetailItem>
+                    </dl>
+                  </CardBody>
+                </Card>
 
-        <button
-          type="button"
-          disabled
-          title={REPRINT_UNAVAILABLE_REASON}
-          aria-label={`Reprint label (${REPRINT_UNAVAILABLE_REASON})`}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 text-slate-400 border border-slate-200 text-xs font-bold cursor-not-allowed"
-        >
-          <Printer className="w-4 h-4" />
-          <span>Reprint Label</span>
-        </button>
-      </div>
+                <Card>
+                  <CardHeader title={`Labels (${items.length})`} description="As recorded when the prescription was saved" />
+                  {items.length === 0 ? (
+                    <EmptyState title="No labels recorded" />
+                  ) : (
+                    <ol className="divide-y divide-border">
+                      {items.map((item, i) => (
+                        <li key={item.id ?? i} className="space-y-2 px-5 py-4">
+                          <div className="flex flex-wrap items-baseline justify-between gap-2">
+                            <p className="text-sm font-semibold text-fg">
+                              {i + 1}. {item.product_name_snapshot}
+                              {item.alternative_product_name && <span className="font-normal text-subtle"> · brand: {item.alternative_product_name}</span>}
+                            </p>
+                            <span className="text-sm text-muted tabular">Qty {formatNumber(item.quantity)}</span>
+                          </div>
+                          {!item.product_id && <Badge tone="neutral">Named manually · no stock deducted</Badge>}
+                          <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                            <DetailItem label="Dosage">{dosage(item) || '—'}</DetailItem>
+                            <DetailItem label="Duration">{item.days ? `${item.days} days` : '—'}</DetailItem>
+                            <DetailItem label="Expiry on label">{labelExpiry(item)}</DetailItem>
+                          </dl>
+                          {item.final_instruction_text && (
+                            <div>
+                              <p className="text-xs font-medium text-subtle">Label text</p>
+                              <p className="sinhala-text mt-0.5 text-base text-fg">{item.final_instruction_text}</p>
+                            </div>
+                          )}
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </Card>
+              </div>
 
-      {/* METADATA GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div className="bg-white/90 backdrop-blur-md p-5 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.03)] space-y-3">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">
-            Patient Information
-          </h3>
-          <div className="space-y-2 text-xs">
-            <div className="flex items-center gap-2">
-              <User className="w-4 h-4 text-[#2563EB]" aria-label="Patient name" />
-              <span className="font-bold text-slate-900">{rx.customer_name_text || MISSING}</span>
+              <Card className="self-start">
+                <CardHeader title="History" />
+                {events.length === 0 ? (
+                  <EmptyState title="No events recorded" />
+                ) : (
+                  <ol className="space-y-4 p-5">
+                    {events.map((ev) => (
+                      <li key={ev.id} className="flex gap-3">
+                        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-border-strong" aria-hidden="true" />
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <StatusBadge status={ev.event_type} />
+                            <span className="text-xs text-subtle">{formatDateTime(ev.created_at)}</span>
+                          </div>
+                          {ev.metadata?.reason && <p className="mt-1 text-sm text-muted">Reason: {ev.metadata.reason}</p>}
+                          {ev.metadata?.failureReason && <p className="mt-1 text-sm text-danger">{ev.metadata.failureReason}</p>}
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </Card>
             </div>
-            <div className="flex items-center gap-2">
-              <Phone className="w-4 h-4 text-slate-400" aria-label="Phone" />
-              <span className="font-mono text-slate-600">{rx.customer_phone || MISSING}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white/90 backdrop-blur-md p-5 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.03)] space-y-3">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">
-            Dispensing Summary
-          </h3>
-          <div className="space-y-2 text-xs font-semibold text-slate-700">
-            <div className="flex justify-between">
-              <span className="text-slate-500">Created:</span>
-              <span className="font-mono">{rx.created_at ? new Date(rx.created_at).toLocaleString() : MISSING}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Times printed:</span>
-              <span className="font-bold text-[#2563EB]">{rx.print_count ?? MISSING}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* DISPENSED ITEMS TABLE */}
-      <div className="bg-white/96 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.03)] p-5 space-y-4">
-        <h2 className="text-base font-bold text-[#0F172A] border-b border-slate-100 pb-3 flex items-center gap-2">
-          <Pill className="w-4 h-4 text-[#2563EB]" />
-          <span>Prescribed Medicines</span>
-        </h2>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-400 font-bold uppercase tracking-wider text-[11px]">
-                <th className="py-3 px-3">Medicine</th>
-                <th className="py-3 px-3">Dosage / Timings</th>
-                <th className="py-3 px-3">Sinhala Instructions</th>
-                <th className="py-3 px-3 text-center">Qty</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 font-medium">
-              {items.length > 0 ? (
-                items.map((it: ApiData, idx: number) => (
-                  <tr key={it.id || idx} className="hover:bg-blue-50/40 transition-colors">
-                    <td className="py-3 px-3 font-bold text-slate-900">{it.product_name || MISSING}</td>
-                    <td className="py-3 px-3 text-slate-700 font-semibold">{it.dosage_summary || MISSING}</td>
-                    {/* Clinical text is shown exactly as recorded; nothing is substituted when it is missing. */}
-                    <td className="py-3 px-3 text-slate-800 sinhala-text">{it.sinhala_instruction || MISSING}</td>
-                    <td className="py-3 px-3 font-mono font-bold text-center text-slate-800">{it.quantity ?? MISSING}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={4} className="p-8 text-center text-slate-500 font-semibold">
-                    No medicines are recorded on this prescription.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+          );
+        }}
+      </QueryView>
+    </PageBody>
   );
 }

@@ -1,149 +1,134 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { Settings, Printer, MessageSquare, Users, Activity, RefreshCw, CheckCircle2, XCircle, Info } from 'lucide-react';
+import React from 'react';
+import { CheckCircle2, XCircle } from 'lucide-react';
 import { getSystemStatus, type SystemStatus } from '@/app/actions/system';
-import PageHeader from '@/components/admin/PageHeader';
-import { LoadingState } from '@/components/admin/DataState';
+import { getCurrentUser } from '@/app/actions/auth';
+import { Alert, Badge, Button, Card, CardBody, CardHeader, DetailItem, PageBody, PageHeader, QueryView, SkeletonRows } from '@/components/ui';
+import { useApiQuery } from '@/lib/useApiQuery';
+import { formatDateTime } from '@/lib/format';
+import type { ApiResult } from '@/lib/api/types';
 
-function StatusRow({ label, ok, detail }: { label: string; ok: boolean; detail?: string }) {
+const ROLE_LABEL: Record<string, string> = { admin: 'Administrator', pharmacist: 'Pharmacist', staff: 'Staff' };
+
+function Check({ label, ok, detail }: { label: string; ok: boolean; detail?: string }) {
   return (
-    <div className="flex items-start justify-between gap-3 py-2.5 border-b border-slate-100 last:border-b-0 text-xs">
-      <span className="font-semibold text-slate-700">{label}</span>
-      <span className={`inline-flex items-center gap-1.5 font-bold text-right ${ok ? 'text-emerald-700' : 'text-rose-700'}`}>
-        {ok ? <CheckCircle2 className="w-4 h-4" aria-hidden="true" /> : <XCircle className="w-4 h-4" aria-hidden="true" />}
-        <span>
-          {ok ? 'OK' : 'Not available'}
-          {!ok && detail && <span className="block font-medium text-slate-500">{detail}</span>}
-        </span>
-      </span>
+    <div className="flex items-start justify-between gap-4 px-5 py-3">
+      <div>
+        <p className="text-sm font-medium text-fg">{label}</p>
+        {detail && <p className="text-xs text-subtle">{detail}</p>}
+      </div>
+      {ok ? (
+        <Badge tone="success">
+          <CheckCircle2 size={12} aria-hidden="true" /> Working
+        </Badge>
+      ) : (
+        <Badge tone="danger">
+          <XCircle size={12} aria-hidden="true" /> Not working
+        </Badge>
+      )}
     </div>
   );
 }
 
-function Section({ title, icon: Icon, children }: { title: string; icon: React.ComponentType<{ className?: string }>; children: React.ReactNode }) {
-  return (
-    <section className="bg-white/90 backdrop-blur-md p-6 rounded-2xl border border-slate-200/70 shadow-[0_4px_20px_rgba(15,23,42,0.03)] space-y-4">
-      <h2 className="text-base font-bold text-[#0F172A] border-b border-slate-100 pb-3 flex items-center gap-2">
-        <Icon className="w-4 h-4 text-[#2563EB]" />
-        <span>{title}</span>
-      </h2>
-      {children}
-    </section>
+export default function SettingsPage() {
+  const status = useApiQuery<SystemStatus>(
+    () => getSystemStatus().then((data): ApiResult<SystemStatus> => ({ ok: true, data })),
+    [],
   );
-}
-
-function Unavailable({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-700 font-medium flex items-start gap-2">
-      <Info className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" aria-hidden="true" />
-      <span>{children}</span>
-    </p>
-  );
-}
-
-export default function SystemSettingsPage() {
-  const [status, setStatus] = useState<SystemStatus | null>(null);
-  const [checking, setChecking] = useState(true);
-  const [checkError, setCheckError] = useState(false);
-  const [checkCount, setCheckCount] = useState(0);
-
-  useEffect(() => {
-    let active = true;
-    getSystemStatus().then(
-      (res) => {
-        if (!active) return;
-        setStatus(res);
-        setCheckError(false);
-        setChecking(false);
-      },
-      () => {
-        if (!active) return;
-        setCheckError(true);
-        setChecking(false);
-      },
-    );
-    return () => {
-      active = false;
-    };
-  }, [checkCount]);
-
-  const recheck = () => {
-    setChecking(true);
-    setCheckCount((n) => n + 1);
-  };
+  const me = useApiQuery(() => getCurrentUser(), []);
 
   return (
-    <div className="space-y-6 select-none font-sans text-[#0F172A]">
-      <PageHeader title="Settings" subtitle="System status and current configuration." icon={Settings} />
+    <PageBody>
+      <PageHeader title="Settings" description="System status and configuration." />
 
-      <Section title="System Status" icon={Activity}>
-        {checking && !status ? (
-          <LoadingState label="Checking services…" />
-        ) : checkError ? (
-          <StatusRow label="Web server" ok={false} detail="The status check itself could not run." />
-        ) : status ? (
-          <div>
-            <StatusRow label="Pharmacy API" ok={status.api.status === 'ok'} detail={status.api.detail} />
-            <StatusRow label="Database" ok={status.database.status === 'ok'} detail={status.database.detail} />
-            <p className="text-[11px] text-slate-500 font-medium pt-2" suppressHydrationWarning>
-              Checked at {new Date(status.checkedAt).toLocaleTimeString()}. Printer and SMS delivery are not monitored.
-            </p>
-          </div>
-        ) : null}
-        <button
-          type="button"
-          onClick={recheck}
-          disabled={checking}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 rounded-lg text-xs font-bold transition-colors disabled:opacity-60"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${checking ? 'animate-spin' : ''}`} aria-hidden="true" />
-          Check again
-        </button>
-      </Section>
-
-      <Section title="Label Printing" icon={Printer}>
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-          <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
-            <dt className="font-bold text-slate-500 uppercase text-[10px] tracking-wider">Label size</dt>
-            <dd className="font-bold text-slate-900 mt-0.5">70 mm × 50 mm</dd>
-          </div>
-          <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
-            <dt className="font-bold text-slate-500 uppercase text-[10px] tracking-wider">Printing</dt>
-            <dd className="font-bold text-slate-900 mt-0.5">Browser print dialog from the label workstation</dd>
-          </div>
-        </dl>
-        <Unavailable>Label size and printer are fixed in the application and cannot be changed here.</Unavailable>
-      </Section>
-
-      <Section title="SMS" icon={MessageSquare}>
-        {status ? (
-          <StatusRow
-            label="SMS gateway token (Text.lk)"
-            ok={status.smsConfigured}
-            detail="TEXT_LK_API_TOKEN is not set on the web server, so SMS cannot be sent."
-          />
+      <Card>
+        <CardHeader
+          title="System status"
+          description={status.data ? `Checked ${formatDateTime(status.data.checkedAt)}` : 'Live checks, run when this page opens'}
+          actions={
+            <Button size="sm" onClick={status.retry} loading={status.isFetching}>
+              Check again
+            </Button>
+          }
+        />
+        {status.status === 'loading' ? (
+          <SkeletonRows rows={3} label="Checking services" />
+        ) : status.status === 'error' ? (
+          <Check label="Status check" ok={false} detail={status.error} />
         ) : (
-          <p className="text-xs text-slate-500 font-medium">Checking configuration…</p>
+          <div className="divide-y divide-border">
+            <Check label="Pharmacy API" ok={status.data.api.status === 'ok'} detail={status.data.api.detail} />
+            <Check label="Database" ok={status.data.database.status === 'ok'} detail={status.data.database.detail} />
+            <Check
+              label="SMS gateway configured"
+              ok={status.data.smsConfigured}
+              detail={status.data.smsConfigured ? 'A Text.lk token is set on this server. Delivery is not tested here.' : 'Set TEXT_LK_API_TOKEN and TEXT_LK_SENDER_ID on the web server.'}
+            />
+          </div>
         )}
-        <Unavailable>
-          SMS credentials are managed through server environment variables, not from this page. Configured means a token is set;
-          it does not confirm that messages are delivered.
-        </Unavailable>
-      </Section>
+      </Card>
 
-      <Section title="Users & Access" icon={Users}>
-        <Unavailable>
-          User management is not available. The system currently has no user roles or staff accounts API; all signed-in users have
-          the same access.
-        </Unavailable>
-      </Section>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader title="Your account" />
+          <CardBody>
+            <QueryView query={me} errorTitle="Could not load your account">
+              {(u) => (
+                <div className="space-y-4">
+                  <dl className="grid grid-cols-2 gap-4">
+                    <DetailItem label="Email">{u.email ?? '—'}</DetailItem>
+                    <DetailItem label="Role">{u.role ? ROLE_LABEL[u.role] : 'No role assigned'}</DetailItem>
+                  </dl>
+                  {!u.role && (
+                    <Alert tone="warning" title="No role assigned">
+                      You can use the label workstation and view records, but cannot receive or adjust stock, manage suppliers or medicines. Ask an
+                      administrator to assign a role.
+                    </Alert>
+                  )}
+                </div>
+              )}
+            </QueryView>
+          </CardBody>
+        </Card>
 
-      <Section title="Pharmacy Details" icon={Settings}>
-        <Unavailable>
-          Pharmacy details cannot be saved yet: the API has no settings endpoint. Nothing on this page changes system behaviour.
-        </Unavailable>
-      </Section>
-    </div>
+        <Card>
+          <CardHeader title="Roles and access" />
+          <CardBody className="space-y-3 text-sm text-muted">
+            <p>
+              <strong className="text-fg">Administrator</strong>: everything, including deleting patient records.
+            </p>
+            <p>
+              <strong className="text-fg">Pharmacist</strong>: dispensing, plus receiving and adjusting stock, medicines and suppliers.
+            </p>
+            <p>
+              <strong className="text-fg">Staff</strong>: label workstation, patients and viewing records.
+            </p>
+            <p className="text-xs text-subtle">
+              Roles are enforced by the API. They are assigned by an administrator with the server script <code className="font-mono">scripts/set-user-role.js</code>.
+            </p>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader title="Label printing" />
+          <CardBody>
+            <dl className="grid grid-cols-2 gap-4">
+              <DetailItem label="Label size">70 × 50 mm</DetailItem>
+              <DetailItem label="Printing">Browser print dialog, from the label workstation</DetailItem>
+            </dl>
+            <p className="mt-4 text-xs text-subtle">Label size and printer are fixed in the application and cannot be changed here.</p>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader title="Pharmacy details" />
+          <CardBody className="text-sm text-muted">
+            Pharmacy name, address and phone cannot be edited here yet. The database table for them is part of the pending migrations; an API
+            endpoint and form will follow once those are applied.
+          </CardBody>
+        </Card>
+      </div>
+    </PageBody>
   );
 }
