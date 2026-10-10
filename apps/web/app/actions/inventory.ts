@@ -21,12 +21,21 @@ export async function getInventoryMovements(searchQuery?: string, type?: string)
   return apiList(`inventory/movements${query({ query: searchQuery, type })}`);
 }
 
-export async function receiveStock(payload: ApiData): Promise<ApiResult<ApiData>> {
-  return apiRequest('inventory/receipts', { method: 'POST', body: payload });
+/** `idempotencyKey` must stay the same when the same receipt is retried, so stock is never received twice. */
+export async function receiveStock(payload: ApiData, idempotencyKey?: string): Promise<ApiResult<ApiData>> {
+  return apiRequest('inventory/receipts', {
+    method: 'POST',
+    body: payload,
+    headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
+  });
 }
 
-export async function adjustStock(payload: ApiData): Promise<ApiResult<ApiData>> {
-  return apiRequest('inventory/adjustments', { method: 'POST', body: payload });
+export async function adjustStock(payload: ApiData, idempotencyKey?: string): Promise<ApiResult<ApiData>> {
+  return apiRequest('inventory/adjustments', {
+    method: 'POST',
+    body: payload,
+    headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
+  });
 }
 
 export async function getInventoryExpiryMatrix(): Promise<ApiResult<ApiData>> {

@@ -1,5 +1,7 @@
 'use server';
 
+import { getCurrentUser } from './auth';
+
 export interface SendSmsParams {
   recipient: string;
   message: string;
@@ -33,6 +35,16 @@ export async function sendClientSms({
   senderId,
   scheduleTime,
 }: SendSmsParams) {
+  // Server actions are public POST endpoints, and the middleware only checks that a session
+  // cookie exists. Verify the session with the API before using the pharmacy's SMS account.
+  const session = await getCurrentUser();
+  if (!session.ok) {
+    return {
+      success: false,
+      error: session.status === 401 ? 'Your session has expired. Sign in again to send SMS.' : session.error,
+    };
+  }
+
   const apiToken = process.env.TEXT_LK_API_TOKEN;
   const defaultSenderId = process.env.TEXT_LK_SENDER_ID;
 

@@ -1,4 +1,7 @@
-import { BadRequestException, Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import { CreateProductDto, UpdateProductDto } from './dto/product.dto';
+import { Roles } from '../auth/decorators';
+import { STOCK_MANAGERS } from '../auth/roles';
 import { ProductsService } from './products.service';
 
 @Controller('products')
@@ -23,5 +26,17 @@ export class ProductsController {
   @Get(':id')
   async getById(@Param('id', ParseUUIDPipe) id: string) {
     return this.productsService.findById(id);
+  }
+
+  @Roles(...STOCK_MANAGERS)
+  @Post()
+  async create(@Body() dto: CreateProductDto) {
+    return this.productsService.create(dto);
+  }
+
+  @Roles(...STOCK_MANAGERS)
+  @Patch(':id')
+  async update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateProductDto) {
+    return this.productsService.update(id, dto);
   }
 }

@@ -13,8 +13,8 @@ export async function getAdminActivity(range = '30d'): Promise<ApiResult<ApiData
   return apiList(`admin/dashboard/activity${query({ range })}`);
 }
 
-export async function getAdminStatusBreakdown(): Promise<ApiResult<ApiData>> {
-  return apiObject('admin/dashboard/status-breakdown');
+export async function getAdminStatusBreakdown(range = '30d'): Promise<ApiResult<ApiData>> {
+  return apiObject(`admin/dashboard/status-breakdown${query({ range })}`);
 }
 
 export async function getAdminTopProducts(range = '30d', limit = 5): Promise<ApiResult<ApiData[]>> {
