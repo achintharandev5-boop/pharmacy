@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 import React from 'react';
 import { InstructionGrid } from './InstructionGrid';
+import { ActionWorkspace } from './ActionWorkspace';
 import { useLabelStore } from '../../store/labelStore';
 
 /**
@@ -17,7 +18,7 @@ describe('STAT dose on the label workstation', () => {
 
   it('goes from the STAT tile through quantity and follow-up back to the grid', async () => {
     const user = userEvent.setup();
-    render(<InstructionGrid />);
+    render(<><InstructionGrid /><ActionWorkspace /></>);
 
     await user.click(screen.getByRole('button', { name: /^STAT$/ }));
     expect(screen.getByText('STAT Dose')).toBeInTheDocument();
@@ -25,18 +26,20 @@ describe('STAT dose on the label workstation', () => {
     await user.click(screen.getByRole('button', { name: 'Increase STAT quantity' }));
     await user.click(screen.getByRole('button', { name: 'Increase STAT quantity' }));
     await user.click(screen.getByRole('button', { name: /Done \(Next\)/ }));
-    expect(screen.getByText('STAT Follow-Up')).toBeInTheDocument();
+    expect(screen.queryByText('STAT Follow-Up')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '8H' }));
+    await user.click(within(screen.getByRole('region', { name: 'Action workspace' })).getByRole('button', { name: /^Increase .* quantity$/ }));
+    await user.click(screen.getByRole('button', { name: /Done \(Next\)/ }));
     expect(screen.queryByText('STAT Follow-Up')).not.toBeInTheDocument();
     expect(useLabelStore.getState().activeControl).toBe('idle');
-    expect(useLabelStore.getState().stat).toEqual({ qty: 2, isFraction: false, followUp: '8H' });
-    expect(useLabelStore.getState().labels[0].stat).toEqual({ qty: 2, isFraction: false, followUp: '8H' });
+    expect(useLabelStore.getState().stat).toMatchObject({ qty: 2, isFraction: false, followUp: '8H' });
+    expect(useLabelStore.getState().labels[0].stat).toMatchObject({ qty: 2, isFraction: false, followUp: '8H' });
   });
 
   it('Cancel leaves no STAT dose and returns to the grid', async () => {
     const user = userEvent.setup();
-    render(<InstructionGrid />);
+    render(<><InstructionGrid /><ActionWorkspace /></>);
 
     await user.click(screen.getByRole('button', { name: /^STAT$/ }));
     await user.click(screen.getByRole('button', { name: 'Increase STAT quantity' }));

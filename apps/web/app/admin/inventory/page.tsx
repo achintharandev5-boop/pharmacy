@@ -51,7 +51,7 @@ export default function InventoryOverviewPage() {
           label="Low or critical"
           icon={AlertTriangle}
           value={isNumber(s?.stock?.low) && isNumber(s?.stock?.critical) ? s.stock.low + s.stock.critical : null}
-          hint={isNumber(s?.stock?.unclassified) && s.stock.unclassified > 0 ? `${s.stock.unclassified} without a reorder level` : 'At or below reorder level'}
+          hint={isNumber(s?.stock?.unclassified) && s.stock.unclassified > 0 ? `Reorder level not configured for ${s.stock.unclassified}` : 'At or below reorder level'}
           tone="warning"
           loading={loading}
           error={err}

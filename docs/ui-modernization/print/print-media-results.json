@@ -1,0 +1,30 @@
+[
+  {
+    "theme": "light",
+    "count": 14,
+    "allWhiteWithBlackText": true,
+    "dimensionsMm": [
+      70,
+      50
+    ],
+    "fonts": {
+      "gemunu": true,
+      "noto": true
+    },
+    "screenshot": "docs\\ui-modernization\\print\\label-light-70x50mm.png"
+  },
+  {
+    "theme": "dark",
+    "count": 14,
+    "allWhiteWithBlackText": true,
+    "dimensionsMm": [
+      70,
+      50
+    ],
+    "fonts": {
+      "gemunu": true,
+      "noto": true
+    },
+    "screenshot": "docs\\ui-modernization\\print\\label-dark-70x50mm.png"
+  }
+]

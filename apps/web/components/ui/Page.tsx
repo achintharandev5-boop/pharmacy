@@ -1,5 +1,6 @@
 'use client';
 
+import { uiTestEnabled } from '@/lib/uiTestMode';
 import React from 'react';
 import Link from 'next/link';
 import { ChevronRight, type LucideIcon } from 'lucide-react';
@@ -23,12 +24,12 @@ export function PageHeader({ title, description, breadcrumbs, actions }: PageHea
     <header className="space-y-2">
       {breadcrumbs && breadcrumbs.length > 0 && (
         <nav aria-label="Breadcrumb">
-          <ol className="flex flex-wrap items-center gap-1 text-xs text-subtle">
+          <ol className="flex flex-wrap items-center gap-1 text-[13px] text-subtle">
             {breadcrumbs.map((c, i) => (
               <li key={`${c.label}-${i}`} className="flex items-center gap-1">
                 {i > 0 && <ChevronRight size={12} aria-hidden="true" />}
                 {c.href ? (
-                  <Link href={c.href} className="hover:text-fg hover:underline underline-offset-2">
+                  <Link href={c.href} className="hover:text-primary hover:underline underline-offset-2">
                     {c.label}
                   </Link>
                 ) : (
@@ -43,8 +44,8 @@ export function PageHeader({ title, description, breadcrumbs, actions }: PageHea
       )}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-xl font-semibold tracking-tight text-fg sm:text-2xl">{title}</h1>
-          {description && <p className="mt-1 text-sm text-subtle">{description}</p>}
+          <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-fg sm:text-[28px]">{title}</h1>
+          {description && <p className="mt-1.5 text-sm text-subtle">{description}</p>}
         </div>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
       </div>
@@ -73,6 +74,12 @@ interface StatTileProps {
 /** A single figure. Shows a skeleton while loading and "—" with the reason when unavailable. */
 export function StatTile({ label, value, hint, icon: Icon, tone = 'neutral', href, loading, error }: StatTileProps) {
   const toneText = { neutral: 'text-fg', warning: 'text-warning', danger: 'text-danger', success: 'text-success' }[tone];
+  const toneChip = {
+    neutral: 'bg-[var(--color-tint)] text-primary',
+    warning: 'bg-warning-soft text-warning',
+    danger: 'bg-danger-soft text-danger',
+    success: 'bg-success-soft text-success',
+  }[tone];
   const display =
     value === null || value === undefined || (typeof value === 'number' && !Number.isFinite(value))
       ? MISSING
@@ -82,22 +89,26 @@ export function StatTile({ label, value, hint, icon: Icon, tone = 'neutral', hre
 
   const body = (
     <>
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-medium text-subtle">{label}</span>
-        {Icon && <Icon size={18} className="text-subtle" aria-hidden="true" />}
+      <div className="flex items-start justify-between gap-3">
+        <span className="pt-0.5 text-[13px] font-medium leading-snug text-subtle">{label}</span>
+        {Icon && (
+          <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-ui', toneChip)} aria-hidden="true">
+            <Icon size={18} />
+          </span>
+        )}
       </div>
       {loading ? (
-        <Skeleton className="mt-3 h-8 w-20" />
+        <Skeleton className="mt-2 h-9 w-20" />
       ) : (
-        <p className={cn('mt-2 text-3xl font-semibold tabular', error ? 'text-subtle' : toneText)}>{error ? MISSING : display}</p>
+        <p className={cn('mt-1 text-[30px] font-semibold leading-tight tracking-tight tabular', error ? 'text-subtle' : toneText)}>{error ? MISSING : display}</p>
       )}
-      <p className={cn('mt-1 text-xs', error ? 'text-danger' : 'text-subtle')}>{error ? 'Could not load' : hint}</p>
+      <p className={cn('mt-1.5 text-xs leading-snug', error ? 'text-danger' : 'text-subtle')}>{error ? (uiTestEnabled() ? 'No data loaded' : 'Could not load') : hint}</p>
     </>
   );
 
-  const box = 'block rounded-ui-lg border border-border bg-page p-4 shadow-card';
+  const box = 'block rounded-ui-lg border border-border bg-page p-5 shadow-card';
   return href ? (
-    <Link href={href} className={cn(box, 'transition-colors hover:border-primary-border hover:bg-surface')}>
+    <Link href={href} className={cn(box, 'transition-[border-color,box-shadow] hover:border-primary-border hover:shadow-pop')}>
       {body}
     </Link>
   ) : (
@@ -131,7 +142,7 @@ export function SearchInput({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         aria-label={label}
-        className="h-10 w-full rounded-ui border border-border-strong bg-page pl-9 pr-3 text-sm text-fg placeholder:text-subtle focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft"
+        className="h-11 w-full rounded-ui border border-[var(--color-input-border)] bg-page pl-9 pr-3 text-sm text-fg placeholder:text-subtle transition-colors hover:border-primary-border focus:border-primary focus:outline-none focus:ring-[3px] focus:ring-primary-soft"
       />
     </div>
   );

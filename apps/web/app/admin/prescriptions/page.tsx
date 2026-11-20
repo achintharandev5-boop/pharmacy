@@ -76,7 +76,7 @@ function PrescriptionsInner() {
           </LinkButton>
         }
       />
-      <Card>
+      <Card className="overflow-hidden">
         <div className="flex flex-col gap-3 border-b border-border p-4 lg:flex-row lg:items-center lg:justify-between">
           <SearchInput value={search} onChange={setSearch} label="Search prescriptions" placeholder="RX number, patient or phone" />
           <SegmentedControl label="Status" options={STATUSES} value={status} onChange={setStatus} />

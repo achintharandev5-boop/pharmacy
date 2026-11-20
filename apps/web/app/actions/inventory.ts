@@ -42,10 +42,46 @@ export async function getInventoryExpiryMatrix(): Promise<ApiResult<ApiData>> {
   return apiObject('inventory/expiry');
 }
 
-export async function getInventoryLowStock(): Promise<ApiResult<ApiData[]>> {
-  return apiList('inventory/low-stock');
+export async function getInventoryLowStock(limit?: number): Promise<ApiResult<ApiData[]>> {
+  return apiList(`inventory/low-stock${query({ limit })}`);
+}
+
+export async function getDashboardExpiryBatches(limit = 6): Promise<ApiResult<ApiData[]>> {
+  return apiList(`inventory/dashboard/expiry${query({ limit })}`);
+}
+
+export async function getDashboardMovementActivity(range = '30d'): Promise<ApiResult<ApiData[]>> {
+  return apiList(`inventory/dashboard/movement-activity${query({ range })}`);
 }
 
 export async function getInventoryAnalytics(range = '30d'): Promise<ApiResult<ApiData>> {
   return apiObject(`inventory/analytics${query({ range })}`);
+}
+
+/** Marks a batch as not dispensable (its units stay on record). Pharmacist or administrator. */
+export async function quarantineBatch(batchId: string, reason: string): Promise<ApiResult<ApiData>> {
+  return apiRequest(`inventory/batches/${encodeURIComponent(batchId)}/quarantine`, { method: 'POST', body: { reason } });
+}
+
+/** Lifts a quarantine. Refused for expired or undated batches. Pharmacist or administrator. */
+export async function releaseBatch(batchId: string, reason: string): Promise<ApiResult<ApiData>> {
+  return apiRequest(`inventory/batches/${encodeURIComponent(batchId)}/release`, { method: 'POST', body: { reason } });
+}
+
+export async function getPatientReturns(status?: string): Promise<ApiResult<ApiData[]>> {
+  return apiList(`inventory/patient-returns${query({ status })}`);
+}
+
+/** Records medicine brought back by a patient. It is held for review and never added to stock. */
+export async function recordPatientReturn(payload: ApiData): Promise<ApiResult<ApiData>> {
+  return apiRequest('inventory/patient-returns', { method: 'POST', body: payload });
+}
+
+export async function disposePatientReturn(id: string, reason: string): Promise<ApiResult<ApiData>> {
+  return apiRequest(`inventory/patient-returns/${encodeURIComponent(id)}/dispose`, { method: 'POST', body: { reason } });
+}
+
+/** Label workstation: dispensable batches of one medicine with their GRN expiry dates. */
+export async function getDispensingBatches(productId: string): Promise<ApiResult<ApiData>> {
+  return apiObject(`inventory/dispensing-batches${query({ productId })}`);
 }

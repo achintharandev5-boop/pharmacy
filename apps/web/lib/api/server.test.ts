@@ -22,7 +22,24 @@ describe('apiRequest', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
     vi.restoreAllMocks();
+  });
+
+  it('refuses backend requests in frontend-only mode without API configuration', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('FRONTEND_ONLY_MODE', 'true');
+    vi.stubEnv('API_URL', '');
+    vi.stubEnv('PILOT_API_URL', '');
+
+    const res = await apiRequest('inventory/adjustments', { method: 'POST', body: { quantity: 1 } });
+
+    expect(res).toEqual({
+      ok: false,
+      code: 'FRONTEND_ONLY_MODE',
+      error: 'This operation is unavailable in frontend-only mode. No backend request was made.',
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('returns data on success and sends the bearer token', async () => {
@@ -84,6 +101,7 @@ describe('apiList / apiObject', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
 

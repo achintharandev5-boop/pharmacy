@@ -1,0 +1,373 @@
+[
+  {
+    "viewport": "1920x1080",
+    "sizes": {
+      "gridTile": [
+        191,
+        190
+      ],
+      "dosagePlus": [
+        76,
+        76
+      ],
+      "dosageMinus": [
+        76,
+        76
+      ],
+      "dosageXY": [
+        120,
+        76
+      ],
+      "adminGive": [
+        163,
+        64
+      ],
+      "qtyPlus": [
+        48,
+        48
+      ],
+      "prevLabel": [
+        60,
+        60
+      ],
+      "done": [
+        686,
+        76
+      ],
+      "gridIcon": 34
+    },
+    "overflowX": 0,
+    "small": [
+      {
+        "n": "INPUT",
+        "w": 359,
+        "h": 20
+      },
+      {
+        "n": "Manual test-product name",
+        "w": 451,
+        "h": 20
+      },
+      {
+        "n": "Alternative product name",
+        "w": 298,
+        "h": 20
+      }
+    ],
+    "clipped": [],
+    "headings": [
+      "Selected instructions"
+    ],
+    "words": 113
+  },
+  {
+    "viewport": "1440x900",
+    "sizes": {
+      "gridTile": [
+        140,
+        145
+      ],
+      "dosagePlus": [
+        76,
+        76
+      ],
+      "dosageMinus": [
+        76,
+        76
+      ],
+      "dosageXY": [
+        120,
+        76
+      ],
+      "adminGive": [
+        118,
+        64
+      ],
+      "qtyPlus": [
+        48,
+        48
+      ],
+      "prevLabel": [
+        60,
+        60
+      ],
+      "done": [
+        511,
+        76
+      ],
+      "gridIcon": 28
+    },
+    "overflowX": 0,
+    "small": [
+      {
+        "n": "INPUT",
+        "w": 230,
+        "h": 20
+      },
+      {
+        "n": "Manual test-product name",
+        "w": 302,
+        "h": 20
+      },
+      {
+        "n": "Alternative product name",
+        "w": 213,
+        "h": 20
+      }
+    ],
+    "clipped": [],
+    "headings": [
+      "Selected instructions"
+    ],
+    "words": 113
+  },
+  {
+    "viewport": "1366x768",
+    "sizes": {
+      "gridTile": [
+        132,
+        112
+      ],
+      "dosagePlus": [
+        76,
+        76
+      ],
+      "dosageMinus": [
+        76,
+        76
+      ],
+      "dosageXY": [
+        120,
+        76
+      ],
+      "adminGive": [
+        111,
+        64
+      ],
+      "qtyPlus": [
+        48,
+        48
+      ],
+      "prevLabel": [
+        60,
+        60
+      ],
+      "done": [
+        484,
+        76
+      ],
+      "gridIcon": 28
+    },
+    "overflowX": 0,
+    "small": [
+      {
+        "n": "INPUT",
+        "w": 210,
+        "h": 20
+      },
+      {
+        "n": "Manual test-product name",
+        "w": 279,
+        "h": 20
+      },
+      {
+        "n": "Alternative product name",
+        "w": 200,
+        "h": 20
+      }
+    ],
+    "clipped": [],
+    "headings": [
+      "Selected instructions"
+    ],
+    "words": 113
+  },
+  {
+    "viewport": "1024x768",
+    "sizes": {
+      "gridTile": [
+        96,
+        113
+      ],
+      "dosagePlus": [
+        56,
+        56
+      ],
+      "dosageMinus": [
+        56,
+        56
+      ],
+      "dosageXY": [
+        84,
+        56
+      ],
+      "adminGive": [
+        82,
+        56
+      ],
+      "qtyPlus": [
+        44,
+        44
+      ],
+      "prevLabel": [
+        60,
+        60
+      ],
+      "done": [
+        359,
+        76
+      ],
+      "gridIcon": 28
+    },
+    "overflowX": 0,
+    "small": [
+      {
+        "n": "INPUT",
+        "w": 118,
+        "h": 20
+      },
+      {
+        "n": "Manual test-product name",
+        "w": 173,
+        "h": 20
+      },
+      {
+        "n": "Alternative product name",
+        "w": 140,
+        "h": 20
+      },
+      {
+        "n": "Product quantity not set. Enter quantity",
+        "w": 42,
+        "h": 44
+      }
+    ],
+    "clipped": [],
+    "headings": [
+      "Selected instructions"
+    ],
+    "words": 113
+  },
+  {
+    "viewport": "768x1024",
+    "sizes": {
+      "gridTile": [
+        140,
+        88
+      ],
+      "dosagePlus": [
+        56,
+        56
+      ],
+      "dosageMinus": [
+        56,
+        56
+      ],
+      "dosageXY": [
+        84,
+        56
+      ],
+      "adminGive": [
+        139,
+        56
+      ],
+      "qtyPlus": [
+        44,
+        44
+      ],
+      "prevLabel": [
+        56,
+        56
+      ],
+      "done": [
+        267,
+        64
+      ],
+      "gridIcon": 28
+    },
+    "overflowX": 0,
+    "small": [
+      {
+        "n": "INPUT",
+        "w": 228,
+        "h": 20
+      },
+      {
+        "n": "Manual test-product name",
+        "w": 243,
+        "h": 20
+      },
+      {
+        "n": "Alternative product name",
+        "w": 340,
+        "h": 20
+      }
+    ],
+    "clipped": [],
+    "headings": [
+      "Selected instructions"
+    ],
+    "words": 113
+  },
+  {
+    "viewport": "390x844",
+    "sizes": {
+      "gridTile": [
+        82,
+        84
+      ],
+      "dosagePlus": [
+        56,
+        56
+      ],
+      "dosageMinus": [
+        56,
+        56
+      ],
+      "dosageXY": [
+        84,
+        56
+      ],
+      "adminGive": [
+        111,
+        56
+      ],
+      "qtyPlus": [
+        44,
+        44
+      ],
+      "prevLabel": [
+        48,
+        48
+      ],
+      "done": [
+        370,
+        56
+      ],
+      "gridIcon": 28
+    },
+    "overflowX": 0,
+    "small": [
+      {
+        "n": "INPUT",
+        "w": 228,
+        "h": 20
+      },
+      {
+        "n": "Manual test-product name",
+        "w": 243,
+        "h": 20
+      },
+      {
+        "n": "Alternative product name",
+        "w": 340,
+        "h": 20
+      }
+    ],
+    "clipped": [],
+    "headings": [
+      "Selected instructions"
+    ],
+    "words": 113
+  }
+]

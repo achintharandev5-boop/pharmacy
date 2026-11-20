@@ -107,7 +107,7 @@ export default function ExpiryPage() {
           {error}
         </Alert>
       )}
-      <Card>
+      <Card className="overflow-hidden">
         <div className="border-b border-border p-4">
           <SegmentedControl label="Expiry window" options={options} value={bucket} onChange={(v) => setBucket(v as Bucket)} />
         </div>

@@ -9,7 +9,8 @@ export interface ProductSearchResult {
   stock_quantity?: number;
   expiry_date?: string | null;
   pack_size?: number;
-  product_type?: string;
+  product_type?: string | null;
+  unit_of_measure?: string;
 }
 
 // Results come only from the API. On failure an error is returned; there is no local product list fallback.
@@ -36,6 +37,7 @@ export interface ProductInput {
   brand_name?: string;
   strength?: string;
   dosage_form?: string;
+  product_type?: string;
   category?: string;
   manufacturer?: string;
   unit_of_measure?: string;

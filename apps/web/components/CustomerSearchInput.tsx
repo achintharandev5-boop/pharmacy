@@ -2,15 +2,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLabelStore } from '../store/labelStore';
 import type { CustomerData } from '../constants/customers';
-import { User, X } from 'lucide-react';
+import { User, X, Grid3x3, Loader2 } from 'lucide-react';
 import { searchCustomersByPhone } from '../app/actions/customers';
 import { NETWORK_ERROR_MESSAGE } from '../lib/api/types';
+import { TOOLBAR_FIELD, TOOLBAR_ICON_BUTTON, TOOLBAR_ICON_BUTTON_ACCENT, TOOLBAR_INPUT, TOOLBAR_LABEL } from './label/toolbarStyles';
 
 type SearchStatus = 'idle' | 'loading' | 'error' | 'done';
 
 export function CustomerSearchInput() {
-  const { customerName, setCustomerName, setCustomerPhone } = useLabelStore();
-  const [searchTerm, setSearchTerm] = useState(customerName || '');
+  const { customerName, setCustomerName, setCustomerPhone, setCustomerSearchVisible } = useLabelStore();
+  const searchTerm = customerName || '';
   const [results, setResults] = useState<CustomerData[]>([]);
   const [searchStatus, setSearchStatus] = useState<SearchStatus>('idle');
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -21,10 +22,6 @@ export function CustomerSearchInput() {
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    setSearchTerm(customerName || '');
-  }, [customerName]);
 
   // Click outside to close dropdown
   useEffect(() => {
@@ -40,7 +37,6 @@ export function CustomerSearchInput() {
   const handleSelectCustomer = (c: { name: string; phone_number: string }) => {
     setCustomerName(c.name);
     setCustomerPhone(c.phone_number);
-    setSearchTerm(c.name);
     setIsOpen(false);
     setSelectedIndex(-1);
   };
@@ -69,7 +65,6 @@ export function CustomerSearchInput() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
-    setSearchTerm(val);
     setCustomerName(val); // Allow free typing of customer name
     setSelectedIndex(-1);
     setIsOpen(true);
@@ -92,7 +87,6 @@ export function CustomerSearchInput() {
   const handleClear = () => {
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     requestIdRef.current++;
-    setSearchTerm('');
     setCustomerName('');
     setCustomerPhone('');
     setResults([]);
@@ -139,33 +133,33 @@ export function CustomerSearchInput() {
   return (
     <div ref={containerRef} className="w-full h-full relative flex items-center">
       {/* Customer Card Content */}
-      <div 
+      <div
         onClick={() => inputRef.current?.focus()}
-        className="w-full h-full bg-white border border-border rounded-ui-lg px-3 py-2 flex items-center gap-3 shadow-card hover:border-primary-border transition-colors cursor-text"
+        className={TOOLBAR_FIELD}
       >
-        {/* Solid Blue Squircle with User Icon */}
-        <div className="w-11 h-11 rounded-ui-lg bg-primary flex items-center justify-center text-white shrink-0 shadow-sm">
-          <User size={22} className="text-white" />
-        </div>
+        <span className="shrink-0 text-subtle" aria-hidden="true">
+          {searchStatus === 'loading'
+            ? <Loader2 size={18} className="text-primary animate-spin" />
+            : <User size={18} />}
+        </span>
 
-        {/* Text Input Stack */}
         <div className="flex-1 min-w-0 flex flex-col justify-center">
-          <div className="text-sm font-bold text-fg leading-tight">
-            Customer Name / Mobile
-          </div>
+          <label htmlFor="patient-search" className={TOOLBAR_LABEL}>
+            Patient / Mobile
+          </label>
           <input
+            id="patient-search"
             ref={inputRef}
             type="text"
             value={searchTerm}
             onChange={handleChange}
             onFocus={handleFocus}
             onKeyDown={handleKeyDown}
-            placeholder="Search or enter patient name / mobile..."
-            className="w-full bg-transparent text-xs text-muted font-medium outline-none placeholder:text-subtle leading-tight mt-0.5"
+            placeholder="Name or mobile number"
+            className={TOOLBAR_INPUT}
           />
         </div>
 
-        {/* Clear Button */}
         {searchTerm && (
           <button
             type="button"
@@ -173,17 +167,31 @@ export function CustomerSearchInput() {
               e.stopPropagation();
               handleClear();
             }}
-            className="w-7 h-7 flex items-center justify-center text-subtle hover:text-fg active:text-black select-none touch-manipulation rounded-full hover:bg-surface-2 shrink-0"
-            title="Clear customer"
+            className={TOOLBAR_ICON_BUTTON}
+            aria-label="Clear patient"
           >
-            <X size={14} />
+            <X size={16} aria-hidden="true" />
           </button>
         )}
+
+        {/* Mobile-number keypad lookup (touch screens have no keyboard). */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setCustomerSearchVisible(true);
+          }}
+          aria-label="Find patient by mobile number (keypad)"
+          title="Find by mobile number"
+          className={TOOLBAR_ICON_BUTTON_ACCENT}
+        >
+          <Grid3x3 size={18} aria-hidden="true" />
+        </button>
       </div>
 
       {/* DROPDOWN */}
       {isOpen && searchStatus !== 'idle' && (
-        <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-white border border-border rounded-ui-lg z-50 max-h-[340px] overflow-y-auto shadow-pop py-1">
+        <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-page border border-border rounded-ui-lg z-50 max-h-[340px] overflow-y-auto shadow-pop py-1">
           {searchStatus === 'loading' ? (
             <div role="status" className="p-3 text-center bg-surface">
               <p className="text-xs font-medium text-subtle">Searching saved patients…</p>
@@ -196,7 +204,7 @@ export function CustomerSearchInput() {
               <button
                 type="button"
                 onClick={() => runSearch(searchTerm)}
-                className="px-3 py-1.5 text-xs font-bold bg-white border border-danger-border text-danger rounded-lg hover:bg-danger-soft touch-manipulation"
+                className="px-3 py-1.5 text-xs font-bold bg-page border border-danger-border text-danger rounded-lg hover:bg-danger-soft touch-manipulation"
               >
                 Retry
               </button>
@@ -232,7 +240,7 @@ export function CustomerSearchInput() {
           ) : (
             <div className="p-3 text-center bg-surface">
               <p className="text-xs font-medium text-subtle">
-                No saved customer for "{searchTerm}". You can continue typing to save a new name.
+                No saved customer for &quot;{searchTerm}&quot;. You can continue typing to save a new name.
               </p>
             </div>
           )}

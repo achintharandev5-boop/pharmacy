@@ -1,13 +1,16 @@
 'use client';
 import React, { useState } from 'react';
+import { useModalFocus } from '@/lib/useModalFocus';
 import { useLabelStore } from '../store/labelStore';
 import { searchCustomersByPhone } from '../app/actions/customers';
 import { NETWORK_ERROR_MESSAGE } from '../lib/api/types';
+import type { CustomerData } from '../constants/customers';
 
 export function CustomerSearchPanel() {
   const { setCustomerSearchVisible, setCustomerName, setCustomerPhone } = useLabelStore();
+  const modalRef = useModalFocus(true, () => setCustomerSearchVisible(false));
   const [phone, setPhone] = useState('');
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<CustomerData[]>([]);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -56,18 +59,18 @@ export function CustomerSearchPanel() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-3 select-none touch-manipulation">
-      <div className="bg-white w-[min(900px,92vw)] max-h-[85dvh] border-2 border-border-strong rounded-none shadow-none overflow-hidden flex flex-col">
+    <div ref={modalRef} role="dialog" aria-modal="true" aria-label="Find patient" className="fixed inset-0 z-50 bg-[var(--color-backdrop)] flex items-center justify-center p-3 select-none touch-manipulation">
+      <div className="bg-page w-[min(900px,92vw)] max-h-[85dvh] border-2 border-border-strong rounded-ui shadow-none overflow-hidden flex flex-col">
         
         {/* HEADER */}
-        <div className="h-[64px] bg-primary text-white px-5 flex items-center justify-between shrink-0 select-none">
+        <div className="h-[64px] bg-primary text-[var(--color-on-solid)] px-5 flex items-center justify-between shrink-0 select-none">
           <h2 className="text-xl lg:text-2xl font-black uppercase tracking-wide">
             CUSTOMER SEARCH
           </h2>
           <button 
             type="button"
             onClick={() => setCustomerSearchVisible(false)} 
-            className="w-[56px] h-[56px] flex items-center justify-center font-black text-2xl hover:bg-white/20 active:bg-white/30 text-white rounded-none transition-all touch-manipulation active:scale-[0.98]"
+            className="w-[56px] h-[56px] flex items-center justify-center font-black text-2xl hover:bg-page/20 active:bg-page/30 text-[var(--color-on-solid)] rounded-ui transition-all touch-manipulation active:scale-[0.98]"
             aria-label="Close"
           >
             ✕
@@ -88,12 +91,12 @@ export function CustomerSearchPanel() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="Enter phone number..."
-                className="h-[62px] flex-1 bg-surface border border-border-strong rounded-none px-4 text-2xl font-bold text-fg outline-none focus:border-2 focus:border-primary placeholder:text-subtle touch-manipulation"
+                className="h-[62px] flex-1 bg-surface border border-border-strong rounded-ui px-4 text-2xl font-bold text-fg outline-none focus:border-2 focus:border-primary placeholder:text-subtle touch-manipulation"
               />
               <button 
                 type="submit" 
                 disabled={!phone.trim() || loading}
-                className="h-[62px] min-w-[140px] bg-primary hover:bg-primary-hover active:bg-primary-hover disabled:opacity-40 text-white font-black text-lg rounded-none transition-all touch-manipulation active:scale-[0.98]"
+                className="h-[62px] min-w-[140px] bg-primary hover:bg-primary-hover active:bg-primary-hover disabled:opacity-40 text-[var(--color-on-solid)] font-black text-lg rounded-ui transition-all touch-manipulation active:scale-[0.98]"
               >
                 {loading ? 'SEARCHING...' : 'SEARCH'}
               </button>
@@ -107,7 +110,7 @@ export function CustomerSearchPanel() {
                 key={d} 
                 type="button"
                 onClick={() => append(d)} 
-                className="h-[72px] bg-surface text-fg font-black text-3xl border border-border-strong rounded-none hover:bg-surface-2 active:bg-border flex items-center justify-center transition-all select-none touch-manipulation active:scale-[0.98]"
+                className="h-[72px] bg-surface text-fg font-black text-3xl border border-border-strong rounded-ui hover:bg-surface-2 active:bg-border flex items-center justify-center transition-all select-none touch-manipulation active:scale-[0.98]"
               >
                 {d}
               </button>
@@ -117,7 +120,7 @@ export function CustomerSearchPanel() {
             <button 
               type="button"
               onClick={backspace} 
-              className="h-[72px] bg-danger-soft text-danger font-black text-2xl border border-danger-border rounded-none hover:bg-danger-soft active:bg-[#FCA5A5] flex items-center justify-center transition-all select-none touch-manipulation active:scale-[0.98]"
+              className="h-[72px] bg-danger-soft text-danger font-black text-2xl border border-danger-border rounded-ui hover:bg-danger-soft active:bg-danger-soft flex items-center justify-center transition-all select-none touch-manipulation active:scale-[0.98]"
               title="Backspace"
             >
               ⌫
@@ -127,7 +130,7 @@ export function CustomerSearchPanel() {
             <button 
               type="button"
               onClick={() => append('0')} 
-              className="h-[72px] bg-surface text-fg font-black text-3xl border border-border-strong rounded-none hover:bg-surface-2 active:bg-border flex items-center justify-center transition-all select-none touch-manipulation active:scale-[0.98]"
+              className="h-[72px] bg-surface text-fg font-black text-3xl border border-border-strong rounded-ui hover:bg-surface-2 active:bg-border flex items-center justify-center transition-all select-none touch-manipulation active:scale-[0.98]"
             >
               0
             </button>
@@ -136,7 +139,7 @@ export function CustomerSearchPanel() {
             <button 
               type="button"
               onClick={clearPhone} 
-              className="h-[72px] bg-danger-soft text-danger font-black text-lg border border-danger-border rounded-none hover:bg-danger-soft active:bg-[#FCA5A5] flex items-center justify-center transition-all select-none touch-manipulation active:scale-[0.98]"
+              className="h-[72px] bg-danger-soft text-danger font-black text-lg border border-danger-border rounded-ui hover:bg-danger-soft active:bg-danger-soft flex items-center justify-center transition-all select-none touch-manipulation active:scale-[0.98]"
             >
               CLEAR
             </button>
@@ -156,7 +159,7 @@ export function CustomerSearchPanel() {
               )}
 
               {!loading && searched && searchError && (
-                <div role="alert" className="bg-danger-soft border-2 border-danger-border p-5 rounded-none flex flex-col items-center justify-center text-center gap-2">
+                <div role="alert" className="bg-danger-soft border-2 border-danger-border p-5 rounded-ui flex flex-col items-center justify-center text-center gap-2">
                   <span className="text-xl font-black text-danger uppercase">
                     SEARCH FAILED
                   </span>
@@ -164,7 +167,7 @@ export function CustomerSearchPanel() {
                   <button
                     type="button"
                     onClick={() => handleSearch()}
-                    className="mt-1 h-[52px] px-8 bg-white border-2 border-danger text-danger font-black text-base rounded-none hover:bg-danger-soft active:bg-danger-border transition-all touch-manipulation active:scale-[0.98]"
+                    className="mt-1 h-[52px] px-8 bg-page border-2 border-danger text-danger font-black text-base rounded-ui hover:bg-danger-soft active:bg-danger-border transition-all touch-manipulation active:scale-[0.98]"
                   >
                     RETRY
                   </button>
@@ -172,7 +175,7 @@ export function CustomerSearchPanel() {
               )}
 
               {!loading && searched && !searchError && results.length === 0 && (
-                <div className="bg-danger-soft border-2 border-danger-border p-5 rounded-none flex flex-col items-center justify-center text-center gap-2">
+                <div className="bg-danger-soft border-2 border-danger-border p-5 rounded-ui flex flex-col items-center justify-center text-center gap-2">
                   <span className="text-xl font-black text-danger uppercase">
                     CUSTOMER NOT FOUND
                   </span>
@@ -191,7 +194,7 @@ export function CustomerSearchPanel() {
                     <div 
                       key={r.id} 
                       onClick={() => handleSelect(r.name, r.phone_number)}
-                      className="min-h-[68px] bg-white border border-border-strong hover:border-primary hover:bg-primary-soft active:bg-primary-border p-3 px-5 flex items-center justify-between cursor-pointer transition-all touch-manipulation"
+                      className="min-h-[68px] bg-page border border-border-strong hover:border-primary hover:bg-primary-soft active:bg-primary-border p-3 px-5 flex items-center justify-between cursor-pointer transition-all touch-manipulation"
                     >
                       <div className="flex flex-col justify-center">
                         <span className="text-xl font-extrabold text-fg">{r.name}</span>
@@ -203,7 +206,7 @@ export function CustomerSearchPanel() {
                           e.stopPropagation();
                           handleSelect(r.name, r.phone_number);
                         }}
-                        className="h-[46px] px-6 bg-success hover:bg-success active:bg-success text-white font-black text-base rounded-none border border-success transition-all touch-manipulation active:scale-[0.98]"
+                        className="h-[46px] px-6 bg-success hover:bg-success active:bg-success text-[var(--color-on-solid)] font-black text-base rounded-ui border border-success transition-all touch-manipulation active:scale-[0.98]"
                       >
                         SELECT
                       </button>

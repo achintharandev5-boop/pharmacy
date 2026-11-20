@@ -1,9 +1,12 @@
+import { WeekdayRangeDto } from './weekday-range.dto';
+import { WeeklyDosageDto } from './weekly-dosage.dto';
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   ArrayMinSize,
   IsArray,
   IsBoolean,
+  IsDateString,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -50,7 +53,57 @@ export class StatDto {
   followUp?: string;
 }
 
+/** Optional administration metadata stored in the existing instructions_json column. */
+export class EntAdministrationDto {
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(24)
+  customHours?: number;
+
+  @IsOptional()
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  startDay?: string;
+
+  @IsOptional()
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  endDay?: string;
+
+  @IsIn(['eye', 'ear', 'nose', 'throat'])
+  site!: 'eye' | 'ear' | 'nose' | 'throat';
+
+  @IsIn(['left', 'right', 'both'])
+  direction!: 'left' | 'right' | 'both';
+
+  @IsString()
+  @Matches(/\S/)
+  @MaxLength(30)
+  unit!: string;
+
+  @IsString()
+  @Matches(/\S/)
+  @MaxLength(30)
+  pluralUnit!: string;
+
+  @IsString()
+  @MaxLength(250)
+  @Matches(/^(?=[\s\S]*\{qty\})(?=[\s\S]*\{unit\})(?=[\s\S]*\{location\})(?=[\s\S]*\{time\})[\s\S]+$/)
+  template!: string;
+}
+
 export class CreatePrescriptionItemDto {
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => WeeklyDosageDto)
+  weekly?: WeeklyDosageDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => EntAdministrationDto)
+  ent?: EntAdministrationDto;
+
   /** Catalogue product. Omit for a manually named medicine (no stock is deducted). */
   @IsOptional()
   @IsUUID()
@@ -99,6 +152,11 @@ export class CreatePrescriptionItemDto {
   @MaxLength(40)
   expiryDate?: string;
 
+  /** The GRN batch the printed expiry was taken from. Required whenever expiryDate is sent. */
+  @IsOptional()
+  @IsUUID()
+  expiryBatchId?: string;
+
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(50)
@@ -119,6 +177,11 @@ export class CreatePrescriptionItemDto {
   @IsString({ each: true })
   @MaxLength(20, { each: true })
   selectedDaysOfWeek?: string[];
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => WeekdayRangeDto)
+  weekdayRange?: WeekdayRangeDto;
 
   @IsOptional()
   @IsBoolean()

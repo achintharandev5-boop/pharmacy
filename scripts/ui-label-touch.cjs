@@ -1,0 +1,2 @@
+﻿const fs=require('fs');for(const p of ['apps/web/components/CustomerSearchInput.tsx','apps/web/components/ProductSearchInput.tsx']){let s=fs.readFileSync(p,'utf8').replace('w-10 h-10 flex items-center justify-center text-subtle','w-11 h-11 flex items-center justify-center text-subtle').replaceAll('active:text-black','active:text-fg');fs.writeFileSync(p,s)}
+const p='apps/web/components/label/DeleteLabelModal.tsx';fs.writeFileSync(p,fs.readFileSync(p,'utf8').replace('top-4 right-4 w-8 h-8','top-4 right-4 w-11 h-11'));

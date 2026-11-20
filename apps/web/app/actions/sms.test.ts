@@ -1,72 +1,59 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('next/headers', () => ({
-  cookies: async () => ({ get: () => ({ value: 'token' }) }),
-}));
-vi.mock('next/navigation', () => ({ redirect: vi.fn() }));
+vi.mock('./auth', () => ({ getCurrentUser: vi.fn() }));
+vi.mock('@/lib/uiTestMode', () => ({ uiTestEnabled: () => false, UI_TEST_NOT_SAVED: 'Not saved' }));
+import { getCurrentUser } from './auth';
+import { sendClientSms } from './sms';
 
-import { formatSriLankanPhoneNumber, sendClientSms } from './sms';
-
-describe('sendClientSms', () => {
+describe('pilot SMS containment', () => {
   const fetchMock = vi.fn();
-
   beforeEach(() => {
-    fetchMock.mockReset();
     vi.stubGlobal('fetch', fetchMock);
-    vi.stubEnv('TEXT_LK_API_TOKEN', 'sms-token');
-    vi.stubEnv('TEXT_LK_SENDER_ID', 'PHARMACY');
-    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.clearAllMocks();
+  });
+  afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
+
+  it.each([undefined, '', 'false', 'TRUE'])('does not contact auth or the provider when SMS_ENABLED=%s', async (flag) => {
+    vi.stubEnv('SMS_ENABLED', flag);
+    expect(await sendClientSms({ recipient: '0700000000', message: 'Synthetic test' }))
+      .toEqual({ success: false, error: 'SMS is disabled for this deployment.' });
+    expect(getCurrentUser).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  afterEach(() => {
-    vi.unstubAllGlobals();
-    vi.unstubAllEnvs();
-    vi.restoreAllMocks();
+  it('does not contact auth or the provider in frontend-only mode', async () => {
+    vi.stubEnv('FRONTEND_ONLY_MODE', 'true');
+    vi.stubEnv('SMS_ENABLED', 'true');
+    expect(await sendClientSms({ recipient: '0700000000', message: 'Test' })).toEqual({
+      success: false,
+      error: 'SMS is unavailable in frontend-only mode. No message was sent.',
+    });
+    expect(getCurrentUser).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  const smsGatewayCalls = () => fetchMock.mock.calls.filter(([url]) => String(url).includes('text.lk'));
-
-  it('does not contact the SMS gateway when the session is not valid', async () => {
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ message: 'Unauthorized' }), { status: 401 }));
-    const res = await sendClientSms({ recipient: '0771234567', message: 'x' });
-    expect(res.success).toBe(false);
-    expect(smsGatewayCalls()).toHaveLength(0);
+  it('keeps production SMS disabled even if the legacy switch is enabled', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('SMS_ENABLED', 'true');
+    expect((await sendClientSms({ recipient: '0700000000', message: 'Synthetic test' })).success).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(getCurrentUser).not.toHaveBeenCalled();
   });
 
-  it('sends once the API confirms the session', async () => {
-    fetchMock
-      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'u1', email: 'a@b.c', role: 'pharmacist' }), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'success', data: { uid: 'm1' } }), { status: 200 }));
-    const res = await sendClientSms({ recipient: '0771234567', message: 'x' });
-    expect(res.success).toBe(true);
-    expect(smsGatewayCalls()).toHaveLength(1);
-  });
-});
-
-
-describe('formatSriLankanPhoneNumber', () => {
-  it('formats 10-digit number starting with 0', async () => {
-    const result = await formatSriLankanPhoneNumber('0771234567');
-    expect(result).toBe('94771234567');
+  it('keeps synthetic staging SMS disabled even outside production and with the old switch enabled', async () => {
+    vi.stubEnv('NODE_ENV', 'test');
+    vi.stubEnv('DEPLOYMENT_PROFILE', 'synthetic-staging');
+    vi.stubEnv('SMS_ENABLED', 'true');
+    expect((await sendClientSms({ recipient: '0700000000', message: 'Synthetic test' })).success).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(getCurrentUser).not.toHaveBeenCalled();
   });
 
-  it('formats number with +94 country code', async () => {
-    const result = await formatSriLankanPhoneNumber('+94712345678');
-    expect(result).toBe('94712345678');
-  });
-
-  it('formats 9-digit number without leading 0', async () => {
-    const result = await formatSriLankanPhoneNumber('771234567');
-    expect(result).toBe('94771234567');
-  });
-
-  it('keeps already formatted 94 number as is', async () => {
-    const result = await formatSriLankanPhoneNumber('94710000000');
-    expect(result).toBe('94710000000');
-  });
-
-  it('cleans dashes and spaces', async () => {
-    const result = await formatSriLankanPhoneNumber('077 - 123 4567');
-    expect(result).toBe('94771234567');
+  it.each(['staff', 'cashier', null] as const)('refuses a %s account on the non-production legacy path', async (role) => {
+    vi.stubEnv('NODE_ENV', 'test');
+    vi.stubEnv('SMS_ENABLED', 'true');
+    vi.mocked(getCurrentUser).mockResolvedValue({ ok: true, data: { id: 'synthetic', email: null, role } });
+    expect((await sendClientSms({ recipient: '0700000000', message: 'Synthetic test' })).success).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

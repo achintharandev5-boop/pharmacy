@@ -20,7 +20,8 @@ This guide is the runbook. `DATABASE_MIGRATION_PLAN.md` explains what each migra
 | G2 | The exposed **admin password has been changed** (Dashboard → Authentication → Users). | Owner |
 | G3 | The new secret key is stored only in the API host's environment and in the operator's local `apps/api/.env`, which git ignores. It is never committed, pasted into chat or put in the web app. | Owner |
 | G4 | A maintenance window is agreed. Label printing keeps working throughout, but receiving and adjustments only start working once 000300 is applied. | Owner + pharmacist |
-| G5 | The pharmacist has answered the decisions in `DATABASE_MIGRATION_PLAN.md` § "Decisions needed". Only decision 1 affects code; none blocks applying the migrations. | Pharmacist |
+| G5 | The pharmacist has answered the decisions in `STAGING_READINESS_REPORT.md` § 7. None blocks applying the migrations on staging. | Pharmacist |
+| G6 | `PRESCRIPTION_WRITE_MODE` is `legacy` (or unset) in every environment's API configuration. It is switched to `transactional` only after the pharmacist signs off the batch-allocation rules (decision D1), and on staging first. | Owner + pharmacist |
 
 ---
 
@@ -75,13 +76,14 @@ left join information_schema.columns c
 
 ```sql
 select 'table' kind, t name, to_regclass('public.' || t) is not null as exists_already
-from unnest(array['user_profiles','pharmacy_settings','sms_messages','audit_log']) t
+from unnest(array['user_profiles','pharmacy_settings','sms_messages','audit_log','patient_returns']) t
 union all
 select 'sequence', s, to_regclass('public.' || s) is not null
 from unnest(array['grn_number_seq','prescription_number_seq']) s
 union all
 select 'function', p, exists (select 1 from pg_proc where proname = p and pronamespace = 'public'::regnamespace)
-from unnest(array['receive_stock','adjust_stock','create_prescription','set_updated_at','audit_row_change','pharmacy_today']) p;
+from unnest(array['receive_stock','adjust_stock','create_prescription','quarantine_batch','release_batch',
+                  'set_updated_at','audit_row_change','pharmacy_today']) p;
 -- expect: exists_already = false for all, except possibly set_updated_at
 ```
 
@@ -116,7 +118,48 @@ union all select 'blank patient name', count(*) from customers where btrim(name)
 
 After 000400, the publishable/anon key can no longer read or write any table. The web app in this repository never calls Supabase directly (checked: no `@supabase/*` dependency in `apps/web`). Confirm that nothing else does: another app, a spreadsheet or a script using the publishable key. Dashboard → Logs → API, filter on `/rest/v1/` requests that are not from the service role.
 
-**Go / no-go:** continue only if 1.2 and 1.3 are all `true`, 1.4 has no unexplained `true`, and 1.6 shows no legitimate direct users.
+### 1.7 Data affected by the dispensing and threshold rules (migration 000500 and the new API)
+
+None of these blocks the migration, and nothing here is changed automatically. Give the results to the pharmacist **before** the new API is deployed, because they decide which units can still be dispensed.
+
+```sql
+-- a) Batches with stock but no expiry date. After the new API is deployed these units are not
+--    dispensed (unknown expiry). The pharmacist enters the expiry from the pack, or writes them off.
+select p.name, b.batch_number, b.quantity_available, b.status
+from product_batches b join products p on p.id = b.product_id
+where b.quantity_available > 0 and b.expiry_date is null order by p.name;
+
+-- b) Batches with stock whose expiry has passed (never dispensed; write off or quarantine).
+select p.name, b.batch_number, b.expiry_date, b.quantity_available
+from product_batches b join products p on p.id = b.product_id
+where b.quantity_available > 0 and b.expiry_date < current_date order by b.expiry_date;
+
+-- c) Batch records out of step with the product total. The current (legacy) dispensing path
+--    reduces the product total but not the batches, so batch quantities drift upward.
+select p.name, p.stock_quantity, coalesce(sum(b.quantity_available), 0) as batch_units
+from products p left join product_batches b on b.product_id = p.id
+group by p.id, p.name, p.stock_quantity
+having coalesce(sum(b.quantity_available), 0) <> p.stock_quantity order by p.name;
+
+-- d) Thresholds that may have come from the old column defaults (reorder 15 / minimum 5 /
+--    maximum 500) rather than from a person. 000500 removes the defaults; it does not change
+--    these rows. The pharmacist decides, product by product, which to keep.
+select name, reorder_level, minimum_stock, maximum_stock from products
+where reorder_level = 15 and minimum_stock = 5 and maximum_stock = 500 order by name;
+
+-- e) Historical RETURNED adjustments (kept; new ones are refused).
+select count(*) from inventory_movements where movement_type = 'RETURNED';
+```
+
+Only if the pharmacist confirms, in writing, that the thresholds listed in (d) were never set by anyone, clear them (one transaction, after the backup in §2):
+```sql
+-- begin;
+-- update products set reorder_level = null, minimum_stock = null, maximum_stock = null
+--  where reorder_level = 15 and minimum_stock = 5 and maximum_stock = 500 and id in (<ids the pharmacist listed>);
+-- commit;
+```
+
+**Go / no-go:** continue only if 1.2 and 1.3 are all `true`, 1.4 has no unexplained `true`, and 1.6 shows no legitimate direct users. The results of 1.7 go to the pharmacist; they do not block staging.
 
 ---
 
@@ -133,7 +176,7 @@ Take both, and keep them **outside the repository** (for example an encrypted dr
    Supabase CLI equivalent: `supabase db dump --linked -f schema.sql` and `supabase db dump --linked --data-only -f data.sql`.
 3. **Check the dump** before going on:
    ```bash
-   pg_restore --list pharmacy_pre_20261010_*.dump | grep -c "TABLE DATA"   # expect 13
+   pg_restore --list pharmacy_pre_20261010_*.dump | grep -c "TABLE DATA"   # expect 13 before any 20261010 migration
    ```
 4. Write down the row counts so they can be compared after the migration:
    ```sql
@@ -158,8 +201,11 @@ Apply strictly in this order. Each file runs in its own transaction: if a statem
 | **2** | `20261010000200_profiles_settings_sms_audit.sql` | 000100 (`set_updated_at`) and `auth.users` |
 | **3** | `20261010000300_transactional_functions.sql` | 000100 (sequences), 000200 (`pharmacy_today`, audit) |
 | **4** | `20261010000400_row_level_security.sql` | all tables from 000200 |
+| **5** | `20261010000500_returns_quarantine_dispensing.sql` | 000100–000400 (replaces the three stock functions, adds `patient_returns` with RLS) |
 
-000400 closes public REST access. Apply it in the **same session** as the other three; it is the most important of the four.
+000400 closes public REST access. Apply it in the **same session** as the others; it is the most important of the five.
+
+**Never re-run 000300 on its own after 000500.** 000300 would replace the hardened `receive_stock`, `adjust_stock` and `create_prescription` with their older versions (which accept `RETURNED` as a stock increase and can reactivate a quarantined batch). If 000300 must be re-run, re-run 000500 straight after it.
 
 ---
 
@@ -172,8 +218,8 @@ Apply strictly in this order. Each file runs in its own transaction: if a statem
 ```bash
 cd apps/api
 supabase link --project-ref <project-ref>      # prompts for the database password
-supabase migration list --linked               # the four 20261010 files must show as "local only"
-supabase db push --linked --dry-run            # must list exactly the four 20261010 files
+supabase migration list --linked               # the five 20261010 files must show as "local only"
+supabase db push --linked --dry-run            # must list exactly the five 20261010 files
 supabase db push --linked
 ```
 
@@ -181,18 +227,18 @@ Do **not** pass `--include-seed`.
 
 ### Path B: no migration history (§1.1)
 
-In the SQL editor, open each of the four files from the repository, paste the **whole file** and run it, in the order in §3. After each one, check that the editor reports success before opening the next.
+In the SQL editor, open each of the five files from the repository, paste the **whole file** and run it, in the order in §3. After each one, check that the editor reports success before opening the next.
 
 Then record them as applied so a later `db push` does not try again:
 ```bash
 supabase migration repair --linked --status applied 20260824000000 20261005000000 20261005010000 \
-  20261010000100 20261010000200 20261010000300 20261010000400
+  20261010000100 20261010000200 20261010000300 20261010000400 20261010000500
 ```
 (Only after §1.2 and §1.3 confirmed the first three are effectively in place.)
 
 ### Then deploy the API
 
-Deploy the API from this branch with the **new** `SUPABASE_SERVICE_ROLE_KEY`. Until the API is deployed, the old API keeps working against the migrated database: every change is additive, and the service role bypasses RLS.
+Deploy the API from this branch with the **new** `SUPABASE_SERVICE_ROLE_KEY` and `PRESCRIPTION_WRITE_MODE=legacy` (gate G6). Until the API is deployed, the old API keeps working against the migrated database, with two exceptions caused by 000500: an adjustment of type `RETURNED` is refused (the old Adjustments screen offers it), and receiving into a quarantined batch is refused. The service role bypasses RLS throughout.
 
 ---
 
@@ -202,14 +248,19 @@ Deploy the API from this branch with the **new** `SUPABASE_SERVICE_ROLE_KEY`. Un
 
 ```sql
 select to_regclass('public.user_profiles'), to_regclass('public.pharmacy_settings'),
-       to_regclass('public.sms_messages'), to_regclass('public.audit_log');
--- expect: four non-null values
+       to_regclass('public.sms_messages'), to_regclass('public.audit_log'), to_regclass('public.patient_returns');
+-- expect: five non-null values
 
 select proname, pg_get_function_identity_arguments(oid)
 from pg_proc where pronamespace = 'public'::regnamespace
-  and proname in ('receive_stock','adjust_stock','create_prescription','pharmacy_today','set_updated_at','audit_row_change')
+  and proname in ('receive_stock','adjust_stock','create_prescription','quarantine_batch','release_batch',
+                  'pharmacy_today','set_updated_at','audit_row_change')
 order by 1;
--- expect: six rows
+-- expect: eight rows
+
+select column_name, column_default from information_schema.columns
+where table_name = 'products' and column_name in ('reorder_level','minimum_stock','maximum_stock');
+-- expect: column_default NULL on all three (no invented thresholds for new medicines)
 
 select count(*) from pharmacy_settings;
 -- expect: 1, with name/address/phone NULL (nothing invented)
@@ -235,7 +286,9 @@ select p, has_function_privilege('anon', p, 'execute') anon,
           has_function_privilege('service_role', p, 'execute') service_role
 from unnest(array['public.receive_stock(jsonb,uuid,text)',
                   'public.adjust_stock(uuid,uuid,text,numeric,text,uuid,text)',
-                  'public.create_prescription(jsonb,uuid,text)']) p;
+                  'public.create_prescription(jsonb,uuid,text)',
+                  'public.quarantine_batch(uuid,text,uuid)',
+                  'public.release_batch(uuid,text,uuid)']) p;
 -- expect: anon = false, authenticated = false, service_role = true on every row
 ```
 
@@ -256,7 +309,8 @@ With a user who has the `pharmacist` role (§7):
 2. Label workstation: find a real medicine, build a label, save, print. The prescription appears under Prescriptions.
 3. Receiving: record a delivery the pharmacy has **actually** received (a real invoice). It appears under Stock Movements, and the batch shows the expiry date from the box.
 4. Adjustments: record a real stock count correction if one is due. Do not create test stock on the real project.
-5. `select action, entity_type, count(*) from audit_log group by 1, 2;` shows the changes above.
+5. Returns: the Adjustments screen no longer offers "customer return to stock"; patient returns are recorded under Inventory → Returns and do not change stock.
+6. `select action, entity_type, count(*) from audit_log group by 1, 2;` shows the changes above.
 
 On staging, test receiving and adjusting with clearly named test records (`TEST — delete`), and never copy them to production.
 
@@ -286,7 +340,8 @@ set local role anon;
 select 'customers' t, count(*) from public.customers
 union all select 'products', count(*) from public.products
 union all select 'prescriptions', count(*) from public.prescriptions
-union all select 'audit_log', count(*) from public.audit_log;
+union all select 'audit_log', count(*) from public.audit_log
+union all select 'patient_returns', count(*) from public.patient_returns;
 rollback;
 -- expect: 0 on every row, even though the tables hold data
 ```
@@ -338,8 +393,8 @@ Roles live in Supabase Auth `app_metadata.role` (values `admin`, `pharmacist`, `
 |---|---|
 | `admin` | Everything, including deleting patient records |
 | `pharmacist` | Labels and prescriptions; receive and adjust stock; create and edit medicines and suppliers |
-| `staff` | Labels and prescriptions; read records. No stock, supplier, medicine or delete actions |
-| *(none)* | Sign in and read; every protected action is refused with "no role assigned" |
+| `staff` | Labels and prescriptions; create patients; record patient returns; read records. No stock, supplier, medicine or delete actions |
+| *(none)* | Sign in, read records, create patients, **and create and print prescriptions (which deducts stock)**. Stock, supplier, medicine, return and delete actions are refused with "no role assigned". This is deliberate so accounts are not locked out before roles are assigned; once every account has a role, the owner can decide to require a role for prescriptions too (`STAGING_READINESS_REPORT.md`, decision O2). |
 
 **Procedure:**
 
@@ -364,7 +419,7 @@ To remove a role, edit the user's `app_metadata` (service-role access) or ask an
 
 ## 8. Rollback and recovery
 
-All four migrations add objects and leave existing rows alone, so **fixing forward is preferred**. Decide by symptom:
+All five migrations add objects and leave existing rows alone, so **fixing forward is preferred**. 000500 also replaces three functions and removes three column defaults; neither changes stored data. Decide by symptom:
 
 | Symptom | Action |
 |---|---|
@@ -373,9 +428,23 @@ All four migrations add objects and leave existing rows alone, so **fixing forwa
 | Something legitimate relied on direct REST access (§1.6) | Add a narrowly scoped policy for that table and role. Disabling RLS re-opens every table to the public key; do it only as a short emergency step, per table, and re-enable it. |
 | New tables cause a problem | They hold only data created after the migration. Export them, then drop them. |
 | New columns | Leave them. Dropping `allergy_status` discards recorded allergy information. |
+| 000500 functions misbehave | Re-running 000300 restores the older functions (see §3), which re-allows `RETURNED` as a stock increase. Prefer fixing forward; the API refuses `RETURNED` itself either way. Patient returns stay in `patient_returns`. |
 | Data damaged | Last resort: restore. On point-in-time recovery, restore to the timestamp from §2. Otherwise restore the §2 dump into a **new** project, compare, and copy back only what is needed: `pg_restore --data-only --table=<t>`. A full restore discards every prescription and stock movement since the backup, so first export those (`pg_dump --data-only --table=prescriptions --table=prescription_items --table=prescription_events --table=inventory_movements`). |
 
 After any rollback, re-run §6.1 and the external `curl` check to make sure public access has not been re-opened by accident.
+
+### 8.1 ⚠ Steps that re-open public access to patient data
+
+Each of the following leaves tables readable and writable by anyone holding the public (publishable) key. None of them may be used without the owner's explicit decision, and each must be followed **immediately** by re-applying `20261010000400_row_level_security.sql` (and 000500, which enables RLS on `patient_returns`) and re-running §6:
+
+| Step | Why it re-opens access |
+|---|---|
+| `alter table … disable row level security` (listed as the 000400 rollback in `DATABASE_MIGRATION_PLAN.md`) | Directly removes the protection. Never as a fix for an application error: the API uses the service role and is not affected by RLS. |
+| Restoring the §2 backup, or point-in-time recovery to a moment before the migrations | The restored database is the pre-migration one, where RLS is off on every table. |
+| Restoring the §2 dump into a new project | The dump was taken with RLS off, and a new Supabase project grants `anon` and `authenticated` full table privileges by default. |
+| `supabase db reset` (any project) | Rebuilds from migrations and runs `seed.sql`, inserting sample patients and medicines. Never on a real project. |
+| Creating a new table by hand in the dashboard or SQL editor | New tables get Supabase's default grants and start with RLS off. Enable RLS on it in the same transaction. |
+| Dropping `patient_returns` and recreating it without 000500 | Same as above. |
 
 ---
 
@@ -383,13 +452,14 @@ After any rollback, re-run §6.1 and the external `curl` check to make sure publ
 
 | Step | Done by | Date / time | Notes |
 |---|---|---|---|
-| G1–G5 gates | | | |
+| G1–G6 gates | | | |
 | §1 compatibility output saved | | | |
 | §2 backup taken and checked | | | |
 | Staging: §4–§6 passed | | | |
 | Production: §4 applied | | | |
 | Production: §5 and §6 passed | | | |
 | §7 roles assigned and confirmed by owner | | | |
-| API deployed with new key | | | |
+| API deployed with new key, `PRESCRIPTION_WRITE_MODE=legacy` | | | |
+| §1.7 results reviewed by the pharmacist | | | |
 
-The application stays **NOT production-ready** until every row is complete and the end-to-end check in `IMPLEMENTATION_STATUS_REPORT.md` §7 has passed.
+The application stays **NOT production-ready** until every row is complete and the staging end-to-end check in `STAGING_DEPLOYMENT_CHECKLIST.md` has passed.

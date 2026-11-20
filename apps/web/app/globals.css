@@ -1,6 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Gemunu+Libre:wght@400;500;600;700;800&family=Noto+Sans+Sinhala:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
+/* Application UI font (self-hosted; no network fetch). The physical label keeps its own fonts. */
+@font-face {
+  font-family: AppInter;
+  src: url("/fonts/InterVariable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
 /* Sinhala label text: unchanged. */
 .sinhala-text {
   font-family: 'Gemunu Libre', 'Noto Sans Sinhala', 'Segoe UI', Arial, sans-serif !important;
@@ -9,13 +17,27 @@
 }
 
 /*
- * Design tokens. One source for every screen, including the label workstation.
- * White page, slate secondary surfaces, one blue primary, 8px radius, hairline borders.
- * Semantic colours meet WCAG AA contrast for text on their soft backgrounds.
+ * Tailwind utility registration and fallback values. Canonical light/dark values live in theme.css.
+ * Screen surfaces, text, borders and states resolve through semantic CSS variables.
  */
 @theme {
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Consolas, monospace;
+
+  --font-ui: AppInter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --color-canvas: #f8f7fc;
+  --color-tint: #f5f2ff;
+  --color-tooltip: #17152b;
+  --color-on-tooltip: #ffffff;
+  --color-success-accent: #16a085;
+  --color-warning-accent: #e6a23c;
+  --color-danger-accent: #e05269;
+  --color-chart-1: #7c5ce7;
+  --color-chart-2: #3fb59b;
+  --color-chart-3: #5b9cf0;
+  --color-chart-4: #e6a23c;
+  --color-chart-5: #b9b4cc;
 
   --color-page: #ffffff;
   --color-surface: #f8fafc;
@@ -31,6 +53,50 @@
   --color-primary-hover: #1d4ed8;
   --color-primary-soft: #eff6ff;
   --color-primary-border: #bfdbfe;
+  --color-primary-solid: #2563eb;
+  --color-primary-solid-hover: #1d4ed8;
+  --color-on-primary-solid: #ffffff;
+  --color-primary-solid-active: #1e40af;
+  --color-disabled: #78808e;
+
+  /* Workstation action tones (values per theme in theme.css). */
+  --color-on-tone-solid: #ffffff;
+  --color-graphite: #374151;
+  --color-teal: #0d9488;
+  --color-teal-strong: #0f766e;
+  --color-teal-soft: #f0fdfa;
+  --color-teal-border: #99d9cf;
+  --color-teal-solid: #0f766e;
+  --color-teal-solid-hover: #115e59;
+  --color-teal-solid-active: #134e4a;
+  --color-green: #16a34a;
+  --color-green-strong: #15803d;
+  --color-green-soft: #f0fdf4;
+  --color-green-border: #a3dcb5;
+  --color-green-solid: #15803d;
+  --color-green-solid-hover: #166534;
+  --color-green-solid-active: #14532d;
+  --color-purple: #8b5cf6;
+  --color-purple-strong: #6d28d9;
+  --color-purple-soft: #f5f3ff;
+  --color-purple-border: #c9b8fb;
+  --color-purple-solid: #7c3aed;
+  --color-purple-solid-hover: #6d28d9;
+  --color-purple-solid-active: #5b21b6;
+  --color-amber: #d97706;
+  --color-amber-strong: #b45309;
+  --color-amber-soft: #fffbeb;
+  --color-amber-border: #f1cf8a;
+  --color-amber-solid: #b45309;
+  --color-amber-solid-hover: #92400e;
+  --color-amber-solid-active: #78350f;
+  --color-coral: #e11d48;
+  --color-coral-strong: #be123c;
+  --color-coral-soft: #fff1f2;
+  --color-coral-border: #f8b4c0;
+  --color-coral-solid: #e11d48;
+  --color-coral-solid-hover: #be123c;
+  --color-coral-solid-active: #9f1239;
 
   --color-success: #047857;
   --color-success-soft: #ecfdf5;
@@ -41,13 +107,17 @@
   --color-danger: #b91c1c;
   --color-danger-soft: #fef2f2;
   --color-danger-border: #fecaca;
+  /* Instruction-category accent (meal / form instructions): 7.1:1 on its soft tint. */
+  --color-accent: #626875;
+  --color-accent-soft: #f1f3f6;
+  --color-accent-border: #8792a2;
   --color-info: #0369a1;
   --color-info-soft: #f0f9ff;
   --color-info-border: #bae6fd;
 
   --radius-ui: 8px;
   --radius-ui-sm: 6px;
-  --radius-ui-lg: 10px;
+  --radius-ui-lg: 12px;
 
   --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04);
   --shadow-pop: 0 8px 24px rgba(15, 23, 42, 0.12);
@@ -55,6 +125,11 @@
 
 :root {
   color-scheme: light;
+}
+
+/* UI-test mode only: the banner's fixed height on large screens, so the workstation fits beneath it. */
+:root:has([data-ui-test-banner]) {
+  --ui-test-banner-h: 25px;
 }
 
 html {
@@ -97,28 +172,13 @@ body {
   *,
   *::before,
   *::after {
-    animation-duration: 0.01ms !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
 }
 
-/* Label printing: unchanged (70 x 50 mm thermal labels). */
+/* Physical label dimensions and pagination are owned by LabelPrintStyles. */
 @media print {
-  .no-print {
-    display: none !important;
-  }
-  html, body {
-    width: 70mm !important;
-    height: 50mm !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-    background: #ffffff !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-  @page {
-    size: 70mm 50mm;
-    margin: 0;
-  }
+  .no-print { display: none !important; }
 }

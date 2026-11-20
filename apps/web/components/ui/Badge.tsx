@@ -16,7 +16,7 @@ export function Badge({ tone = 'neutral', children, className }: { tone?: Tone; 
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-ui-sm border px-2 py-0.5 text-xs font-medium leading-5 whitespace-nowrap',
+        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium leading-5 whitespace-nowrap',
         TONES[tone],
         className,
       )}
@@ -41,7 +41,7 @@ const STATUS: Record<string, { label: string; tone: Tone }> = {
   CRITICAL: { label: 'Critical', tone: 'danger' },
   OUT_OF_STOCK: { label: 'Out of stock', tone: 'danger' },
   HEALTHY: { label: 'In stock', tone: 'success' },
-  UNCLASSIFIED: { label: 'No threshold', tone: 'neutral' },
+  UNCLASSIFIED: { label: 'Not configured', tone: 'neutral' },
   PRINTED: { label: 'Printed', tone: 'success' },
   REPRINTED: { label: 'Reprinted', tone: 'warning' },
   CREATED: { label: 'Created', tone: 'primary' },
@@ -52,7 +52,10 @@ const STATUS: Record<string, { label: string; tone: Tone }> = {
   ADJUSTMENT_IN: { label: 'Adjustment in', tone: 'info' },
   ADJUSTMENT_OUT: { label: 'Adjustment out', tone: 'warning' },
   DAMAGED: { label: 'Damaged', tone: 'danger' },
-  RETURNED: { label: 'Returned', tone: 'info' },
+  RETURNED: { label: 'Returned (legacy)', tone: 'neutral' },
+  SUPPLIER_RETURN: { label: 'Returned to supplier', tone: 'warning' },
+  HELD_FOR_REVIEW: { label: 'Held for review', tone: 'warning' },
+  DISPOSED: { label: 'Disposed', tone: 'neutral' },
 };
 
 export function statusInfo(code: string | null | undefined): { label: string; tone: Tone } {
@@ -64,6 +67,7 @@ export function StatusBadge({ status, className }: { status: string | null | und
   const { label, tone } = statusInfo(status);
   return (
     <Badge tone={tone} className={className}>
+      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-80" aria-hidden="true" />
       {label}
     </Badge>
   );

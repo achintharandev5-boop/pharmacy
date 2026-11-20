@@ -1,0 +1,484 @@
+{
+  "fonts": {
+    "gemunu": true,
+    "noto": true
+  },
+  "results": [
+    {
+      "scenario": "S1",
+      "wording": "current",
+      "content": 40.9,
+      "box": 115.3,
+      "guard": [],
+      "clipped": [],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 11.5",
+        "patient name": "ok 9.5"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S1",
+      "wording": "spec",
+      "content": 40.9,
+      "box": 115.3,
+      "guard": [],
+      "clipped": [],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 11.5",
+        "patient name": "ok 9.5"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S2",
+      "wording": "current",
+      "content": 56,
+      "box": 115.3,
+      "guard": [],
+      "clipped": [],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 11.5",
+        "patient name": "ok 9.5"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S2",
+      "wording": "spec",
+      "content": 72.9,
+      "box": 115.3,
+      "guard": [],
+      "clipped": [],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 11.5",
+        "patient name": "ok 9.5"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S3",
+      "wording": "current",
+      "content": 73,
+      "box": 115.3,
+      "guard": [],
+      "clipped": [],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 11.5",
+        "patient name": "ok 9.5"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S3",
+      "wording": "spec",
+      "content": 89.9,
+      "box": 115.3,
+      "guard": [],
+      "clipped": [],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 11.5",
+        "patient name": "ok 9.5"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S4",
+      "wording": "current",
+      "content": 59.4,
+      "box": 115.3,
+      "guard": [],
+      "clipped": [],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 11.5",
+        "patient name": "ok 9.5"
+      },
+      "statPills": 1,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S4",
+      "wording": "spec",
+      "content": 90.9,
+      "box": 115.3,
+      "guard": [],
+      "clipped": [],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 11.5",
+        "patient name": "ok 9.5"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 1
+    },
+    {
+      "scenario": "S5",
+      "wording": "current",
+      "content": 59.4,
+      "box": 115.3,
+      "guard": [],
+      "clipped": [],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 11.5",
+        "patient name": "ok 9.5"
+      },
+      "statPills": 1,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S5",
+      "wording": "spec",
+      "content": 72.9,
+      "box": 115.3,
+      "guard": [],
+      "clipped": [],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 11.5",
+        "patient name": "ok 9.5"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 1
+    },
+    {
+      "scenario": "S6",
+      "wording": "current",
+      "content": 35.4,
+      "box": 115.3,
+      "guard": [],
+      "clipped": [],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 11.5",
+        "patient name": "ok 9.5"
+      },
+      "statPills": 1,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S6",
+      "wording": "spec",
+      "content": 34.9,
+      "box": 115.3,
+      "guard": [],
+      "clipped": [],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 11.5",
+        "patient name": "ok 9.5"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 1
+    },
+    {
+      "scenario": "S7",
+      "wording": "current",
+      "content": 107.3,
+      "box": 115.3,
+      "guard": [],
+      "clipped": [],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 11.5",
+        "patient name": "ok 9.5"
+      },
+      "statPills": 1,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S7",
+      "wording": "spec",
+      "content": 123.6,
+      "box": 115.3,
+      "guard": [
+        "instructions (dose rows and Sinhala lines)"
+      ],
+      "clipped": [
+        "instructions: උදේ",
+        "instructions: 1",
+        "instructions: දවල්",
+        "instructions: 1",
+        "instructions: රෑ",
+        "instructions: 1",
+        "instructions: (MONDAY දිනවල පමණක්)",
+        "instructions: WEEKLY",
+        "instructions: TILL DATE",
+        "instructions: THEN 8H"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 11.5",
+        "patient name": "ok 9.5"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 1
+    },
+    {
+      "scenario": "S8",
+      "wording": "current",
+      "content": 56,
+      "box": 115.3,
+      "guard": [],
+      "clipped": [],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 11.5",
+        "patient name": "ok 9.5"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S8",
+      "wording": "spec",
+      "content": 56,
+      "box": 115.3,
+      "guard": [],
+      "clipped": [],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 11.5",
+        "patient name": "ok 9.5"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S9",
+      "wording": "current",
+      "content": 56,
+      "box": 115.3,
+      "guard": [],
+      "clipped": [],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 11.5",
+        "patient name": "ok 9.5"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S9",
+      "wording": "spec",
+      "content": 56,
+      "box": 115.3,
+      "guard": [],
+      "clipped": [],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 11.5",
+        "patient name": "ok 9.5"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S10",
+      "wording": "current",
+      "content": 101.9,
+      "box": 115.3,
+      "guard": [],
+      "clipped": [],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 11.5",
+        "patient name": "ok 9.5"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S10",
+      "wording": "spec",
+      "content": 101.9,
+      "box": 115.3,
+      "guard": [],
+      "clipped": [],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 11.5",
+        "patient name": "ok 9.5"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S11",
+      "wording": "current",
+      "content": 56,
+      "box": 115.3,
+      "guard": [
+        "patient name too long to print in full"
+      ],
+      "clipped": [
+        "patient: Pt: Wickramasinghe Arachchige "
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 8 (2 lines)",
+        "alternative brand name": "ok 8 (2 lines)",
+        "patient name": "overflow 8 (2 lines)"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S11",
+      "wording": "spec",
+      "content": 56,
+      "box": 115.3,
+      "guard": [
+        "patient name too long to print in full"
+      ],
+      "clipped": [
+        "patient: Pt: Wickramasinghe Arachchige "
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 8 (2 lines)",
+        "alternative brand name": "ok 8 (2 lines)",
+        "patient name": "overflow 8 (2 lines)"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S12",
+      "wording": "current",
+      "content": 149.1,
+      "box": 115.3,
+      "guard": [
+        "instructions (dose rows and Sinhala lines)"
+      ],
+      "clipped": [
+        "instructions: උදේ",
+        "instructions: 1½",
+        "instructions: දවල්",
+        "instructions: 1½",
+        "instructions: රෑ",
+        "instructions: 1½",
+        "instructions: STAT 2, then 8H",
+        "instructions: WEEKLY",
+        "instructions: TILL DATE"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 11.5",
+        "patient name": "ok 9.5"
+      },
+      "statPills": 1,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S12",
+      "wording": "spec",
+      "content": 162.6,
+      "box": 115.3,
+      "guard": [
+        "instructions (dose rows and Sinhala lines)"
+      ],
+      "clipped": [
+        "instructions: උදේ",
+        "instructions: 1½",
+        "instructions: දවල්",
+        "instructions: 1½",
+        "instructions: රෑ",
+        "instructions: 1½",
+        "instructions: (MONDAY, TUESDAY, WEDNESDAY, T",
+        "instructions: WEEKLY",
+        "instructions: TILL DATE",
+        "instructions: THEN 8H"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 11.5",
+        "patient name": "ok 9.5"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 1
+    },
+    {
+      "scenario": "S13",
+      "wording": "current",
+      "content": 40.9,
+      "box": 115.3,
+      "guard": [
+        "medicine name too long to print in full"
+      ],
+      "clipped": [
+        "product: BECLOMETHASONE DIPROPIONATE AN"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "overflow 8 (2 lines)",
+        "patient name": "ok 9.5"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S13",
+      "wording": "spec",
+      "content": 40.9,
+      "box": 115.3,
+      "guard": [
+        "medicine name too long to print in full"
+      ],
+      "clipped": [
+        "product: BECLOMETHASONE DIPROPIONATE AN"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "overflow 8 (2 lines)",
+        "patient name": "ok 9.5"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S14",
+      "wording": "current",
+      "content": 40.9,
+      "box": 115.3,
+      "guard": [],
+      "clipped": [],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 11.5",
+        "patient name": "ok 8 (2 lines)"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S14",
+      "wording": "spec",
+      "content": 40.9,
+      "box": 115.3,
+      "guard": [],
+      "clipped": [],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 11.5",
+        "patient name": "ok 8 (2 lines)"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    }
+  ]
+}

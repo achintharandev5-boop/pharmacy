@@ -1,13 +1,24 @@
 'use client';
 
+import { reasonSelectionRefusal } from '../../lib/reasons';
+import { formatDays, daySelectionRefusal, formatWeekdayRange } from '../../lib/nameOfDays';
+import { weeklySelectionRefusal } from '../../lib/weeklyPolicy';
+import { dailySelectionRefusal } from '../../lib/dailyPolicy';
+import { eveningSelectionRefusal } from '../../lib/eveningPolicy';
+import { digitalSelectionRefusal } from '../../lib/digitalSchedule';
+import { intervalSelectionRefusal } from '../../lib/intervalPolicy';
+import { statSelectionRefusal } from '../../lib/statPolicy';
+import { eodSelectionRefusal } from '../../lib/eod';
+
 import React from 'react';
-import { useLabelStore } from '../../store/labelStore';
-import { NumberPad } from '../NumberPad';
-import { StatPanel } from '../StatPanel';
-import { StatFollowUpPanel } from '../StatFollowUpPanel';
-import { DaysOfWeekPanel } from '../../app/label/DaysOfWeekPanel';
+import { GridTile, ActionTile, type Tile, ControlHints, LockNoticeLine, useLockNotice, hintId, STAT_LOCK_HINT, PANEL_LOCK_HINT, LOCK_FALLBACK } from './InstructionTile';
+
+import { useLabelStore, isStatStep } from '../../store/labelStore';
+import { EXPIRY_CODE } from '../../lib/batchExpiry';
+import { useActiveWorkspace } from './ActionWorkspace';
+import { analyseAdministration, chewingSelectionRefusal, dissolveSelectionRefusal, withFoodSelectionRefusal, keepInMouthSelectionRefusal, DIGI_LABEL_LOCKS, formInstructions, getWordingMode, QUANTITY_CODES } from '../../lib/instructionEngine';
+import { formatDosageReadable } from '../../lib/labelBuilder';
 import { SelectedInstructionsPanel } from './SelectedInstructionsPanel';
-import { OABWorkflowPanel } from '../OABWorkflowPanel';
 import {
   MessageSquareText,
   MapPinOff,
@@ -23,11 +34,9 @@ import {
   RefreshCcw,
   ChevronsRight,
   Zap,
-  CalendarDays,
-  CalendarPlus,
-  ChevronRight,
   CircleDot,
   Smile,
+  type LucideIcon,
 } from 'lucide-react';
 
 interface InstructionGridProps {
@@ -36,399 +45,254 @@ interface InstructionGridProps {
 
 export function InstructionGrid({ validationError }: InstructionGridProps) {
   const activeControl = useLabelStore((state) => state.activeControl);
-  const numberPad = useLabelStore((state) => state.numberPad);
+  // An action panel open on the right (ActionWorkspace). The grid stays visible, but its tiles are
+  // locked until that panel is confirmed or cancelled, as when the panel used to replace the grid.
+  const workspace = useActiveWorkspace();
+  const weekdayRange = useLabelStore(state => state.labels[state.activeLabelIndex]?.weekdayRange);
   const selectedDaysOfWeek = useLabelStore((state) => state.selectedDaysOfWeek);
+  const days = useLabelStore((state) => state.days);
   const additionalInstructions = useLabelStore((state) => state.additionalInstructions);
-  const reason = useLabelStore((state) => state.reason);
   const reasons = useLabelStore((state) => state.reasons);
   const expiryDate = useLabelStore((state) => state.expiryDate);
   const stat = useLabelStore((state) => state.stat);
+  const dosage = useLabelStore((state) => state.dosage);
+  const weeklyDosage = useLabelStore(state => state.weeklyDosage);
+  const frequencyDosage = useLabelStore((state) => state.frequencyDosage);
   const showAddress = useLabelStore((state) => state.showAddress);
   const toggleShowAddress = useLabelStore((state) => state.toggleShowAddress);
   const toggleAdditionalInstruction = useLabelStore((state) => state.toggleAdditionalInstruction);
   const openDaysOfWeekPanel = useLabelStore((state) => state.openDaysOfWeekPanel);
+  const openReasonsPanel = useLabelStore((state) => state.openReasonsPanel);
   const startStat = useLabelStore((state) => state.startStat);
-  const openExpDateModal = useLabelStore((state) => state.openExpDateModal);
   const openDeleteLabelModal = useLabelStore((state) => state.openDeleteLabelModal);
   const addLabel = useLabelStore((state) => state.addLabel);
-  const setActiveControl = useLabelStore((state) => state.setActiveControl);
 
-  const isStatActive = (activeControl as string) === 'stat';
+  const isStatFlow = isStatStep(activeControl);
+  const isReasonsOpen = activeControl === 'reasons';
+  const incompleteInterval = !workspace && !isStatFlow && !(frequencyDosage.qty > 0)
+    ? ['5H', '6H', '8H'].find((code) => additionalInstructions.includes(code))
+    : undefined;
 
-  // Sub-panel check
-  const showSubPanel =
-    activeControl === 'days_of_week' ||
-    activeControl === 'oab_workflow' ||
-    numberPad.visible ||
-    activeControl === 'stat' ||
-    activeControl === 'stat_followup';
+  const has = (key: string) => additionalInstructions.includes(key);
+  const toggle = (key: string, label: string, icon: LucideIcon): Tile => ({
+    key,
+    label,
+    icon,
+    selected: has(key),
+    toggle: true,
+    onClick: () => toggleAdditionalInstruction(key),
+    detail: key === 'WEEKLY' && has(key) && (weeklyDosage?.qty ?? 0) > 0 ? formatDosageReadable(weeklyDosage!.qty, weeklyDosage!.isFraction) : QUANTITY_CODES.includes(key) && has(key) && frequencyDosage.qty > 0
+      ? `${formatDosageReadable(frequencyDosage.qty, frequencyDosage.isFraction)} each`
+      : null,
+  });
 
-  const isReasonsActive = (reasons && reasons.length > 0) || Boolean(reason) || additionalInstructions.includes('REASONS');
-  const isAddressHidden = !showAddress;
-  const isExpDateActive = Boolean(expiryDate) || additionalInstructions.includes('ADD EXP DATE');
-  const isStatSelected = Boolean(stat) || additionalInstructions.includes('STAT') || (activeControl as string) === 'stat';
+  const reasonCount = reasons?.length ?? 0;
 
-  const handleTileClick = (key: string) => {
-    if (key === 'REASONS') {
-      toggleAdditionalInstruction('REASONS');
-      setActiveControl('oab_workflow');
-    } else if (key === 'REMOVE ADDRESS') {
-      toggleShowAddress();
-    } else if (key === 'ADD EXP DATE') {
-      openExpDateModal();
-    } else if (key === 'DELETE LABEL') {
-      openDeleteLabelModal();
-    } else if (key === 'ADD LABEL') {
-      addLabel();
-    } else if (key === 'STAT') {
-      startStat();
-    } else {
-      toggleAdditionalInstruction(key);
-    }
+  const reasonsTile: Tile = {
+    key: 'REASONS',
+    label: 'Reasons',
+    icon: MessageSquareText,
+    selected: reasonCount > 0 || isReasonsOpen,
+    expanded: isReasonsOpen,
+    toggle: false,
+    onClick: () => (isReasonsOpen ? useLabelStore.getState().cancelReasonsPanel() : openReasonsPanel()),
+    detail: reasonCount > 0 ? `${reasonCount} selected` : null,
   };
 
-  const daysLabel =
+  const addressTile: Tile = {
+    key: 'REMOVE ADDRESS',
+    label: showAddress ? 'Remove Address' : 'Address Hidden',
+    icon: MapPinOff,
+    selected: !showAddress,
+    toggle: true,
+    onClick: toggleShowAddress,
+  };
+
+  const statTile: Tile = {
+    key: 'STAT',
+    label: 'STAT',
+    icon: Zap,
+    iconClass: 'fill-current',
+    labelClass: 'text-coral-strong',
+    selected: Boolean(stat) || has('STAT'),
+    expanded: isStatFlow,
+    toggle: false,
+    onClick: startStat,
+  };
+
+  const expTile: Tile = {
+    key: 'ADD EXP DATE',
+    label: 'EXP Date',
+    icon: Calendar,
+    // Not selected by default; tap to retrieve the GRN batch expiry, tap again to remove it.
+    selected: additionalInstructions.includes(EXPIRY_CODE),
+    toggle: true,
+    disabled: isStatFlow,
+    onClick: () => toggleAdditionalInstruction(EXPIRY_CODE),
+    detail: expiryDate,
+  };
+
+  // ENT (eye, ear, nose) opens from the Administration card (LabelActions), not from this grid.
+
+  const activeLabel = useLabelStore((state) => state.labels[state.activeLabelIndex]);
+  const daysLabel = weekdayRange ? (formatWeekdayRange(weekdayRange) || 'Select end day') :
     selectedDaysOfWeek.length > 0
-      ? selectedDaysOfWeek
-          .map((d) => d.charAt(0) + d.slice(1, 3).toLowerCase())
-          .join(', ')
+      ? formatDays(selectedDaysOfWeek)
       : 'Name of Days';
 
+  // Days and Name of Days moved here from the controls below the grid, with the same enabled rules.
+  // Till to the Day and Edit start day are now inside the Select Days panel (DaysOfWeekPanel).
+  const daysTile: Tile = {
+    key: 'DAYS', label: 'Days', icon: Calendar, expanded: activeControl === 'days',
+    selected: days != null && days > 0, toggle: false, disabled: isStatFlow,
+    detail: days != null && days > 0 ? `${days} ${days === 1 ? 'day' : 'days'}` : undefined,
+    onClick: () => useLabelStore.getState().setActiveControl('days'),
+  };
+  const nameOfDaysRefusal = daySelectionRefusal(activeLabel, 'NAME OF DAYS') ?? intervalSelectionRefusal(activeLabel, 'NAME OF DAYS') ?? eodSelectionRefusal(activeLabel, 'NAME OF DAYS');
+  const nameOfDaysTile: Tile = {
+    key: 'NAME OF DAYS', label: 'Name of Days', icon: Calendar, expanded: activeControl === 'days_of_week',
+    selected: selectedDaysOfWeek.length > 0 || Boolean(weekdayRange), toggle: false,
+    disabled: isStatFlow || Boolean(nameOfDaysRefusal),
+    state: !isStatFlow && nameOfDaysRefusal ? 'locked' : undefined,
+    stateHint: isStatFlow ? STAT_LOCK_HINT : nameOfDaysRefusal ?? undefined,
+    detail: daysLabel !== 'Name of Days' ? daysLabel : undefined,
+    onClick: () => openDaysOfWeekPanel(),
+  };
+
+  // Every feature tile; GRID_ORDER below places them (with the two label actions) in one grid.
+  // Idle icon and selected colours follow each key's tone (instructionCategory).
+  const schedule: Tile[] = [
+    daysTile,
+    nameOfDaysTile,
+    toggle('DAILY', 'Daily', CalendarCheck),
+    toggle('WEEKLY', 'Weekly', RefreshCcw),
+    toggle('EVENING', 'Evening', Sunset),
+    toggle('EOD', 'EOD', ChevronsRight),
+    toggle('5H', '5H', Clock),
+    toggle('6H', '6H', Clock),
+    toggle('8H', '8H', Clock),
+  ];
+  const instructions: Tile[] = [
+    reasonsTile,
+    toggle('WITH FOOD', 'With Food', Utensils),
+    toggle('EMPTY STOMACH', 'Empty Stomach', CircleDot),
+    toggle('CHEWABLE', 'Chewable', Pill),
+    toggle('DISSOLVE AND DRINK', 'Dissolve and Drink', GlassWater),
+    toggle('KEEP IN MOUTH', 'Keep in Mouth', Smile),
+    addressTile,
+    expTile,
+    statTile,
+  ];
+
+  // Workflow states from the instruction engine (same analysis as DONE and the Administration card).
+  const analysis = analyseAdministration(additionalInstructions, dosage, undefined, frequencyDosage.qty);
+  const specMode = getWordingMode() === 'spec';
+  const hasDose = dosage.morning.qty > 0 || dosage.lunch.qty > 0 || dosage.night.qty > 0;
+  const forms = formInstructions();
+  const decorate = (tile: Tile): Tile => {
+    if (workspace) return { ...tile, disabled: true, stateHint: PANEL_LOCK_HINT };
+    // Their own enabled rules, unchanged from the former controls below the grid.
+    if (tile.key === 'DAYS' || tile.key === 'NAME OF DAYS') return tile;
+    const chewingLock = reasonSelectionRefusal(activeLabel, tile.key) ?? daySelectionRefusal(activeLabel, tile.key) ?? weeklySelectionRefusal(activeLabel, tile.key) ?? dailySelectionRefusal(activeLabel, tile.key) ?? eveningSelectionRefusal(activeLabel, tile.key) ?? digitalSelectionRefusal(activeLabel, tile.key) ?? intervalSelectionRefusal(activeLabel, tile.key) ?? statSelectionRefusal(activeLabel, tile.key) ?? eodSelectionRefusal(activeLabel, tile.key) ?? chewingSelectionRefusal(additionalInstructions, tile.key) ?? dissolveSelectionRefusal(additionalInstructions, tile.key) ?? withFoodSelectionRefusal(additionalInstructions, tile.key) ?? keepInMouthSelectionRefusal(additionalInstructions, tile.key);
+    if (chewingLock) return { ...tile, disabled: true, state: 'locked', stateHint: chewingLock };
+    if (tile.selected && analysis.status === 'invalid' && (forms.includes(tile.key) || DIGI_LABEL_LOCKS.includes(tile.key))) {
+      return { ...tile, state: 'invalid', stateHint: analysis.problems[0] };
+    }
+    if (tile.selected && analysis.status === 'incomplete' && forms.includes(tile.key)) {
+      return { ...tile, state: 'requires-input', stateHint: `Next: ${analysis.nextStep}` };
+    }
+    if (specMode && hasDose && !tile.selected && DIGI_LABEL_LOCKS.includes(tile.key)) {
+      return { ...tile, state: 'locked', stateHint: 'Locked while Morning, Lunch or Night has a dose' };
+    }
+    return tile;
+  };
+  // Every locked tile explains itself: its rule's refusal, or why it is locked right now.
+  const explain = (tile: Tile): Tile => {
+    const decorated = decorate(tile);
+    return decorated.disabled && !decorated.stateHint ? { ...decorated, stateHint: isStatFlow ? STAT_LOCK_HINT : LOCK_FALLBACK } : decorated;
+  };
+  const labelActionHint = workspace ? PANEL_LOCK_HINT : undefined;
+  const [lockNotice, setLockNotice] = useLockNotice();
+  const tiles = new Map([...schedule, ...instructions].map((tile) => [tile.key, explain(tile)]));
+
+  // Label actions inside the grid: Add is the positive (green) action; Delete is outlined coral and still
+  // asks for confirmation (DeleteLabelModal) before anything is removed.
+  const labelActions: Record<string, React.ReactNode> = {
+    'ADD LABEL': (
+      <ActionTile
+        label="Add Label"
+        icon={CirclePlus}
+        sizeClass="w-full h-full"
+        colorClass="border-green-solid bg-green-solid hover:bg-green-solid-hover active:bg-green-solid-active"
+        onClick={addLabel}
+        disabled={Boolean(workspace)}
+        lockedHint={labelActionHint}
+        describedBy={hintId('grid', 'ADD LABEL')}
+        onLocked={setLockNotice}
+      />
+    ),
+    'DELETE LABEL': (
+      <ActionTile
+        label="Delete Label"
+        icon={Trash2}
+        variant="outline"
+        sizeClass="w-full h-full"
+        colorClass="bg-page border-coral text-coral-strong hover:bg-coral-soft active:bg-coral-soft"
+        onClick={openDeleteLabelModal}
+        disabled={Boolean(workspace)}
+        lockedHint={labelActionHint}
+        describedBy={hintId('grid', 'DELETE LABEL')}
+        onLocked={setLockNotice}
+      />
+    ),
+  };
+
   return (
-    <div className="w-full h-full flex flex-col justify-between gap-2.5 overflow-hidden min-w-0">
-      {/* 1. SELECTED INSTRUCTIONS CARD */}
+    <div className="w-full lg:h-full flex flex-col gap-2 min-w-0 lg:min-h-0">
+      {/* 1. SELECTED INSTRUCTIONS CARD: as tall as its warnings need; the grid takes the rest. */}
       <SelectedInstructionsPanel validationError={validationError} />
+      {incompleteInterval && (
+        <button
+          type="button"
+          className="min-h-11 px-3 py-2 rounded-ui-lg bg-primary-solid text-on-primary-solid font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          onClick={() => useLabelStore.getState().openNumberPad('frequency')}
+        >
+          Enter the quantity for {incompleteInterval}
+        </button>
+      )}
 
-      {/* 2. 5x4 INSTRUCTION GRID CARD OR SUB-PANELS (Moves immediately below Selected Instructions) */}
-      <div className="bg-white border border-border rounded-ui-lg p-3 shadow-card flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
-        {activeControl === 'days_of_week' ? (
-          <DaysOfWeekPanel />
-        ) : activeControl === 'oab_workflow' ? (
-          <OABWorkflowPanel />
-        ) : numberPad.visible ? (
-          <NumberPad />
-        ) : activeControl === 'stat' ? (
-          <StatPanel />
-        ) : activeControl === 'stat_followup' ? (
-          <StatFollowUpPanel />
-        ) : (
+      {/* 2. FEATURE PANEL: one grid, five columns from 640 px (four, then three on narrow phones).
+          On desktop its four rows share the remaining height, so all 20 tiles are always in view
+          (no scrolling); tiles compact their icon when short. An action's panel opens on the right. */}
+      <div className="bg-page border border-border rounded-ui-lg p-2 shadow-card lg:flex-1 lg:min-h-0 flex flex-col gap-2">
+          {/* A tap on a locked tile explains why here (touch and keyboard as well as mouse). */}
+          <LockNoticeLine notice={lockNotice} onDismiss={() => setLockNotice(null)} />
           <div
-            className="grid grid-cols-5 gap-2 h-full w-full"
-            style={{
-              gridTemplateRows: 'repeat(4, minmax(0, 1fr))',
-            }}
+            data-testid="action-grid"
+            className="grid grid-cols-3 min-[480px]:grid-cols-4 sm:grid-cols-5 auto-rows-[minmax(5.5rem,1fr)] lg:grid-rows-[repeat(4,minmax(3rem,1fr))] gap-2 lg:flex-1 lg:min-h-0 w-full"
           >
-            {/* ROW 1 */}
-            {/* 1. Reasons */}
-            <button
-              type="button"
-              onClick={() => handleTileClick('REASONS')}
-              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
-                isReasonsActive
-                  ? 'bg-primary-soft border-2 border-primary text-primary shadow-sm'
-                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
-              }`}
-            >
-              <MessageSquareText size={24} className="text-primary mb-1 shrink-0" />
-              <span className="font-bold text-xs leading-tight">Reasons</span>
-            </button>
-
-            {/* 2. Till Date */}
-            <button
-              type="button"
-              onClick={() => handleTileClick('TILL DATE')}
-              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
-                additionalInstructions.includes('TILL DATE')
-                  ? 'bg-[#F0FDFA] border-2 border-[#0D9488] text-[#0D9488] shadow-sm'
-                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
-              }`}
-            >
-              <CalendarDays size={24} className="text-[#0D9488] mb-1 shrink-0" />
-              <span className="font-bold text-xs leading-tight">Till Date</span>
-            </button>
-
-            {/* 3. 5H */}
-            <button
-              type="button"
-              onClick={() => handleTileClick('5H')}
-              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
-                additionalInstructions.includes('5H')
-                  ? 'bg-primary-soft border-2 border-primary text-primary shadow-sm'
-                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
-              }`}
-            >
-              <Clock size={24} className="text-primary mb-1 shrink-0" />
-              <span className="font-bold text-xs leading-tight">5H</span>
-            </button>
-
-            {/* 4. Evening */}
-            <button
-              type="button"
-              onClick={() => handleTileClick('EVENING')}
-              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
-                additionalInstructions.includes('EVENING')
-                  ? 'bg-[#FFF7ED] border-2 border-[#EA580C] text-[#EA580C] shadow-sm'
-                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
-              }`}
-            >
-              <Sunset size={24} className="text-[#F97316] mb-1 shrink-0" />
-              <span className="font-bold text-xs leading-tight">Evening</span>
-            </button>
-
-            {/* 5. 6H */}
-            <button
-              type="button"
-              onClick={() => handleTileClick('6H')}
-              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
-                additionalInstructions.includes('6H')
-                  ? 'bg-primary-soft border-2 border-primary text-primary shadow-sm'
-                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
-              }`}
-            >
-              <Clock size={24} className="text-primary mb-1 shrink-0" />
-              <span className="font-bold text-xs leading-tight">6H</span>
-            </button>
-
-            {/* ROW 2 */}
-            {/* 6. Remove Address */}
-            <button
-              type="button"
-              onClick={() => handleTileClick('REMOVE ADDRESS')}
-              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
-                isAddressHidden
-                  ? 'bg-danger-soft border-2 border-danger text-danger shadow-sm'
-                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
-              }`}
-            >
-              <MapPinOff size={24} className="text-danger mb-1 shrink-0" />
-              <span className="font-bold text-xs leading-tight">
-                {isAddressHidden ? 'Address Hidden' : 'Remove Address'}
-              </span>
-            </button>
-
-            {/* 7. And This Date */}
-            <button
-              type="button"
-              onClick={() => handleTileClick('AND THIS DATE')}
-              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
-                additionalInstructions.includes('AND THIS DATE')
-                  ? 'bg-primary-soft border-2 border-primary text-primary shadow-sm'
-                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
-              }`}
-            >
-              <CalendarPlus size={24} className="text-primary mb-1 shrink-0" />
-              <span className="font-bold text-xs leading-tight">And This Date</span>
-            </button>
-
-            {/* 8. Weekly */}
-            <button
-              type="button"
-              onClick={() => handleTileClick('WEEKLY')}
-              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
-                additionalInstructions.includes('WEEKLY')
-                  ? 'bg-primary-soft border-2 border-primary text-primary shadow-sm'
-                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
-              }`}
-            >
-              <RefreshCcw size={24} className="text-primary mb-1 shrink-0" />
-              <span className="font-bold text-xs leading-tight">Weekly</span>
-            </button>
-
-            {/* 9. STAT */}
-            <button
-              type="button"
-              onClick={() => handleTileClick('STAT')}
-              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
-                isStatSelected
-                  ? 'bg-danger-soft border-2 border-[#FDA4AF] text-danger shadow-sm'
-                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
-              }`}
-            >
-              <Zap size={24} className="text-danger mb-1 shrink-0 fill-current" />
-              <span className="font-bold text-xs leading-tight text-danger">STAT</span>
-            </button>
-
-            {/* 10. EOD */}
-            <button
-              type="button"
-              onClick={() => handleTileClick('EOD')}
-              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
-                additionalInstructions.includes('EOD')
-                  ? 'bg-primary-soft border-2 border-primary text-primary shadow-sm'
-                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
-              }`}
-            >
-              <ChevronsRight size={24} className="text-primary mb-1 shrink-0" />
-              <span className="font-bold text-xs leading-tight">EOD</span>
-            </button>
-
-            {/* ROW 3 */}
-            {/* 11. EXP Date */}
-            <button
-              type="button"
-              onClick={() => handleTileClick('ADD EXP DATE')}
-              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
-                isExpDateActive
-                  ? 'bg-primary text-white border-2 border-primary-hover shadow-sm'
-                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
-              }`}
-            >
-              <Calendar
-                size={24}
-                className={`mb-1 shrink-0 ${isExpDateActive ? 'text-white' : 'text-primary'}`}
-              />
-              <span className={`font-bold text-xs leading-tight ${isExpDateActive ? 'text-white' : 'text-fg'}`}>
-                EXP Date
-              </span>
-              {expiryDate && (
-                <span className={`text-[10px] font-medium leading-none mt-0.5 ${isExpDateActive ? 'text-primary-border' : 'text-primary'}`}>
-                  {expiryDate}
-                </span>
-              )}
-            </button>
-
-            {/* 12. Empty Stomach */}
-            <button
-              type="button"
-              onClick={() => handleTileClick('EMPTY STOMACH')}
-              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
-                additionalInstructions.includes('EMPTY STOMACH')
-                  ? 'bg-warning-soft border-2 border-warning text-warning shadow-sm'
-                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
-              }`}
-            >
-              <CircleDot size={24} className="text-danger mb-1 shrink-0" />
-              <span className="font-bold text-xs leading-tight">Empty Stomach</span>
-            </button>
-
-            {/* 13. With Food */}
-            <button
-              type="button"
-              onClick={() => handleTileClick('WITH FOOD')}
-              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
-                additionalInstructions.includes('WITH FOOD')
-                  ? 'bg-[#F5F3FF] border-2 border-[#7C3AED] text-[#7C3AED] shadow-sm'
-                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
-              }`}
-            >
-              <Utensils size={24} className="text-[#7C3AED] mb-1 shrink-0" />
-              <span className="font-bold text-xs leading-tight">With Food</span>
-            </button>
-
-            {/* 14. Chewable */}
-            <button
-              type="button"
-              onClick={() => handleTileClick('CHEWABLE')}
-              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
-                additionalInstructions.includes('CHEWABLE')
-                  ? 'bg-[#F5F3FF] border-2 border-[#7C3AED] text-[#7C3AED] shadow-sm'
-                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
-              }`}
-            >
-              <Pill size={24} className="text-[#7C3AED] mb-1 shrink-0" />
-              <span className="font-bold text-xs leading-tight">Chewable</span>
-            </button>
-
-            {/* 15. Daily */}
-            <button
-              type="button"
-              onClick={() => handleTileClick('DAILY')}
-              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
-                additionalInstructions.includes('DAILY')
-                  ? 'bg-success-soft border-2 border-success text-success shadow-sm'
-                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
-              }`}
-            >
-              <CalendarCheck size={24} className="text-success mb-1 shrink-0" />
-              <span className="font-bold text-xs leading-tight">Daily</span>
-            </button>
-
-            {/* ROW 4 */}
-            {/* 16. Delete Label */}
-            <button
-              type="button"
-              onClick={() => handleTileClick('DELETE LABEL')}
-              className="rounded-ui-lg border border-red-500 bg-danger hover:bg-danger active:scale-95 text-white flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer shadow-sm"
-            >
-              <Trash2 size={24} className="text-white mb-1 shrink-0" />
-              <span className="font-bold text-xs leading-tight text-white">Delete Label</span>
-            </button>
-
-            {/* 17. Add Label */}
-            <button
-              type="button"
-              onClick={() => handleTileClick('ADD LABEL')}
-              className="rounded-ui-lg border border-success bg-success hover:bg-success active:scale-95 text-white flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer shadow-sm"
-            >
-              <CirclePlus size={24} className="text-white mb-1 shrink-0" />
-              <span className="font-bold text-xs leading-tight text-white">Add Label</span>
-            </button>
-
-            {/* 18. Dissolve and Drink */}
-            <button
-              type="button"
-              onClick={() => handleTileClick('DISSOLVE AND DRINK')}
-              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
-                additionalInstructions.includes('DISSOLVE AND DRINK')
-                  ? 'bg-primary-soft border-2 border-primary text-primary shadow-sm'
-                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
-              }`}
-            >
-              <GlassWater size={24} className="text-primary mb-1 shrink-0" />
-              <span className="font-bold text-xs leading-tight">Dissolve and Drink</span>
-            </button>
-
-            {/* 19. Keep in Mouth */}
-            <button
-              type="button"
-              onClick={() => handleTileClick('KEEP IN MOUTH')}
-              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
-                additionalInstructions.includes('KEEP IN MOUTH')
-                  ? 'bg-danger-soft border-2 border-danger text-danger shadow-sm'
-                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
-              }`}
-            >
-              <Smile size={24} className="text-danger mb-1 shrink-0" />
-              <span className="font-bold text-xs leading-tight">Keep in Mouth</span>
-            </button>
-
-            {/* 20. 8H */}
-            <button
-              type="button"
-              onClick={() => handleTileClick('8H')}
-              className={`rounded-ui-lg border flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none touch-manipulation cursor-pointer ${
-                additionalInstructions.includes('8H')
-                  ? 'bg-[#F5F3FF] border-2 border-[#7C3AED] text-[#7C3AED] shadow-sm'
-                  : 'bg-white border-border text-fg hover:bg-surface hover:border-primary-border'
-              }`}
-            >
-              <Clock size={24} className="text-[#7C3AED] mb-1 shrink-0" />
-              <span className="font-bold text-xs leading-tight">8H</span>
-            </button>
+            {GRID_ORDER.map((key) => {
+              const tile = tiles.get(key);
+              return tile
+                ? <GridTile key={key} tile={tile} selectedStyle="solid" describedBy={hintId('grid', key)} onLocked={setLockNotice} />
+                : <React.Fragment key={key}>{labelActions[key]}</React.Fragment>;
+            })}
           </div>
-        )}
+          <ControlHints
+            hints={[
+              ...[...tiles.values()].map((tile) => ({ id: hintId('grid', tile.key), text: tile.stateHint })),
+              ...['ADD LABEL', 'DELETE LABEL'].map((key) => ({ id: hintId('grid', key), text: labelActionHint })),
+            ]}
+          />
       </div>
-
-      {/* 3. NAME OF DAYS FULL-WIDTH CONTROL */}
-      <button
-        type="button"
-        disabled={isStatActive}
-        onClick={() => openDaysOfWeekPanel()}
-        aria-label="Select days of week"
-        className={`w-full h-[52px] shrink-0 rounded-ui-lg border border-[#D0E2FB] flex items-center justify-between px-4 text-sm font-bold tracking-wide transition-all select-none touch-manipulation cursor-pointer ${
-          isStatActive ? 'opacity-40 pointer-events-none' : ''
-        } ${
-          selectedDaysOfWeek.length > 0
-            ? 'bg-primary-border text-primary-hover border-2 border-primary'
-            : 'bg-[#EEF4FE] hover:bg-[#E2EDFD] text-primary'
-        }`}
-      >
-        <div className="flex items-center gap-2.5">
-          <Calendar size={20} className="text-primary" />
-          <span>{daysLabel}</span>
-        </div>
-        <ChevronRight size={20} className="text-primary" />
-      </button>
     </div>
   );
 }
+
+/** The feature grid, row by row (five per row on wide screens). */
+const GRID_ORDER = [
+  'REASONS', 'DAYS', '5H', 'EVENING', '6H',
+  'REMOVE ADDRESS', 'NAME OF DAYS', 'WEEKLY', 'STAT', 'EOD',
+  'ADD EXP DATE', 'EMPTY STOMACH', 'WITH FOOD', 'CHEWABLE', 'DAILY',
+  'DELETE LABEL', 'ADD LABEL', 'DISSOLVE AND DRINK', 'KEEP IN MOUTH', '8H',
+];

@@ -1,4 +1,6 @@
 'use server';
+import { uiTestEnabled, UI_TEST_NOT_SAVED } from '@/lib/uiTestMode';
+import { frontendOnlyMode } from '@/lib/server/apiConfiguration';
 
 import { getCurrentUser } from './auth';
 
@@ -7,6 +9,21 @@ export interface SendSmsParams {
   message: string;
   senderId?: string;
   scheduleTime?: string;
+}
+
+interface TextLkRequest {
+  api_token: string;
+  recipient: string;
+  sender_id: string;
+  type: 'plain';
+  message: string;
+  schedule_time?: string;
+}
+
+interface TextLkResponse {
+  status?: string;
+  message?: string;
+  data?: unknown;
 }
 
 /**
@@ -35,6 +52,16 @@ export async function sendClientSms({
   senderId,
   scheduleTime,
 }: SendSmsParams) {
+  if (frontendOnlyMode()) {
+    return { success: false, error: 'SMS is unavailable in frontend-only mode. No message was sent.' };
+  }
+  if (uiTestEnabled()) return { success: false, error: UI_TEST_NOT_SAVED };
+  // Pilot containment: recipient consent, authorization and durable rate limiting are
+  // not yet verified. Preserve the provider implementation but prevent pilot sends.
+  // Production stays disabled even if an operator accidentally enables the legacy flag.
+  if (process.env.DEPLOYMENT_PROFILE === 'synthetic-staging' || process.env.NODE_ENV === 'production' || process.env.SMS_ENABLED !== 'true') {
+    return { success: false, error: 'SMS is disabled for this deployment.' };
+  }
   // Server actions are public POST endpoints, and the middleware only checks that a session
   // cookie exists. Verify the session with the API before using the pharmacy's SMS account.
   const session = await getCurrentUser();
@@ -44,11 +71,15 @@ export async function sendClientSms({
       error: session.status === 401 ? 'Your session has expired. Sign in again to send SMS.' : session.error,
     };
   }
+  if (session.data.role !== 'admin' && session.data.role !== 'pharmacist') {
+    return { success: false, error: 'You do not have permission to send SMS.' };
+  }
 
   const apiToken = process.env.TEXT_LK_API_TOKEN;
   const defaultSenderId = process.env.TEXT_LK_SENDER_ID;
+  const activeSenderId = senderId || defaultSenderId;
 
-  if (!apiToken || !(senderId || defaultSenderId)) {
+  if (!apiToken || !activeSenderId) {
     console.error('[sms] TEXT_LK_API_TOKEN or TEXT_LK_SENDER_ID is not configured');
     return {
       success: false,
@@ -66,10 +97,10 @@ export async function sendClientSms({
   }
 
   try {
-    const payload: Record<string, any> = {
+    const payload: TextLkRequest = {
       api_token: apiToken,
       recipient: formattedRecipient,
-      sender_id: senderId || defaultSenderId,
+      sender_id: activeSenderId,
       type: 'plain',
       message: message,
     };
@@ -87,7 +118,7 @@ export async function sendClientSms({
       body: JSON.stringify(payload),
     });
 
-    const data = await res.json();
+    const data = await res.json() as TextLkResponse;
 
     if (!res.ok || data.status === 'error') {
       // Status only: the gateway response can echo the recipient number.
@@ -102,11 +133,11 @@ export async function sendClientSms({
       success: true,
       data: data.data,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[sms] Text.lk could not be reached');
     return {
       success: false,
-      error: error.message || 'Failed to dispatch SMS request',
+      error: error instanceof Error ? error.message : 'Failed to dispatch SMS request',
     };
   }
 }

@@ -1,0 +1,548 @@
+{
+  "fonts": {
+    "gemunu": true,
+    "noto": true
+  },
+  "results": [
+    {
+      "scenario": "S1",
+      "wording": "current",
+      "content": 45.1,
+      "box": 117.7,
+      "guard": [],
+      "clipped": [
+        "product: PARACETAMOL 500MG",
+        "product: Qty: 15",
+        "patient: Patient: Test Patient"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 13",
+        "patient name": "ok 10"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S1",
+      "wording": "spec",
+      "content": 45.1,
+      "box": 117.7,
+      "guard": [],
+      "clipped": [
+        "product: PARACETAMOL 500MG",
+        "product: Qty: 15",
+        "patient: Patient: Test Patient"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 13",
+        "patient name": "ok 10"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S2",
+      "wording": "current",
+      "content": 60.8,
+      "box": 117.7,
+      "guard": [],
+      "clipped": [
+        "product: PARACETAMOL 500MG",
+        "product: Qty: 15",
+        "patient: Patient: Test Patient"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 13",
+        "patient name": "ok 10"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S2",
+      "wording": "spec",
+      "content": 60.8,
+      "box": 117.7,
+      "guard": [],
+      "clipped": [
+        "product: PARACETAMOL 500MG",
+        "product: Qty: 15",
+        "patient: Patient: Test Patient"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 13",
+        "patient name": "ok 10"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S3",
+      "wording": "current",
+      "content": 82,
+      "box": 117.7,
+      "guard": [],
+      "clipped": [
+        "product: PARACETAMOL 500MG",
+        "product: Qty: 15",
+        "patient: Patient: Test Patient"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 13",
+        "patient name": "ok 10"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S3",
+      "wording": "spec",
+      "content": 82,
+      "box": 117.7,
+      "guard": [],
+      "clipped": [
+        "product: PARACETAMOL 500MG",
+        "product: Qty: 15",
+        "patient: Patient: Test Patient"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 13",
+        "patient name": "ok 10"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S4",
+      "wording": "current",
+      "content": 37.6,
+      "box": 117.7,
+      "guard": [],
+      "clipped": [
+        "product: PARACETAMOL 500MG",
+        "product: Qty: 15",
+        "patient: Patient: Test Patient"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 13",
+        "patient name": "ok 10"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S4",
+      "wording": "spec",
+      "content": 37.6,
+      "box": 117.7,
+      "guard": [],
+      "clipped": [
+        "product: PARACETAMOL 500MG",
+        "product: Qty: 15",
+        "patient: Patient: Test Patient"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 13",
+        "patient name": "ok 10"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S5",
+      "wording": "current",
+      "content": 22,
+      "box": 117.7,
+      "guard": [],
+      "clipped": [
+        "product: PARACETAMOL 500MG",
+        "product: Qty: 15",
+        "patient: Patient: Test Patient"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 13",
+        "patient name": "ok 10"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S5",
+      "wording": "spec",
+      "content": 22,
+      "box": 117.7,
+      "guard": [],
+      "clipped": [
+        "product: PARACETAMOL 500MG",
+        "product: Qty: 15",
+        "patient: Patient: Test Patient"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 13",
+        "patient name": "ok 10"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S6",
+      "wording": "current",
+      "content": 0,
+      "box": 117.7,
+      "guard": [],
+      "clipped": [
+        "product: PARACETAMOL 500MG",
+        "product: Qty: 15",
+        "patient: Patient: Test Patient"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 13",
+        "patient name": "ok 10"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S6",
+      "wording": "spec",
+      "content": 0,
+      "box": 117.7,
+      "guard": [],
+      "clipped": [
+        "product: PARACETAMOL 500MG",
+        "product: Qty: 15",
+        "patient: Patient: Test Patient"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 13",
+        "patient name": "ok 10"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S7",
+      "wording": "current",
+      "content": 76.3,
+      "box": 117.7,
+      "guard": [],
+      "clipped": [
+        "product: PARACETAMOL 500MG",
+        "product: Qty: 15",
+        "patient: Patient: Test Patient"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 13",
+        "patient name": "ok 10"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S7",
+      "wording": "spec",
+      "content": 76.3,
+      "box": 117.7,
+      "guard": [],
+      "clipped": [
+        "product: PARACETAMOL 500MG",
+        "product: Qty: 15",
+        "patient: Patient: Test Patient"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 13",
+        "patient name": "ok 10"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S8",
+      "wording": "current",
+      "content": 60.8,
+      "box": 117.7,
+      "guard": [],
+      "clipped": [
+        "product: PARACETAMOL 500MG",
+        "product: Qty: 15",
+        "patient: Patient: Test Patient"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 13",
+        "patient name": "ok 10"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S8",
+      "wording": "spec",
+      "content": 60.8,
+      "box": 117.7,
+      "guard": [],
+      "clipped": [
+        "product: PARACETAMOL 500MG",
+        "product: Qty: 15",
+        "patient: Patient: Test Patient"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 13",
+        "patient name": "ok 10"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S9",
+      "wording": "current",
+      "content": 60.8,
+      "box": 117.7,
+      "guard": [],
+      "clipped": [
+        "product: PARACETAMOL 500MG",
+        "product: Qty: 15",
+        "patient: Patient: Test Patient"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 13",
+        "patient name": "ok 10"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S9",
+      "wording": "spec",
+      "content": 60.8,
+      "box": 117.7,
+      "guard": [],
+      "clipped": [
+        "product: PARACETAMOL 500MG",
+        "product: Qty: 15",
+        "patient: Patient: Test Patient"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 13",
+        "patient name": "ok 10"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S10",
+      "wording": "current",
+      "content": 122,
+      "box": 117.7,
+      "guard": [
+        "instructions (dose rows and Sinhala lines)"
+      ],
+      "clipped": [
+        "product: PARACETAMOL 500MG",
+        "product: Qty: 15",
+        "patient: Patient: Test Patient",
+        "instructions: සඳුදා, බදාදා සහ සිකුරාදා",
+        "instructions: දින 14 ක් සඳහා (FOR 14 DAYS)"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 13",
+        "patient name": "ok 10"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S10",
+      "wording": "spec",
+      "content": 122,
+      "box": 117.7,
+      "guard": [
+        "instructions (dose rows and Sinhala lines)"
+      ],
+      "clipped": [
+        "product: PARACETAMOL 500MG",
+        "product: Qty: 15",
+        "patient: Patient: Test Patient",
+        "instructions: සඳුදා, බදාදා සහ සිකුරාදා",
+        "instructions: දින 14 ක් සඳහා (FOR 14 DAYS)"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 13",
+        "patient name": "ok 10"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S11",
+      "wording": "current",
+      "content": 95.6,
+      "box": 106.7,
+      "guard": [],
+      "clipped": [
+        "product: Qty: 120"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 9 (2 lines)",
+        "alternative brand name": "ok 8",
+        "patient name": "ok 8 (2 lines)"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S11",
+      "wording": "spec",
+      "content": 95.6,
+      "box": 106.7,
+      "guard": [],
+      "clipped": [
+        "product: Qty: 120"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 9 (2 lines)",
+        "alternative brand name": "ok 8",
+        "patient name": "ok 8 (2 lines)"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S12",
+      "wording": "current",
+      "content": 111.4,
+      "box": 117.7,
+      "guard": [],
+      "clipped": [
+        "product: PARACETAMOL 500MG",
+        "product: Qty: 15",
+        "patient: Patient: Test Patient"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 13",
+        "patient name": "ok 10"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S12",
+      "wording": "spec",
+      "content": 111.4,
+      "box": 117.7,
+      "guard": [],
+      "clipped": [
+        "product: PARACETAMOL 500MG",
+        "product: Qty: 15",
+        "patient: Patient: Test Patient"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 13",
+        "patient name": "ok 10"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S13",
+      "wording": "current",
+      "content": 45.1,
+      "box": 99.9,
+      "guard": [
+        "medicine name too long to print in full"
+      ],
+      "clipped": [
+        "product: BECLOMETHASONE DIPROPIONATE AN",
+        "product: Qty: 1",
+        "patient: Patient: Test Patient"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "overflow 9 (2 lines)",
+        "patient name": "ok 10"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S13",
+      "wording": "spec",
+      "content": 45.1,
+      "box": 99.9,
+      "guard": [
+        "medicine name too long to print in full"
+      ],
+      "clipped": [
+        "product: BECLOMETHASONE DIPROPIONATE AN",
+        "product: Qty: 1",
+        "patient: Patient: Test Patient"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "overflow 9 (2 lines)",
+        "patient name": "ok 10"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S14",
+      "wording": "current",
+      "content": 45.1,
+      "box": 111.7,
+      "guard": [],
+      "clipped": [
+        "product: PARACETAMOL 500MG",
+        "product: Qty: 15"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 13",
+        "patient name": "ok 8 (2 lines)"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    },
+    {
+      "scenario": "S14",
+      "wording": "spec",
+      "content": 45.1,
+      "box": 111.7,
+      "guard": [],
+      "clipped": [
+        "product: PARACETAMOL 500MG",
+        "product: Qty: 15"
+      ],
+      "ellipsis": [],
+      "fitSizes": {
+        "medicine name": "ok 13",
+        "patient name": "ok 8 (2 lines)"
+      },
+      "statPills": 0,
+      "statPhraseBadges": 0
+    }
+  ]
+}

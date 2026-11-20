@@ -1,0 +1,44 @@
+[
+  {
+    "width": 390,
+    "height": 844,
+    "controls": 11,
+    "minTargetPx": 44,
+    "maxTargetPx": 88
+  },
+  {
+    "width": 768,
+    "height": 1024,
+    "controls": 11,
+    "minTargetPx": 44,
+    "maxTargetPx": 88
+  },
+  {
+    "width": 1024,
+    "height": 768,
+    "controls": 11,
+    "minTargetPx": 44,
+    "maxTargetPx": 88
+  },
+  {
+    "width": 1366,
+    "height": 768,
+    "controls": 11,
+    "minTargetPx": 44,
+    "maxTargetPx": 104
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "controls": 11,
+    "minTargetPx": 44,
+    "maxTargetPx": 104
+  },
+  {
+    "width": 1920,
+    "height": 1080,
+    "controls": 11,
+    "minTargetPx": 44,
+    "maxTargetPx": 104
+  }
+]

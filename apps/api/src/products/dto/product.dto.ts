@@ -1,4 +1,15 @@
-import { IsBoolean, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Matches, Max, MaxLength, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsInt,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Matches,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 /**
  * Catalogue fields only. Stock quantity, batches and expiry dates are never set here: they
@@ -9,11 +20,16 @@ class ProductFields {
   @IsOptional() @IsString() @MaxLength(200) brand_name?: string;
   @IsOptional() @IsString() @MaxLength(60) strength?: string;
   @IsOptional() @IsString() @MaxLength(60) dosage_form?: string;
+  @IsOptional() @IsString() @MaxLength(60) product_type?: string;
   @IsOptional() @IsString() @MaxLength(100) category?: string;
   @IsOptional() @IsString() @MaxLength(200) manufacturer?: string;
   @IsOptional() @IsString() @MaxLength(30) unit_of_measure?: string;
   @IsOptional() @IsInt() @Min(1) @Max(100000) pack_size?: number;
-  @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) @Max(10_000_000) retail_price?: number;
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(10_000_000)
+  retail_price?: number;
   @IsOptional() @IsInt() @Min(0) @Max(1_000_000) reorder_level?: number;
   @IsOptional() @IsInt() @Min(0) @Max(1_000_000) minimum_stock?: number;
   @IsOptional() @IsInt() @Min(0) @Max(1_000_000) maximum_stock?: number;
@@ -25,13 +41,22 @@ export class CreateProductDto extends ProductFields {
   /** The name printed on labels. */
   @IsString() @IsNotEmpty() @MaxLength(200) name!: string;
 
-  @IsString() @Matches(/^[\w-]{1,64}$/, { message: 'barcode may contain letters, digits, - and _ only' }) barcode!: string;
+  @IsString()
+  @Matches(/^[\w-]{1,64}$/, {
+    message: 'barcode may contain letters, digits, - and _ only',
+  })
+  barcode!: string;
 }
 
 export class UpdateProductDto extends ProductFields {
   @IsOptional() @IsString() @IsNotEmpty() @MaxLength(200) name?: string;
 
-  @IsOptional() @IsString() @Matches(/^[\w-]{1,64}$/, { message: 'barcode may contain letters, digits, - and _ only' }) barcode?: string;
+  @IsOptional()
+  @IsString()
+  @Matches(/^[\w-]{1,64}$/, {
+    message: 'barcode may contain letters, digits, - and _ only',
+  })
+  barcode?: string;
 }
 
 export const PRODUCT_FIELDS = [
@@ -41,6 +66,7 @@ export const PRODUCT_FIELDS = [
   'brand_name',
   'strength',
   'dosage_form',
+  'product_type',
   'category',
   'manufacturer',
   'unit_of_measure',

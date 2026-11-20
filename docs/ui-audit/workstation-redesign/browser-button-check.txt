@@ -1,0 +1,280 @@
+PASS  1366x768: no ENT button
+PASS  1366x768: no horizontal overflow
+PASS  1366x768: Days present  — 101×108
+PASS  1366x768: Days ≥ 56 px tall  — 108px
+PASS  1366x768: Name of Days present  — 101×108
+PASS  1366x768: Name of Days ≥ 56 px tall  — 108px
+PASS  1366x768: Daily present  — 101×108
+PASS  1366x768: Daily ≥ 56 px tall  — 108px
+PASS  1366x768: Weekly present  — 101×108
+PASS  1366x768: Weekly ≥ 56 px tall  — 108px
+PASS  1366x768: Evening present  — 101×108
+PASS  1366x768: Evening ≥ 56 px tall  — 108px
+PASS  1366x768: EOD present  — 101×108
+PASS  1366x768: EOD ≥ 56 px tall  — 108px
+PASS  1366x768: 5H present  — 101×108
+PASS  1366x768: 5H ≥ 56 px tall  — 108px
+PASS  1366x768: 6H present  — 101×108
+PASS  1366x768: 6H ≥ 56 px tall  — 108px
+PASS  1366x768: 8H present  — 101×108
+PASS  1366x768: 8H ≥ 56 px tall  — 108px
+PASS  1366x768: Reasons present  — 101×108
+PASS  1366x768: Reasons ≥ 56 px tall  — 108px
+PASS  1366x768: With Food present  — 101×108
+PASS  1366x768: With Food ≥ 56 px tall  — 108px
+PASS  1366x768: Empty Stomach present  — 101×108
+PASS  1366x768: Empty Stomach ≥ 56 px tall  — 108px
+PASS  1366x768: Chewable present  — 101×108
+PASS  1366x768: Chewable ≥ 56 px tall  — 108px
+PASS  1366x768: Dissolve and Drink present  — 101×108
+PASS  1366x768: Dissolve and Drink ≥ 56 px tall  — 108px
+PASS  1366x768: Keep in Mouth present  — 101×108
+PASS  1366x768: Keep in Mouth ≥ 56 px tall  — 108px
+PASS  1366x768: Remove Address present  — 101×108
+PASS  1366x768: Remove Address ≥ 56 px tall  — 108px
+PASS  1366x768: EXP Date present  — 101×108
+PASS  1366x768: EXP Date ≥ 56 px tall  — 108px
+PASS  1366x768: STAT present  — 101×108
+PASS  1366x768: STAT ≥ 56 px tall  — 108px
+PASS  1366x768: Add Label present  — 401×64
+PASS  1366x768: Add Label ≥ 56 px tall  — 64px
+PASS  1366x768: Delete Label present  — 267×64
+PASS  1366x768: Delete Label ≥ 56 px tall  — 64px
+PASS  1366x768: Give medication present  — 141×64
+PASS  1366x768: Give medication ≥ 56 px tall  — 64px
+PASS  1366x768: Take medication present  — 141×64
+PASS  1366x768: Take medication ≥ 56 px tall  — 64px
+PASS  1366x768: Before meals present  — 141×64
+PASS  1366x768: Before meals ≥ 56 px tall  — 64px
+PASS  1366x768: After meals present  — 141×64
+PASS  1366x768: After meals ≥ 56 px tall  — 64px
+PASS  1366x768: Previous label present  — 60×60
+PASS  1366x768: Next label present  — 60×60
+PASS  1366x768: Done — review and print labels present  — 484×80
+PASS  1366x768: Increase MORNING dosage present  — 80×80
+PASS  1366x768: Increase MORNING dosage ≥ 56 px tall  — 80px
+PASS  1366x768: Decrease MORNING dosage present  — 80×80
+PASS  1366x768: Decrease MORNING dosage ≥ 56 px tall  — 80px
+PASS  1366x768: Increase LUNCH dosage present  — 80×80
+PASS  1366x768: Increase LUNCH dosage ≥ 56 px tall  — 80px
+PASS  1366x768: Increase NIGHT dosage present  — 80×80
+PASS  1366x768: Increase NIGHT dosage ≥ 56 px tall  — 80px
+PASS  1024x768: no ENT button
+PASS  1024x768: no horizontal overflow
+PASS  1024x768: Days present  — 73×111
+PASS  1024x768: Days ≥ 56 px tall  — 111px
+PASS  1024x768: Name of Days present  — 73×111
+PASS  1024x768: Name of Days ≥ 56 px tall  — 111px
+PASS  1024x768: Daily present  — 73×111
+PASS  1024x768: Daily ≥ 56 px tall  — 111px
+PASS  1024x768: Weekly present  — 73×111
+PASS  1024x768: Weekly ≥ 56 px tall  — 111px
+PASS  1024x768: Evening present  — 73×111
+PASS  1024x768: Evening ≥ 56 px tall  — 111px
+PASS  1024x768: EOD present  — 73×111
+PASS  1024x768: EOD ≥ 56 px tall  — 111px
+PASS  1024x768: 5H present  — 73×111
+PASS  1024x768: 5H ≥ 56 px tall  — 111px
+PASS  1024x768: 6H present  — 73×111
+PASS  1024x768: 6H ≥ 56 px tall  — 111px
+PASS  1024x768: 8H present  — 73×111
+PASS  1024x768: 8H ≥ 56 px tall  — 111px
+PASS  1024x768: Reasons present  — 73×111
+PASS  1024x768: Reasons ≥ 56 px tall  — 111px
+PASS  1024x768: With Food present  — 73×111
+PASS  1024x768: With Food ≥ 56 px tall  — 111px
+PASS  1024x768: Empty Stomach present  — 73×111
+PASS  1024x768: Empty Stomach ≥ 56 px tall  — 111px
+PASS  1024x768: Chewable present  — 73×111
+PASS  1024x768: Chewable ≥ 56 px tall  — 111px
+PASS  1024x768: Dissolve and Drink present  — 73×111
+PASS  1024x768: Dissolve and Drink ≥ 56 px tall  — 111px
+PASS  1024x768: Keep in Mouth present  — 73×111
+PASS  1024x768: Keep in Mouth ≥ 56 px tall  — 111px
+PASS  1024x768: Remove Address present  — 73×111
+PASS  1024x768: Remove Address ≥ 56 px tall  — 111px
+PASS  1024x768: EXP Date present  — 73×111
+PASS  1024x768: EXP Date ≥ 56 px tall  — 111px
+PASS  1024x768: STAT present  — 73×111
+PASS  1024x768: STAT ≥ 56 px tall  — 111px
+PASS  1024x768: Add Label present  — 294×64
+PASS  1024x768: Add Label ≥ 56 px tall  — 64px
+PASS  1024x768: Delete Label present  — 196×64
+PASS  1024x768: Delete Label ≥ 56 px tall  — 64px
+PASS  1024x768: Give medication present  — 104×64
+PASS  1024x768: Give medication ≥ 56 px tall  — 64px
+PASS  1024x768: Take medication present  — 104×64
+PASS  1024x768: Take medication ≥ 56 px tall  — 64px
+PASS  1024x768: Before meals present  — 104×64
+PASS  1024x768: Before meals ≥ 56 px tall  — 64px
+PASS  1024x768: After meals present  — 104×64
+PASS  1024x768: After meals ≥ 56 px tall  — 64px
+PASS  1024x768: Previous label present  — 60×60
+PASS  1024x768: Next label present  — 60×60
+PASS  1024x768: Done — review and print labels present  — 359×80
+PASS  1024x768: Increase MORNING dosage present  — 64×64
+PASS  1024x768: Increase MORNING dosage ≥ 56 px tall  — 64px
+PASS  1024x768: Decrease MORNING dosage present  — 64×64
+PASS  1024x768: Decrease MORNING dosage ≥ 56 px tall  — 64px
+PASS  1024x768: Increase LUNCH dosage present  — 64×64
+PASS  1024x768: Increase LUNCH dosage ≥ 56 px tall  — 64px
+PASS  1024x768: Increase NIGHT dosage present  — 64×64
+PASS  1024x768: Increase NIGHT dosage ≥ 56 px tall  — 64px
+PASS  768x1024: no ENT button
+PASS  768x1024: no horizontal overflow
+PASS  768x1024: Days present  — 109×80
+PASS  768x1024: Days ≥ 56 px tall  — 80px
+PASS  768x1024: Name of Days present  — 109×80
+PASS  768x1024: Name of Days ≥ 56 px tall  — 80px
+PASS  768x1024: Daily present  — 109×80
+PASS  768x1024: Daily ≥ 56 px tall  — 80px
+PASS  768x1024: Weekly present  — 109×80
+PASS  768x1024: Weekly ≥ 56 px tall  — 80px
+PASS  768x1024: Evening present  — 109×80
+PASS  768x1024: Evening ≥ 56 px tall  — 80px
+PASS  768x1024: EOD present  — 109×80
+PASS  768x1024: EOD ≥ 56 px tall  — 80px
+PASS  768x1024: 5H present  — 109×80
+PASS  768x1024: 5H ≥ 56 px tall  — 80px
+PASS  768x1024: 6H present  — 109×80
+PASS  768x1024: 6H ≥ 56 px tall  — 80px
+PASS  768x1024: 8H present  — 109×80
+PASS  768x1024: 8H ≥ 56 px tall  — 80px
+PASS  768x1024: Reasons present  — 109×81
+PASS  768x1024: Reasons ≥ 56 px tall  — 81px
+PASS  768x1024: With Food present  — 109×81
+PASS  768x1024: With Food ≥ 56 px tall  — 81px
+PASS  768x1024: Empty Stomach present  — 109×81
+PASS  768x1024: Empty Stomach ≥ 56 px tall  — 81px
+PASS  768x1024: Chewable present  — 109×81
+PASS  768x1024: Chewable ≥ 56 px tall  — 81px
+PASS  768x1024: Dissolve and Drink present  — 109×81
+PASS  768x1024: Dissolve and Drink ≥ 56 px tall  — 81px
+PASS  768x1024: Keep in Mouth present  — 109×81
+PASS  768x1024: Keep in Mouth ≥ 56 px tall  — 81px
+PASS  768x1024: Remove Address present  — 109×81
+PASS  768x1024: Remove Address ≥ 56 px tall  — 81px
+PASS  768x1024: EXP Date present  — 109×81
+PASS  768x1024: EXP Date ≥ 56 px tall  — 81px
+PASS  768x1024: STAT present  — 109×81
+PASS  768x1024: STAT ≥ 56 px tall  — 81px
+PASS  768x1024: Add Label present  — 424×64
+PASS  768x1024: Add Label ≥ 56 px tall  — 64px
+PASS  768x1024: Delete Label present  — 282×64
+PASS  768x1024: Delete Label ≥ 56 px tall  — 64px
+PASS  768x1024: Give medication present  — 176×64
+PASS  768x1024: Give medication ≥ 56 px tall  — 64px
+PASS  768x1024: Take medication present  — 176×64
+PASS  768x1024: Take medication ≥ 56 px tall  — 64px
+PASS  768x1024: Before meals present  — 176×64
+PASS  768x1024: Before meals ≥ 56 px tall  — 64px
+PASS  768x1024: After meals present  — 176×64
+PASS  768x1024: After meals ≥ 56 px tall  — 64px
+PASS  768x1024: Previous label present  — 56×56
+PASS  768x1024: Next label present  — 56×56
+PASS  768x1024: Done — review and print labels present  — 267×64
+PASS  768x1024: Increase MORNING dosage present  — 64×64
+PASS  768x1024: Increase MORNING dosage ≥ 56 px tall  — 64px
+PASS  768x1024: Decrease MORNING dosage present  — 64×64
+PASS  768x1024: Decrease MORNING dosage ≥ 56 px tall  — 64px
+PASS  768x1024: Increase LUNCH dosage present  — 64×64
+PASS  768x1024: Increase LUNCH dosage ≥ 56 px tall  — 64px
+PASS  768x1024: Increase NIGHT dosage present  — 64×64
+PASS  768x1024: Increase NIGHT dosage ≥ 56 px tall  — 64px
+PASS  390x844: no ENT button
+PASS  390x844: no horizontal overflow
+PASS  390x844: Days present  — 106×80
+PASS  390x844: Days ≥ 56 px tall  — 80px
+PASS  390x844: Name of Days present  — 106×80
+PASS  390x844: Name of Days ≥ 56 px tall  — 80px
+PASS  390x844: Daily present  — 106×80
+PASS  390x844: Daily ≥ 56 px tall  — 80px
+PASS  390x844: Weekly present  — 106×80
+PASS  390x844: Weekly ≥ 56 px tall  — 80px
+PASS  390x844: Evening present  — 106×80
+PASS  390x844: Evening ≥ 56 px tall  — 80px
+PASS  390x844: EOD present  — 106×80
+PASS  390x844: EOD ≥ 56 px tall  — 80px
+PASS  390x844: 5H present  — 106×80
+PASS  390x844: 5H ≥ 56 px tall  — 80px
+PASS  390x844: 6H present  — 106×80
+PASS  390x844: 6H ≥ 56 px tall  — 80px
+PASS  390x844: 8H present  — 106×80
+PASS  390x844: 8H ≥ 56 px tall  — 80px
+PASS  390x844: Reasons present  — 106×81
+PASS  390x844: Reasons ≥ 56 px tall  — 81px
+PASS  390x844: With Food present  — 106×81
+PASS  390x844: With Food ≥ 56 px tall  — 81px
+PASS  390x844: Empty Stomach present  — 106×81
+PASS  390x844: Empty Stomach ≥ 56 px tall  — 81px
+PASS  390x844: Chewable present  — 106×81
+PASS  390x844: Chewable ≥ 56 px tall  — 81px
+PASS  390x844: Dissolve and Drink present  — 106×81
+PASS  390x844: Dissolve and Drink ≥ 56 px tall  — 81px
+PASS  390x844: Keep in Mouth present  — 106×81
+PASS  390x844: Keep in Mouth ≥ 56 px tall  — 81px
+PASS  390x844: Remove Address present  — 106×81
+PASS  390x844: Remove Address ≥ 56 px tall  — 81px
+PASS  390x844: EXP Date present  — 106×81
+PASS  390x844: EXP Date ≥ 56 px tall  — 81px
+PASS  390x844: STAT present  — 106×81
+PASS  390x844: STAT ≥ 56 px tall  — 81px
+PASS  390x844: Add Label present  — 204×56
+PASS  390x844: Add Label ≥ 56 px tall  — 56px
+PASS  390x844: Delete Label present  — 136×56
+PASS  390x844: Delete Label ≥ 56 px tall  — 56px
+PASS  390x844: Give medication present  — 170×64
+PASS  390x844: Give medication ≥ 56 px tall  — 64px
+PASS  390x844: Take medication present  — 170×64
+PASS  390x844: Take medication ≥ 56 px tall  — 64px
+PASS  390x844: Before meals present  — 170×64
+PASS  390x844: Before meals ≥ 56 px tall  — 64px
+PASS  390x844: After meals present  — 170×64
+PASS  390x844: After meals ≥ 56 px tall  — 64px
+PASS  390x844: Previous label present  — 48×48
+PASS  390x844: Next label present  — 48×48
+PASS  390x844: Done — review and print labels present  — 370×56
+PASS  390x844: Increase MORNING dosage present  — 64×64
+PASS  390x844: Increase MORNING dosage ≥ 56 px tall  — 64px
+PASS  390x844: Decrease MORNING dosage present  — 64×64
+PASS  390x844: Decrease MORNING dosage ≥ 56 px tall  — 64px
+PASS  390x844: Increase LUNCH dosage present  — 64×64
+PASS  390x844: Increase LUNCH dosage ≥ 56 px tall  — 64px
+PASS  390x844: Increase NIGHT dosage present  — 64×64
+PASS  390x844: Increase NIGHT dosage ≥ 56 px tall  — 64px
+PASS  click STAT opens its panel (stat)  — stat
+PASS  click Days opens its panel (days)  — days
+PASS  click Name of Days opens its panel (days_of_week)  — days_of_week
+PASS  click Daily opens its panel (number_pad)  — number_pad
+PASS  click Weekly opens its panel (number_pad)  — number_pad
+PASS  click Evening opens its panel (number_pad)  — number_pad
+PASS  click 5H opens its panel (number_pad)  — number_pad
+PASS  click 6H opens its panel (number_pad)  — number_pad
+PASS  click 8H opens its panel (number_pad)  — number_pad
+PASS  click EXP Date opens its panel (expiry)  — expiry
+PASS  click Delete Label opens its panel (delete_label)  — delete_label
+PASS  click EOD selects it
+PASS  click With Food selects it
+PASS  click Empty Stomach selects it
+PASS  click Chewable selects it
+PASS  click Dissolve and Drink selects it
+PASS  click Keep in Mouth selects it
+PASS  click Reasons opens the Reasons panel
+PASS  click Remove Address → Address Hidden
+PASS  click Give medication selects it
+PASS  click Take medication selects it
+PASS  click Before meals selects it
+PASS  click After meals selects it
+PASS  MORNING: + + − = 1
+PASS  LUNCH: + + − = 1
+PASS  NIGHT: + + − = 1
+PASS  Morning X/Y opens the number pad
+PASS  Add Label → Label 2 / 2
+PASS  Previous label → Label 1 / 2
+PASS  Next label → Label 2 / 2
+PASS  Page Up → Label 1 / 2
+PASS  Page Down → Label 2 / 2
+PASS  Delete Label asks for confirmation first (label not removed yet)
+PASS  Ctrl+Enter runs DONE (missing quantity reported)
+PASS  DONE click runs the same check
+279/279 passed

@@ -62,7 +62,8 @@ function ProductsInner() {
   const [search, setSearch] = useState(params.get('search') ?? '');
   const [level, setLevel] = useState('ALL');
   const [category, setCategory] = useState('ALL');
-  const [adding, setAdding] = useState(false);
+  // ?new=1 (the dashboard's quick action) opens the add dialog straight away.
+  const [adding, setAdding] = useState(() => params.get('new') === '1');
   const products = useApiQuery(() => getAdminProducts(), []);
 
   const categories = useMemo(
@@ -90,7 +91,7 @@ function ProductsInner() {
           </Button>
         }
       />
-      <Card>
+      <Card className="overflow-hidden">
         <div className="flex flex-col gap-3 border-b border-border p-4 lg:flex-row lg:items-center">
           <SearchInput value={search} onChange={setSearch} label="Search medicines" placeholder="Name, generic name or barcode" />
           <div className="w-full sm:w-52">
@@ -129,7 +130,7 @@ function ProductsInner() {
         </QueryView>
         {products.status === 'success' && (
           <p className="border-t border-border px-4 py-3 text-xs text-subtle">
-            Status uses each medicine’s own reorder level and minimum. “No threshold” means none is set.
+            Status uses each medicine’s own reorder level and minimum. “Not configured” means none has been set; no default is assumed.
           </p>
         )}
       </Card>

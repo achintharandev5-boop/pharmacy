@@ -1,0 +1,72 @@
+name: Pilot quality gates (no deployment)
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: python3 scripts/pilot-secret-scan.py
+      - run: pnpm audit --audit-level=high
+      - run: pnpm --filter api exec tsc --noEmit --incremental false
+      - run: pnpm --filter web exec next typegen
+      - run: pnpm --filter web exec tsc --noEmit --incremental false
+      - run: pnpm --filter api exec jest --runInBand
+      - run: pnpm --filter web exec vitest run --maxWorkers=2
+      - run: pnpm --filter api test:e2e --runInBand
+      - run: pnpm --filter api build
+      - run: pnpm --filter web exec next build --webpack
+        env:
+          API_URL: https://api-build.example.invalid
+          PILOT_API_URL: https://api-build.example.invalid
+          SMS_ENABLED: 'false'
+          NEXT_TELEMETRY_DISABLED: '1'
+      # Lint remains a blocking gate; no suppression or continue-on-error.
+      - run: pnpm --filter web lint
+      - run: pnpm --filter api exec eslint "{src,apps,libs,test}/**/*.ts"
+  disposable-database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: pilot_ci
+          POSTGRES_PASSWORD: synthetic-ci-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pilot_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter api test:db
+        env:
+          DB_TEST_URL: postgres://pilot_ci:synthetic-ci-only@127.0.0.1:5432/postgres
+          DB_TEST_FRESH_ONLY: 'true'
+          DB_TEST_RUN_ID: ci

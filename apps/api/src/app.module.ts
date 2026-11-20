@@ -1,4 +1,6 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { StagingGatewayMiddleware } from './staging/staging-gateway.middleware';
+import { ReasonsModule } from './reasons/reasons.module';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
@@ -14,9 +16,13 @@ import { PrescriptionsModule } from './prescriptions/prescriptions.module';
 import { AdminModule } from './admin/admin.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { SuppliersModule } from './suppliers/suppliers.module';
+import { PosModule } from './pos/pos.module';
+import { SettingsModule } from './settings/settings.module';
+import { AuditModule } from './audit/audit.module';
 
 @Module({
   imports: [
+    ReasonsModule,
     ConfigModule.forRoot({
       isGlobal: true,
       validate: validateEnv,
@@ -30,6 +36,9 @@ import { SuppliersModule } from './suppliers/suppliers.module';
     AdminModule,
     InventoryModule,
     SuppliersModule,
+    PosModule,
+    SettingsModule,
+    AuditModule,
   ],
   controllers: [AppController],
   providers: [
@@ -38,4 +47,8 @@ import { SuppliersModule } from './suppliers/suppliers.module';
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(StagingGatewayMiddleware).forRoutes('{*path}');
+  }
+}

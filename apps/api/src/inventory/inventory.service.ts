@@ -1,14 +1,36 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SupabaseService } from '../supabase/supabase.service';
-import { unwrap, unwrapList } from '../common/db';
+import { unwrap, unwrapList, unwrapRequired } from '../common/db';
 import { addDays, startOfZonedDay, zonedDate } from '../common/time';
-import { ReceiveStockDto, StockAdjustmentDto } from './dto/inventory.dto';
+import { PatientReturnDto, ReceiveStockDto, StockAdjustmentDto } from './dto/inventory.dto';
 import { countStockLevels, expiryBand, stockLevel, toNumber } from './stock-metrics';
 
 export const RANGE_DAYS: Record<string, number> = { '7d': 7, '30d': 30, '90d': 90 };
 
 type Row = Record<string, any>;
+type BatchStatusResult = { batch_id: string; status: string };
+
+/** Batch statuses whose units are never dispensed (same rule as the prescription write paths). */
+const NON_DISPENSABLE_STATUSES = new Set(['QUARANTINED', 'EXPIRED']);
+
+/** A batch whose units may be dispensed on `today` (YYYY-MM-DD, pharmacy time). */
+export function isDispensableBatch(
+  b: {
+    quantity_available?: unknown;
+    expiry_date?: string | null;
+    status?: string | null;
+  },
+  today: string,
+): boolean {
+  return (
+    Number(b.quantity_available ?? 0) > 0 &&
+    !NON_DISPENSABLE_STATUSES.has(b.status ?? '') &&
+    typeof b.expiry_date === 'string' &&
+    /^\d{4}-\d{2}-\d{2}$/.test(b.expiry_date) &&
+    b.expiry_date >= today
+  );
+}
 
 function assertIdempotencyKey(key: string | undefined) {
   if (key !== undefined && !/^[\w.:-]{8,200}$/.test(key)) {
@@ -25,6 +47,11 @@ function assertIdempotencyKey(key: string | undefined) {
  * Receiving and adjustments call database functions (`receive_stock`, `adjust_stock`) so the
  * batch, product total and movement ledger change in one transaction. Until migration
  * 20261010000300 is applied these endpoints return 503 SCHEMA_OUT_OF_DATE.
+ *
+ * Returns and quarantine (migration 20261010000500):
+ *   - a supplier return is an adjustment of type SUPPLIER_RETURN against a batch;
+ *   - a patient return is recorded in `patient_returns` and never changes stock;
+ *   - a quarantined batch keeps its units on record but is never dispensed.
  */
 @Injectable()
 export class InventoryService {
@@ -54,7 +81,12 @@ export class InventoryService {
   }
 
   async getSummary() {
-    const [products, batches] = await Promise.all([this.loadProducts(), this.loadBatches()]);
+    const [productsRes, batchesRes] = await Promise.all([
+      this.db.from('products').select('id, stock_quantity, minimum_stock, reorder_level, is_active, retail_price'),
+      this.db.from('product_batches').select('product_id, quantity_available, expiry_date, purchase_cost, retail_price').gt('quantity_available', 0),
+    ]);
+    const products = unwrapList(productsRes, 'load products');
+    const batches = unwrapList(batchesRes, 'load batches');
     const today = this.today();
     const productById = new Map(products.map((p) => [p.id, p]));
 
@@ -99,6 +131,55 @@ export class InventoryService {
         unpricedBatches,
       },
     };
+  }
+
+  /** Returns a bounded list of stocked batches that are expired or expire within 30 days. */
+  async getUpcomingExpiryBatches(limit = 6) {
+    const safeLimit = Math.min(Math.max(Math.trunc(limit) || 6, 1), 20);
+    return unwrapList(
+      await this.db
+        .from('product_batches')
+        .select('id, product_id, batch_number, quantity_available, expiry_date, products(name)')
+        .gt('quantity_available', 0)
+        .lte('expiry_date', addDays(this.today(), 30))
+        .order('expiry_date', { ascending: true })
+        .limit(safeLimit),
+      'load upcoming expiry batches',
+    );
+  }
+
+  /** Server-side daily movement counts; only the selected date window and timestamp column are read. */
+  async getMovementActivity(range = '30d') {
+    const days = RANGE_DAYS[range];
+    if (!days) throw new BadRequestException({ code: 'INVALID_RANGE', message: 'Range must be 7d, 30d, or 90d.' });
+    const today = this.today();
+    const from = startOfZonedDay(this.timeZone, addDays(today, -(days - 1))).toISOString();
+    const to = startOfZonedDay(this.timeZone, addDays(today, 1)).toISOString();
+    const buckets = new Map<string, { date: string; movements: number }>();
+    for (let i = days - 1; i >= 0; i--) {
+      const date = addDays(today, -i);
+      buckets.set(date, { date, movements: 0 });
+    }
+
+    const pageSize = 1000;
+    for (let offset = 0; ; offset += pageSize) {
+      const rows = unwrapList(
+        await this.db
+          .from('inventory_movements')
+          .select('created_at')
+          .gte('created_at', from)
+          .lt('created_at', to)
+          .order('created_at', { ascending: true })
+          .range(offset, offset + pageSize - 1),
+        'load inventory movement activity',
+      );
+      for (const row of rows) {
+        const bucket = buckets.get(zonedDate(this.timeZone, new Date(row.created_at)));
+        if (bucket) bucket.movements++;
+      }
+      if (rows.length < pageSize) break;
+    }
+    return [...buckets.values()];
   }
 
   async getAlerts() {
@@ -184,6 +265,53 @@ export class InventoryService {
     );
   }
 
+  /**
+   * Batches of one medicine that may be dispensed today, with the expiry recorded at GRN entry
+   * (Add Expiry Date, Document 5 pp. 41–43). Same eligibility as dispensing: units available,
+   * not quarantined or marked expired, an expiry date recorded and not passed. Listed in
+   * expiry order for display only; the pharmacist chooses the batch being dispensed.
+   */
+  async getDispensingBatches(productId: string) {
+    unwrapRequired(
+      await this.db
+        .from('products')
+        .select('id')
+        .eq('id', productId)
+        .maybeSingle(),
+      'load the medicine',
+    );
+    const today = this.today();
+    const rows = unwrapList(
+      await this.db
+        .from('product_batches')
+        .select(
+          'id, product_id, batch_number, expiry_date, quantity_available, status, received_at',
+        )
+        .eq('product_id', productId)
+        .gt('quantity_available', 0)
+        .order('expiry_date', { ascending: true })
+        .order('received_at', { ascending: true }),
+      'load the medicine batches',
+    ) as {
+      id: string;
+      batch_number: string;
+      expiry_date: string | null;
+      quantity_available: number | string | null;
+      status: string | null;
+    }[];
+    const eligible = rows.filter((b) => isDispensableBatch(b, today));
+    return {
+      productId,
+      batches: eligible.map((b) => ({
+        id: b.id,
+        batchNumber: b.batch_number,
+        expiryDate: b.expiry_date,
+        quantityAvailable: Number(b.quantity_available),
+      })),
+      excludedBatchCount: rows.length - eligible.length,
+    };
+  }
+
   async getMovements(query?: string, type?: string) {
     let q = this.db
       .from('inventory_movements')
@@ -244,6 +372,9 @@ export class InventoryService {
 
   async adjustStock(dto: StockAdjustmentDto, userId: string, idempotencyKey?: string) {
     assertIdempotencyKey(idempotencyKey);
+    if (dto.type === 'SUPPLIER_RETURN' && !dto.batchId) {
+      throw new BadRequestException({ code: 'BATCH_REQUIRED', message: 'Select the batch being returned to the supplier.' });
+    }
     const result = unwrap(
       await this.db.rpc('adjust_stock', {
         p_product_id: dto.productId,
@@ -268,6 +399,77 @@ export class InventoryService {
     };
   }
 
+  /** Marks a batch as not dispensable. Its units stay on record. */
+  async quarantineBatch(batchId: string, reason: string, userId: string) {
+    return unwrap(
+      await this.db.rpc('quarantine_batch', { p_batch_id: batchId, p_reason: reason.trim(), p_user_id: userId }),
+      'quarantine the batch',
+    ) as BatchStatusResult | null;
+  }
+
+  /** Lifts a quarantine. The database refuses expired or undated batches. */
+  async releaseBatch(batchId: string, reason: string, userId: string) {
+    return unwrap(
+      await this.db.rpc('release_batch', { p_batch_id: batchId, p_reason: reason.trim(), p_user_id: userId }),
+      'release the batch',
+    ) as BatchStatusResult | null;
+  }
+
+  async getPatientReturns(status?: string) {
+    let q = this.db.from('patient_returns').select('*').order('created_at', { ascending: false }).limit(500);
+    if (status && status !== 'ALL') q = q.eq('status', status);
+    return unwrapList(await q, 'load patient returns') as Row[];
+  }
+
+  /** Records medicine brought back by a patient. Stock is not changed. */
+  async recordPatientReturn(dto: PatientReturnDto, userId: string) {
+    let name = dto.productName?.trim() ?? '';
+    if (dto.productId) {
+      const product = unwrapRequired<{ name: string }>(
+        await this.db.from('products').select('name').eq('id', dto.productId).maybeSingle(),
+        'look up the medicine',
+      );
+      name = product.name;
+    }
+    if (!name) {
+      throw new BadRequestException({ code: 'MEDICINE_REQUIRED', message: 'Select the medicine or enter its name.' });
+    }
+    return unwrapRequired<Row>(
+      await this.db
+        .from('patient_returns')
+        .insert({
+          product_id: dto.productId ?? null,
+          product_name_text: name,
+          batch_number: dto.batchNumber?.trim() || null,
+          prescription_id: dto.prescriptionId ?? null,
+          customer_id: dto.customerId ?? null,
+          quantity: dto.quantity,
+          reason: dto.reason.trim(),
+          recorded_by: userId,
+        })
+        .select('*')
+        .single(),
+      'record the patient return',
+    );
+  }
+
+  /** Records that a returned item was disposed of. It never goes back into stock. */
+  async disposePatientReturn(id: string, note: string, userId: string) {
+    const updated = unwrapList<Row>(
+      await this.db
+        .from('patient_returns')
+        .update({ status: 'DISPOSED', disposal_note: note.trim(), disposed_at: new Date().toISOString(), disposed_by: userId })
+        .eq('id', id)
+        .eq('status', 'HELD_FOR_REVIEW')
+        .select('*'),
+      'record the disposal',
+    );
+    if (updated.length === 1) return updated[0];
+    const existing = unwrap(await this.db.from('patient_returns').select('id').eq('id', id).maybeSingle(), 'look up the return');
+    if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Patient return not found.' });
+    throw new ConflictException({ code: 'ALREADY_DISPOSED', message: 'This return has already been disposed of.' });
+  }
+
   /** Batches with stock remaining, grouped by how soon they expire. */
   async getExpiryMatrix() {
     const batches = (await this.getBatches()).filter((b: Row) => toNumber(b.quantity_available) > 0);
@@ -285,9 +487,15 @@ export class InventoryService {
   }
 
   /** Products at or below their own reorder level. Products without thresholds are not listed. */
-  async getLowStock() {
-    const products = await this.loadProducts();
-    return products
+  async getLowStock(limit?: number) {
+    const products = unwrapList(
+      await this.db
+        .from('products')
+        .select('id, name, stock_quantity, minimum_stock, reorder_level, maximum_stock, is_active')
+        .order('stock_quantity', { ascending: true }),
+      'load low-stock products',
+    );
+    const data = products
       .filter((p) => p.is_active !== false)
       .map((p) => ({ product: p, level: stockLevel(p) }))
       .filter(({ level }) => level === 'OUT_OF_STOCK' || level === 'CRITICAL' || level === 'LOW')
@@ -302,6 +510,7 @@ export class InventoryService {
         };
       })
       .sort((a: Row, b: Row) => toNumber(a.stock_quantity) - toNumber(b.stock_quantity));
+    return limit === undefined ? data : data.slice(0, Math.min(Math.max(Math.trunc(limit), 1), 500));
   }
 
   async getAnalytics(range = '30d') {

@@ -15,6 +15,8 @@ import { generatePrescriptionNumber, normalizeSriLankanPhone } from '../domain/p
 import { validateInstructionCombinations } from '../domain/prescription/instruction.rules';
 import { formatDosageReadable } from '../domain/prescription/dosage.rules';
 import { isKnownExpired, parseLabelExpiry } from '../domain/prescription/expiry.rules';
+import { isDispensableBatch } from '../inventory/inventory.service';
+import type { PrescriptionWriteMode } from '../config/env.validation';
 
 interface ProductRow {
   id: string;
@@ -38,7 +40,29 @@ export interface PrescriptionCreated {
   customerPhone: string | null;
   itemCount: number;
   createdAt: string;
+  /** Transactional mode only: the batches each label was dispensed from. */
+  items?: { itemId: string; productId: string | null; allocations: BatchAllocation[] }[];
 }
+
+export interface BatchAllocation {
+  batchId: string | null;
+  batchNumber: string | null;
+  expiryDate: string | null;
+  quantity: number;
+}
+
+interface ExpiryBatchRow {
+  id: string;
+  product_id: string;
+  batch_number: string;
+  expiry_date: string | null;
+  quantity_available: number | null;
+  status: string | null;
+  received_at: string | null;
+}
+
+/** Batch statuses whose units are never dispensed. */
+const NON_DISPENSABLE_STATUSES = new Set(['QUARANTINED', 'EXPIRED']);
 
 const MAX_NUMBER_ATTEMPTS = 3;
 const MAX_STOCK_ATTEMPTS = 3;
@@ -52,20 +76,28 @@ const PENDING = { status: 'PENDING' };
  * are reversed and the request fails. The reversal is best effort; if it also fails the error
  * says so and the incident is logged with the record id for manual reconciliation.
  *
- * The target design is a single database transaction (see migration
- * 20261010000300_transactional_functions.sql, `create_prescription`). This service keeps
- * working against the current schema until that migration is reviewed and applied.
+ * Two write paths, chosen by PRESCRIPTION_WRITE_MODE:
+ *   legacy (default)  the steps above. Deducts the product total only, but refuses units that
+ *                     sit in expired, quarantined or undated batches.
+ *   transactional     the `create_prescription` database function (migration 000500): one
+ *                     transaction, earliest-expiry-first deduction from eligible batches.
+ *                     Not to be enabled until the pharmacist approves the allocation rules.
+ * Both paths run the same request validation and build the same item rows, so the stored
+ * instructions and label text are identical.
  */
 @Injectable()
 export class PrescriptionsService {
   private readonly logger = new Logger(PrescriptionsService.name);
   private readonly timeZone: string;
+  readonly writeMode: PrescriptionWriteMode;
 
   constructor(
     private readonly supabaseService: SupabaseService,
     config: ConfigService,
   ) {
     this.timeZone = config.get<string>('PHARMACY_TIMEZONE') ?? 'Asia/Colombo';
+    // Anything other than an explicit 'transactional' keeps the existing behaviour.
+    this.writeMode = config.get<string>('PRESCRIPTION_WRITE_MODE') === 'transactional' ? 'transactional' : 'legacy';
   }
 
   private get db() {
@@ -75,6 +107,11 @@ export class PrescriptionsService {
   async create(dto: CreatePrescriptionDto, idempotencyKey: string | undefined, userId: string | null) {
     if (idempotencyKey !== undefined && !/^[\w.:-]{8,200}$/.test(idempotencyKey)) {
       throw new BadRequestException({ code: 'INVALID_IDEMPOTENCY_KEY', message: 'Idempotency-Key header is invalid.' });
+    }
+
+    if (this.writeMode === 'transactional') {
+      // The database function handles the key itself, inside the same transaction.
+      return this.createTransactional(dto, idempotencyKey, userId);
     }
 
     if (idempotencyKey) {
@@ -124,11 +161,20 @@ export class PrescriptionsService {
     return existing.response_payload as PrescriptionCreated;
   }
 
-  private async createUnchecked(dto: CreatePrescriptionDto, userId: string | null): Promise<PrescriptionCreated> {
-    const today = zonedDate(this.timeZone);
-
-    // 1. Validate everything before writing anything.
+  /**
+   * Checks shared by both write paths, made before anything is written: medicine or name on
+   * every label, instruction combinations, printed expiry, patient reference, catalogue
+   * medicines exist, whole units, active. Returns the products and the units required of each.
+   */
+  private async validateRequest(dto: CreatePrescriptionDto, today: string) {
     for (const [index, item] of dto.items.entries()) {
+      if (item.ent?.startDay && item.ent?.endDay && item.ent.endDay < item.ent.startDay) {
+        throw new BadRequestException(`Label ${index + 1}: End Day must be on or after Start Day.`);
+      }
+      if (item.ent && item.frequency === 'CUSTOM' && !item.ent.customHours) {
+        throw new BadRequestException(`Label ${index + 1}: set custom ENT hours.`);
+      }
+
       if (!item.productId && !item.alternativeProductName?.trim()) {
         throw new BadRequestException({
           code: 'MEDICINE_REQUIRED',
@@ -144,6 +190,16 @@ export class PrescriptionsService {
         throw new BadRequestException({
           code: 'PRODUCT_EXPIRED',
           message: `Label ${index + 1}: the expiry date on the label (${expiry.text}) has passed.`,
+        });
+      }
+      // Add Expiry Date prints the GRN batch expiry only (Document 5 pp. 41–43): never a typed date.
+      if (
+        Boolean(item.expiryDate?.trim()) !== Boolean(item.expiryBatchId) ||
+        (item.expiryBatchId && !item.productId)
+      ) {
+        throw new BadRequestException({
+          code: 'EXPIRY_BATCH_REQUIRED',
+          message: `Label ${index + 1}: the expiry date must come from a GRN batch of the selected medicine. Select Add Expiry Date again.`,
         });
       }
     }
@@ -169,7 +225,7 @@ export class PrescriptionsService {
       required.set(product.id, (required.get(product.id) ?? 0) + item.quantity);
     }
 
-    for (const [productId, qty] of required) {
+    for (const productId of required.keys()) {
       const product = products.get(productId)!;
       if (product.is_active === false) {
         throw new BadRequestException({
@@ -178,6 +234,71 @@ export class PrescriptionsService {
           message: `${product.name} is marked inactive and cannot be dispensed.`,
         });
       }
+    }
+    const expiryBatches = await this.loadExpiryBatches(dto.items, today);
+    return { products, required, expiryBatches };
+  }
+
+  /**
+   * Re-checks every printed batch expiry against the database at save time: the batch exists,
+   * belongs to the label's medicine, may be dispensed today, and its recorded expiry is exactly
+   * the date printed. A stale or edited reference is refused; nothing is corrected silently.
+   */
+  private async loadExpiryBatches(
+    items: CreatePrescriptionItemDto[],
+    today: string,
+  ): Promise<Map<string, ExpiryBatchRow>> {
+    const ids = [
+      ...new Set(
+        items
+          .map((i) => i.expiryBatchId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    if (ids.length === 0) return new Map();
+    const rows = unwrapList(
+      await this.db
+        .from('product_batches')
+        .select(
+          'id, product_id, batch_number, expiry_date, quantity_available, status, received_at',
+        )
+        .in('id', ids),
+      'check the label expiry batches',
+    ) as ExpiryBatchRow[];
+    const byId = new Map(rows.map((b) => [b.id, b]));
+    for (const [index, item] of items.entries()) {
+      if (!item.expiryBatchId) continue;
+      const batch = byId.get(item.expiryBatchId);
+      const problem =
+        !batch || batch.product_id !== item.productId
+          ? 'the batch is not a batch of the selected medicine'
+          : !isDispensableBatch(batch, today)
+            ? `batch ${batch.batch_number} cannot be dispensed (expired, quarantined, empty or undated)`
+            : batch.expiry_date !== item.expiryDate
+              ? `batch ${batch.batch_number} expires on ${batch.expiry_date}, not ${item.expiryDate}`
+              : null;
+      if (problem) {
+        throw new BadRequestException({
+          code: 'EXPIRY_BATCH_MISMATCH',
+          message: `Label ${index + 1}: ${problem}. Select Add Expiry Date again.`,
+        });
+      }
+    }
+    return byId;
+  }
+
+  private async createUnchecked(dto: CreatePrescriptionDto, userId: string | null): Promise<PrescriptionCreated> {
+    const today = zonedDate(this.timeZone);
+
+    // 1. Validate everything before writing anything.
+    const { products, required, expiryBatches } = await this.validateRequest(
+      dto,
+      today,
+    );
+    const blocked = await this.nonDispensableUnits([...required.keys()], today);
+
+    for (const [productId, qty] of required) {
+      const product = products.get(productId)!;
       if (product.expiry_date && product.expiry_date < today) {
         throw new BadRequestException({
           code: 'PRODUCT_EXPIRED',
@@ -187,7 +308,8 @@ export class PrescriptionsService {
           message: `Cannot dispense expired product ${product.name} (expired ${product.expiry_date}).`,
         });
       }
-      const available = Number(product.stock_quantity ?? 0);
+      const unusable = blocked.get(productId) ?? 0;
+      const available = Number(product.stock_quantity ?? 0) - unusable;
       if (available < qty) {
         throw new ConflictException({
           code: 'INSUFFICIENT_STOCK',
@@ -195,7 +317,9 @@ export class PrescriptionsService {
           productName: product.name,
           requested: qty,
           available,
-          message: `Insufficient stock for ${product.name}. Requested: ${qty}, available: ${available}.`,
+          message:
+            `Insufficient stock for ${product.name}. Requested: ${qty}, available: ${available}.` +
+            (unusable > 0 ? ` ${unusable} further unit(s) are in expired, quarantined or undated batches and cannot be dispensed.` : ''),
         });
       }
     }
@@ -207,7 +331,11 @@ export class PrescriptionsService {
       const itemRows = unwrapList(
         await this.db
           .from('prescription_items')
-          .insert(dto.items.map((item) => this.itemRow(header.id, item, products)))
+          .insert(
+            dto.items.map((item) =>
+              this.itemRow(header.id, item, products, expiryBatches),
+            ),
+          )
           .select('id, product_id, quantity'),
         'save the prescription items',
       ) as { id: string; product_id: string | null; quantity: number }[];
@@ -260,7 +388,141 @@ export class PrescriptionsService {
     };
   }
 
-  private async loadProducts(items: CreatePrescriptionItemDto[]): Promise<Map<string, ProductRow>> {
+  /**
+   * Units per product held in batches that must never be dispensed: quarantined, marked
+   * expired, past their expiry date, or with no expiry date recorded.
+   */
+  private async nonDispensableUnits(productIds: string[], today: string): Promise<Map<string, number>> {
+    const blocked = new Map<string, number>();
+    if (productIds.length === 0) return blocked;
+    const batches = unwrapList(
+      await this.db
+        .from('product_batches')
+        .select('product_id, quantity_available, expiry_date, status')
+        .in('product_id', productIds),
+      'check batch expiry',
+    ) as { product_id: string; quantity_available: number | null; expiry_date: string | null; status: string | null }[];
+    for (const b of batches) {
+      const qty = Number(b.quantity_available ?? 0);
+      if (qty <= 0) continue;
+      if (NON_DISPENSABLE_STATUSES.has(b.status ?? '') || !b.expiry_date || b.expiry_date < today) {
+        blocked.set(b.product_id, (blocked.get(b.product_id) ?? 0) + qty);
+      }
+    }
+    return blocked;
+  }
+
+  /** Writes the whole prescription with `create_prescription` (one database transaction). */
+  private async createTransactional(
+    dto: CreatePrescriptionDto,
+    idempotencyKey: string | undefined,
+    userId: string | null,
+  ): Promise<PrescriptionCreated> {
+    const today = zonedDate(this.timeZone);
+    const { products, expiryBatches } = await this.validateRequest(dto, today);
+    await this.assertFefoMatchesPrintedBatches(dto, expiryBatches, today);
+
+    const payload = {
+      customer_id: dto.customerId ?? null,
+      customer_name: dto.customerName.trim(),
+      customer_phone: normalizeSriLankanPhone(dto.customerPhone),
+      // Same rows as the legacy path; the function sets the prescription id and name snapshot.
+      items: dto.items.map((item) => {
+        const row: Partial<ReturnType<PrescriptionsService['itemRow']>> =
+          this.itemRow('', item, products, expiryBatches);
+        delete row.prescription_id;
+        delete row.product_name_snapshot;
+        return row;
+      }),
+    };
+
+    const result = unwrap(
+      await this.db.rpc('create_prescription', {
+        p_payload: payload,
+        p_user_id: userId,
+        p_idempotency_key: idempotencyKey ?? null,
+      }),
+      'save the prescription',
+    ) as PrescriptionCreated | null;
+
+    if (!result?.id) {
+      throw new InternalServerErrorException({ code: 'NO_RESULT', message: 'The database did not confirm the prescription.' });
+    }
+    return result;
+  }
+
+  /**
+   * Transactional mode deducts earliest-expiry-first (create_prescription). A label printed with
+   * one batch's expiry must not be dispensed from another batch, so the save is refused unless
+   * that allocation would take every unit of the label from the printed batch. Items are
+   * allocated in order, as the database function does. Choosing a batch is not reinterpreted.
+   */
+  private async assertFefoMatchesPrintedBatches(
+    dto: CreatePrescriptionDto,
+    expiryBatches: Map<string, ExpiryBatchRow>,
+    today: string,
+  ) {
+    if (expiryBatches.size === 0) return;
+    const productIds = [
+      ...new Set(
+        dto.items.filter((i) => i.expiryBatchId).map((i) => i.productId!),
+      ),
+    ];
+    const rows = unwrapList(
+      await this.db
+        .from('product_batches')
+        .select(
+          'id, product_id, batch_number, expiry_date, quantity_available, status, received_at',
+        )
+        .in('product_id', productIds),
+      'check the batch allocation',
+    ) as ExpiryBatchRow[];
+    const queue = new Map<string, { id: string; left: number }[]>();
+    for (const id of productIds) {
+      queue.set(
+        id,
+        rows
+          .filter((b) => b.product_id === id && isDispensableBatch(b, today))
+          .sort((a, b) =>
+            a.expiry_date! < b.expiry_date!
+              ? -1
+              : a.expiry_date! > b.expiry_date!
+                ? 1
+                : String(a.received_at ?? '').localeCompare(
+                    String(b.received_at ?? ''),
+                  ) || a.id.localeCompare(b.id),
+          )
+          .map((b) => ({ id: b.id, left: Number(b.quantity_available) })),
+      );
+    }
+    for (const [index, item] of dto.items.entries()) {
+      const batches = item.productId ? queue.get(item.productId) : undefined;
+      if (!batches) continue;
+      let remaining = item.quantity;
+      const used = new Set<string>();
+      for (const b of batches) {
+        if (remaining <= 0) break;
+        const take = Math.min(remaining, b.left);
+        if (take <= 0) continue;
+        b.left -= take;
+        remaining -= take;
+        used.add(b.id);
+      }
+      if (
+        item.expiryBatchId &&
+        (remaining > 0 || used.size !== 1 || !used.has(item.expiryBatchId))
+      ) {
+        throw new ConflictException({
+          code: 'EXPIRY_BATCH_ALLOCATION_MISMATCH',
+          message: `Label ${index + 1}: earliest-expiry-first dispensing would not take these units only from batch ${expiryBatches.get(item.expiryBatchId)!.batch_number}, so the printed expiry could be wrong. Choose the batch that will be dispensed, or remove Add Expiry Date.`,
+        });
+      }
+    }
+  }
+
+  private async loadProducts(
+    items: CreatePrescriptionItemDto[],
+  ): Promise<Map<string, ProductRow>> {
     const ids = [...new Set(items.map((i) => i.productId).filter((id): id is string => Boolean(id)))];
     if (ids.length === 0) return new Map();
 
@@ -307,9 +569,17 @@ export class PrescriptionsService {
     throw new ConflictException({ code: 'NUMBER_CONFLICT', message: 'Could not allocate a prescription number. Please try again.' });
   }
 
-  private itemRow(prescriptionId: string, item: CreatePrescriptionItemDto, products: Map<string, ProductRow>) {
+  private itemRow(
+    prescriptionId: string,
+    item: CreatePrescriptionItemDto,
+    products: Map<string, ProductRow>,
+    expiryBatches: Map<string, ExpiryBatchRow>,
+  ) {
     const product = item.productId ? products.get(item.productId) : undefined;
     const expiry = parseLabelExpiry(item.expiryDate);
+    const batch = item.expiryBatchId
+      ? expiryBatches.get(item.expiryBatchId)
+      : undefined;
     return {
       prescription_id: prescriptionId,
       product_id: product?.id ?? null,
@@ -329,12 +599,26 @@ export class PrescriptionsService {
       show_address: item.showAddress !== false,
       instructions_json: {
         instructions: item.instructions ?? [],
+        ...(item.ent ? { ent: item.ent } : {}),
+        ...(item.weekly ? { weekly: item.weekly } : {}),
+        ...(item.weekdayRange ? { weekdayRange: item.weekdayRange } : {}),
         reasons: item.reasons ?? [],
         selectedDaysOfWeek: item.selectedDaysOfWeek ?? [],
         labelExpiryText: expiry?.text ?? null,
+        // The batch the printed expiry came from, as verified at save time. Kept with the label
+        // so the record shows what was printed even if the batch changes later.
+        expiryBatch: batch
+          ? {
+              id: batch.id,
+              batchNumber: batch.batch_number,
+              expiryDate: batch.expiry_date,
+            }
+          : null,
         stat: item.stat ?? null,
       },
-      final_instruction_text: item.finalInstructionText?.trim() || this.buildInstructionText(item),
+      final_instruction_text: item.finalInstructionText?.trim()
+        ? item.finalInstructionText
+        : this.buildInstructionText(item),
     };
   }
 

@@ -1,0 +1,1 @@
+﻿const fs=require('fs');let s=fs.readFileSync('scripts/ui-module-styles.cjs','utf8').replace('/\\bbg-black\\/\\d+/g', '/\\bbg-black\\/(?:40|50|60|70)/g');fs.writeFileSync('scripts/ui-module-styles.cjs',s);

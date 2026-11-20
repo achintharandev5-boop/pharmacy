@@ -1,5 +1,6 @@
 'use client';
 
+import { uiTestEnabled, UI_TEST_UNAVAILABLE } from '@/lib/uiTestMode';
 import React from 'react';
 import { AlertTriangle, Inbox, RefreshCw, type LucideIcon } from 'lucide-react';
 import { Button } from './Button';
@@ -40,7 +41,7 @@ interface EmptyStateProps {
 export function EmptyState({ icon: Icon = Inbox, title, description, action, className }: EmptyStateProps) {
   return (
     <div className={cn('flex flex-col items-center justify-center text-center px-6 py-12 gap-2', className)}>
-      <div className="flex h-10 w-10 items-center justify-center rounded-ui bg-surface-2 text-subtle">
+      <div className="mb-1 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-tint)] text-primary">
         <Icon size={20} aria-hidden="true" />
       </div>
       <p className="text-sm font-semibold text-fg">{title}</p>
@@ -129,6 +130,9 @@ interface QueryViewProps<T> {
  */
 export function QueryView<T>({ query, errorTitle, isEmpty, empty, loading, children }: QueryViewProps<T>) {
   if (query.status === 'loading') return <>{loading ?? <SkeletonRows />}</>;
+  if (query.status === 'error' && uiTestEnabled() && query.error === UI_TEST_UNAVAILABLE) {
+    return <EmptyState title="No data loaded" description="UI testing mode: Connect the backend to view records." />;
+  }
   if (query.status === 'error') {
     return <ErrorState title={errorTitle} message={query.error} onRetry={query.retry} retrying={query.isFetching} />;
   }

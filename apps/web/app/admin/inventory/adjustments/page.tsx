@@ -1,6 +1,7 @@
 'use client';
 
 import React, { Suspense, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { adjustStock, getInventoryBatches } from '@/app/actions/inventory';
 import { getAdminProducts } from '@/app/actions/admin';
@@ -25,14 +26,15 @@ import { useApiQuery } from '@/lib/useApiQuery';
 import { formatDate, formatNumber, toNumberOrNull } from '@/lib/format';
 import type { ApiData } from '@/lib/api/types';
 
-type AdjustmentType = 'ADJUSTMENT_IN' | 'ADJUSTMENT_OUT' | 'EXPIRED' | 'DAMAGED' | 'RETURNED';
+type AdjustmentType = 'ADJUSTMENT_IN' | 'ADJUSTMENT_OUT' | 'EXPIRED' | 'DAMAGED' | 'SUPPLIER_RETURN';
 
-const TYPES: { id: AdjustmentType; label: string; decreases: boolean }[] = [
+// Patient returns are not adjustments: they are recorded under Returns and never added to stock.
+const TYPES: { id: AdjustmentType; label: string; decreases: boolean; needsBatch?: boolean }[] = [
   { id: 'ADJUSTMENT_OUT', label: 'Decrease: count discrepancy or shrinkage', decreases: true },
   { id: 'ADJUSTMENT_IN', label: 'Increase: found stock or recount', decreases: false },
   { id: 'DAMAGED', label: 'Decrease: damaged or broken units', decreases: true },
   { id: 'EXPIRED', label: 'Decrease: expired stock write-off', decreases: true },
-  { id: 'RETURNED', label: 'Increase: customer return to stock', decreases: false },
+  { id: 'SUPPLIER_RETURN', label: 'Decrease: returned to the supplier', decreases: true, needsBatch: true },
 ];
 
 function AdjustmentsInner() {
@@ -64,10 +66,11 @@ function AdjustmentsInner() {
 
   const errors = {
     product: productId ? null : 'Select the medicine.',
+    batch: meta.needsBatch && !batchId ? 'Select the batch being returned to the supplier.' : null,
     quantity: !/^\d+$/.test(quantity) || qty <= 0 ? 'Enter a whole number above 0.' : meta.decreases && available !== null && qty > available ? `Only ${available} unit(s) recorded.` : null,
     reason: reason.trim().length < 3 ? 'Explain the adjustment; it is kept in the stock ledger.' : null,
   };
-  const valid = !errors.product && !errors.quantity && !errors.reason;
+  const valid = !errors.product && !errors.batch && !errors.quantity && !errors.reason;
 
   const submit = async () => {
     setBusy(true);
@@ -102,7 +105,18 @@ function AdjustmentsInner() {
 
   return (
     <PageBody>
-      <InventoryHeader title="Adjustments" description="Correct recorded stock. Every adjustment needs a reason and is kept in the stock ledger. Requires the pharmacist or administrator role." />
+      <InventoryHeader
+        title="Adjustments"
+        description={
+          <>
+            Correct recorded stock, write off units, or record a return to the supplier. Every adjustment needs a reason and is kept in the stock ledger. Requires the pharmacist or administrator role. Medicine brought back by a patient is recorded under{' '}
+            <Link href="/admin/inventory/returns" className="font-medium text-primary underline-offset-2 hover:underline">
+              Returns
+            </Link>{' '}
+            and is not added to stock.
+          </>
+        }
+      />
       {failed ? (
         <Card>
           <ErrorState title="Could not load medicines or batches" message={failed.error ?? ''} onRetry={failed.retry} />
@@ -144,7 +158,7 @@ function AdjustmentsInner() {
                   </Select>
                 )}
               </FormField>
-              <FormField label="Batch" hint={productBatches.length === 0 && productId ? 'This medicine has no batch records; only the stock total changes.' : 'Choose the batch when the units come from a specific one.'}>
+              <FormField label="Batch" required={meta.needsBatch} error={showErrors ? errors.batch : null} hint={productBatches.length === 0 && productId ? 'This medicine has no batch records; only the stock total changes.' : 'Choose the batch when the units come from a specific one.'}>
                 {(f) => (
                   <Select {...f} value={batchId} onChange={(e) => setBatchId(e.target.value)} disabled={!productId || productBatches.length === 0}>
                     <option value="">No specific batch (stock total only)</option>

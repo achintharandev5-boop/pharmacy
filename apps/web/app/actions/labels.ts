@@ -1,35 +1,13 @@
 'use server';
+import { uiTestEnabled, UI_TEST_NOT_SAVED } from '@/lib/uiTestMode';
 
-import { cookies } from 'next/headers';
-import { apiList } from '@/lib/api/server';
+import { apiList, apiRequest } from '@/lib/api/server';
 import type { ApiData, ApiResult } from '@/lib/api/types';
 
-export async function createLabelRecord(data: any) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('sb-access-token')?.value;
-  
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-  
-  try {
-    const res = await fetch(`${apiUrl}/labels`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(data)
-    });
-
-    if (!res.ok) {
-      throw new Error(`API error: ${res.status}`);
-    }
-
-    const result = await res.json();
-    return { success: true, data: result };
-  } catch (e) {
-    console.error("Failed to save label record", e);
-    return { error: 'Failed to save label record' };
-  }
+export async function createLabelRecord(data: ApiData) {
+  if (uiTestEnabled()) return { error: UI_TEST_NOT_SAVED };
+  const result = await apiRequest<ApiData>('labels', { method: 'POST', body: data });
+  return result.ok ? { success: true, data: result.data } : { error: result.error };
 }
 
 export async function getRecentLabels(): Promise<ApiResult<ApiData[]>> {

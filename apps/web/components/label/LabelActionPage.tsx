@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useModalFocus } from '@/lib/useModalFocus';
+import { uiTestEnabled } from '@/lib/uiTestMode';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
   Printer,
@@ -12,22 +14,28 @@ import {
   AlertCircle,
   Calendar,
   Pill,
-  User,
   Phone,
   MapPin,
   Clock,
   X,
   FileCheck2,
 } from 'lucide-react';
-import { useLabelStore } from '../../store/labelStore';
+import { useLabelStore, isStatStep } from '../../store/labelStore';
 import { buildFinalInstruction } from '../../lib/labelBuilder';
-import { LabelCard } from '../PrintableLabel';
+import { useLabelPaper } from '../LabelPaper';
+import { LabelCard, LabelPrintStyles } from '../PrintableLabel';
 import { sendClientSms } from '../../app/actions/sms';
+import { labelFitReport } from '../../lib/labelFit';
+import { productTypePrinting } from '../../lib/productTypePrinting';
+import { expiryPrintError } from '../../lib/batchExpiry';
+import { chewingPrintError, dissolvePrintError, withFoodPrintError, keepInMouthPrintError, emptyStomachPrintError, intervalPrintError, digitalPrintError, eveningPrintError, weeklyPrintError, reasonsPrintError, daysPrintError, dailyPrintError, usbPrintError, eodPrintError, statPrintError } from '../../lib/instructionEngine';
 
 interface LabelActionPageProps {
   onSave: () => void;
   onDelete: () => void;
   onPrintAndSave: () => void;
+  /** Print the labels only: no prescription is saved, no stock is deducted, no print is recorded. */
+  onPrintOnly?: () => void;
   onBack: () => void;
   isProcessing?: boolean;
 }
@@ -36,18 +44,133 @@ export function LabelActionPage({
   onSave,
   onDelete,
   onPrintAndSave,
+  onPrintOnly,
   onBack,
   isProcessing = false,
 }: LabelActionPageProps) {
+  const paper = useLabelPaper();
   const customerName = useLabelStore((state) => state.customerName);
   const customerPhone = useLabelStore((state) => state.customerPhone);
   const setCustomerPhone = useLabelStore((state) => state.setCustomerPhone);
   const labels = useLabelStore((state) => state.labels);
+  const activeControl = useLabelStore((state) => state.activeControl);
+  const activeLabelIndex = useLabelStore((state) => state.activeLabelIndex);
 
   const summaries = labels.map((labelState) => buildFinalInstruction({ ...labelState, customerName }));
 
+  // Labels with text that would be cut off when printed (instructions, names or any other row),
+  // with the reasons. Measured on the real preview after layout, and again once the Sinhala font has loaded.
+  const previewsRef = useRef<HTMLDivElement>(null);
+  const [fitReport, setFitReport] = useState<{ index: number; problems: string[] }[]>([]);
+  const overflowing = fitReport.map((r) => r.index);
+  const problemsOf = (idx: number) => fitReport.find((r) => r.index === idx)?.problems ?? [];
+  const summariesKey = JSON.stringify(summaries);
+  useEffect(() => {
+    let cancelled = false;
+    const measure = () => {
+      if (!cancelled && previewsRef.current) setFitReport(labelFitReport(previewsRef.current));
+    };
+    const frame = requestAnimationFrame(measure);
+    document.fonts?.ready.then(measure);
+    // A font that starts loading later (the stylesheet below) changes the text: measure again.
+    const late = () => requestAnimationFrame(measure);
+    document.fonts?.addEventListener?.('loadingdone', late);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+      document.fonts?.removeEventListener?.('loadingdone', late);
+    };
+  }, [summariesKey]);
+  const typeErrors = summaries.flatMap((summary, index) => summary.productTypePrintingError
+    ? [`Label ${index + 1}: ${summary.productTypePrintingError}`] : []);
+  const chewingErrors = labels.flatMap((label, index) => {
+    const error = chewingPrintError(label);
+    return error ? [`Label ${index + 1}: ${error}`] : [];
+  });
+  const dissolveErrors = labels.flatMap((label, index) => {
+    const error = dissolvePrintError(label);
+    return error ? [`Label ${index + 1}: ${error}`] : [];
+  });
+  const withFoodErrors = labels.flatMap((label, index) => {
+    const error = withFoodPrintError(label);
+    return error ? [`Label ${index + 1}: ${error}`] : [];
+  });
+  const mouthErrors = labels.flatMap((label, index) => {
+    const error = keepInMouthPrintError(label);
+    return error ? [`Label ${index + 1}: ${error}`] : [];
+  });
+  const emptyStomachErrors = labels.flatMap((label, index) => {
+    const error = emptyStomachPrintError(label);
+    return error ? [`Label ${index + 1}: ${error}`] : [];
+  });
+  const usbErrors = labels.flatMap((label, index) => {
+    const error = usbPrintError(label);
+    return error ? [`Label ${index + 1}: ${error}`] : [];
+  });
+  const eodErrors = labels.flatMap((label, index) => {
+    const error = eodPrintError(label);
+    return error ? [`Label ${index + 1}: ${error}`] : [];
+  });
+  const statErrors = labels.flatMap((label, index) => {
+    const error = statPrintError(label, isStatStep(activeControl) && index === activeLabelIndex);
+    return error ? [`Label ${index + 1}: ${error}`] : [];
+  });
+  const intervalErrors = labels.flatMap((label, index) => {
+    const error = intervalPrintError(label);
+    return error ? [`Label ${index + 1}: ${error}`] : [];
+  });
+  const digitalErrors = labels.flatMap((label, index) => {
+    const error = digitalPrintError(label);
+    return error ? [`Label ${index + 1}: ${error}`] : [];
+  });
+  const eveningErrors = labels.flatMap((label, index) => {
+    const error = eveningPrintError(label);
+    return error ? [`Label ${index + 1}: ${error}`] : [];
+  });
+  const weeklyErrors = labels.flatMap((label, index) => {
+    const error = weeklyPrintError(label, ['weekly', 'weekly_fraction'].includes(activeControl) && index === activeLabelIndex);
+    return error ? [`Label ${index + 1}: ${error}`] : [];
+  });
+  const reasonCatalogue = useLabelStore(state => state.reasonCatalogue);
+  const reasonErrors = labels.flatMap((label, index) => {
+    const error = reasonsPrintError(label, reasonCatalogue);
+    return error ? [`Label ${index + 1}: ${error}`] : [];
+  });
+  const dayErrors = labels.flatMap((label, index) => {
+    const error = daysPrintError(label, activeControl === 'days_of_week' && index === activeLabelIndex);
+    return error ? [`Label ${index + 1}: ${error}`] : [];
+  });
+  const dailyErrors = labels.flatMap((label, index) => {
+    const error = dailyPrintError(label);
+    return error ? [`Label ${index + 1}: ${error}`] : [];
+  });
+  const expiryErrors = labels.flatMap((label, index) => {
+    const error = expiryPrintError(label, { uiTest: uiTestEnabled() });
+    return error ? [`Label ${index + 1}: ${error}`] : [];
+  });
+  const printBlocked = expiryErrors.length > 0 || overflowing.length > 0 || typeErrors.length > 0 || chewingErrors.length > 0 || dissolveErrors.length > 0 || withFoodErrors.length > 0 || mouthErrors.length > 0 || emptyStomachErrors.length > 0 || usbErrors.length > 0 || eodErrors.length > 0 || statErrors.length > 0 || intervalErrors.length > 0 || digitalErrors.length > 0 || eveningErrors.length > 0 || reasonErrors.length > 0 || dayErrors.length > 0 || weeklyErrors.length > 0 || dailyErrors.length > 0;
+  const handleSave = () => {
+    if (!useLabelStore.getState().labels.some((label, index) => expiryPrintError(label, { uiTest: uiTestEnabled() }) || reasonsPrintError(label, useLabelStore.getState().reasonCatalogue) || daysPrintError(label, useLabelStore.getState().activeControl === 'days_of_week' && index === useLabelStore.getState().activeLabelIndex) || weeklyPrintError(label, ['weekly', 'weekly_fraction'].includes(useLabelStore.getState().activeControl) && index === useLabelStore.getState().activeLabelIndex) || dailyPrintError(label) || eveningPrintError(label) || digitalPrintError(label) || intervalPrintError(label) || dissolvePrintError(label) || withFoodPrintError(label) || keepInMouthPrintError(label) || emptyStomachPrintError(label) || usbPrintError(label) || eodPrintError(label) || statPrintError(label, isStatStep(useLabelStore.getState().activeControl) && index === useLabelStore.getState().activeLabelIndex))) onSave();
+  };
+
+  // Measure again at the moment of printing (fonts or content may have changed since the last
+  // measurement); never print a label that would be cut off.
+  const guardedPrint = (print: () => void) => {
+    if (useLabelStore.getState().labels.some((label, index) => expiryPrintError(label, { uiTest: uiTestEnabled() }) || reasonsPrintError(label, useLabelStore.getState().reasonCatalogue) || daysPrintError(label, useLabelStore.getState().activeControl === 'days_of_week' && index === useLabelStore.getState().activeLabelIndex) || weeklyPrintError(label, ['weekly', 'weekly_fraction'].includes(useLabelStore.getState().activeControl) && index === useLabelStore.getState().activeLabelIndex) || dailyPrintError(label) || eveningPrintError(label) || digitalPrintError(label) || intervalPrintError(label) || productTypePrinting(label).error || chewingPrintError(label) || dissolvePrintError(label) || withFoodPrintError(label) || keepInMouthPrintError(label) || emptyStomachPrintError(label) || usbPrintError(label) || eodPrintError(label) || statPrintError(label, isStatStep(useLabelStore.getState().activeControl) && index === useLabelStore.getState().activeLabelIndex))) return;
+    const now = previewsRef.current ? labelFitReport(previewsRef.current) : [];
+    if (now.length > 0) {
+      setFitReport(now);
+      return;
+    }
+    print();
+  };
+  const handlePrintAndSave = () => guardedPrint(onPrintAndSave);
+  // Same label checks as Print & Save; patient and medicine names are optional for a print-only label.
+  const handlePrintOnly = () => { if (onPrintOnly) guardedPrint(onPrintOnly); };
+
   // SMS Modal State
   const [smsModalOpen, setSmsModalOpen] = useState(false);
+  const smsModalRef = useModalFocus(smsModalOpen, () => setSmsModalOpen(false));
   const [smsRecipient, setSmsRecipient] = useState('');
   const [smsMessage, setSmsMessage] = useState('');
   const [smsLoading, setSmsLoading] = useState(false);
@@ -103,8 +226,8 @@ export function LabelActionPage({
       } else {
         setSmsStatus({ type: 'error', message: res.error || 'Failed to send SMS.' });
       }
-    } catch (err: any) {
-      setSmsStatus({ type: 'error', message: err.message || 'An unexpected error occurred.' });
+    } catch (err: unknown) {
+      setSmsStatus({ type: 'error', message: err instanceof Error ? err.message : 'An unexpected error occurred.' });
     } finally {
       setSmsLoading(false);
     }
@@ -116,7 +239,7 @@ export function LabelActionPage({
         {/* 1. TOP HEADER */}
         <div className="bg-page border border-border/70 rounded-ui-lg p-5 sm:p-6 shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-ui-lg bg-primary flex items-center justify-center text-white shrink-0">
+            <div className="w-11 h-11 rounded-ui-lg bg-primary flex items-center justify-center text-[var(--color-on-solid)] shrink-0">
               <FileCheck2 className="w-5 h-5" strokeWidth={2.2} />
             </div>
             <div>
@@ -133,7 +256,7 @@ export function LabelActionPage({
             type="button"
             onClick={onBack}
             disabled={isProcessing}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-surface text-muted rounded-ui-lg font-bold text-xs border border-border shadow-2xs transition-all active:scale-[0.98] self-start sm:self-auto cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-page hover:bg-surface text-muted rounded-ui-lg font-bold text-xs border border-border shadow-2xs transition-all active:scale-[0.98] self-start sm:self-auto cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4 text-primary" />
             <span>Back to Edit</span>
@@ -143,7 +266,7 @@ export function LabelActionPage({
         {/* 2. PATIENT & ORDER SUMMARY BANNER */}
         <div className="bg-primary-soft border border-primary-border/60 rounded-ui-lg p-4 sm:p-5 shadow-2xs flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary text-white font-black text-sm flex items-center justify-center shadow-xs ring-2 ring-primary-border shrink-0">
+            <div className="w-10 h-10 rounded-full bg-primary text-[var(--color-on-solid)] font-black text-sm flex items-center justify-center shadow-xs ring-2 ring-primary-border shrink-0">
               {(customerName || 'P').charAt(0).toUpperCase()}
             </div>
             <div>
@@ -157,7 +280,7 @@ export function LabelActionPage({
           </div>
 
           <div className="flex items-center gap-4 flex-wrap">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-ui-lg bg-white border border-border/80 shadow-2xs">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-ui-lg bg-page border border-border/80 shadow-2xs">
               <Phone className="w-3.5 h-3.5 text-primary" />
               <span className="text-[11px] font-semibold text-subtle">Phone:</span>
               <span className="text-xs font-mono font-bold text-fg">
@@ -175,7 +298,9 @@ export function LabelActionPage({
         </div>
 
         {/* 3. MULTI-LABEL SUMMARY CARDS WITH 1:1 PRINT PREVIEW */}
-        <div className="space-y-4">
+        {/* The previews use the print's own font rules, so the guard measures what will print. */}
+        <LabelPrintStyles />
+        <div className="space-y-4" ref={previewsRef}>
           {summaries.map((summary, idx) => (
             <div
               key={summary.id || idx}
@@ -247,7 +372,7 @@ export function LabelActionPage({
                     Generated Patient Instructions
                   </span>
                   <div className="p-3.5 bg-surface/80 border border-border/80 rounded-ui-lg text-[15px] font-bold text-fg leading-relaxed sinhala-text shadow-2xs">
-                    {summary.instructionString || 'No instruction generated.'}
+                    {summary.finalInstructionText || 'No instruction generated.'}
                   </div>
                 </div>
 
@@ -256,37 +381,94 @@ export function LabelActionPage({
                   <div className="flex items-center gap-2 text-xs">
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-danger-soft border border-danger-border/70 text-danger font-mono font-bold">
                       <Calendar className="w-3.5 h-3.5" />
-                      <span>EXP: {summary.expiryDate}</span>
+                      <span data-review-expiry>
+                        EXP: {summary.expiryDate}
+                        {summary.expiryBatch?.source === 'ui-test' ? ' (temporary UI test value, not a GRN batch)' : summary.expiryBatch?.batchNumber ? ` · Batch ${summary.expiryBatch.batchNumber}` : ''}
+                      </span>
                     </span>
                   </div>
                 )}
               </div>
 
-              {/* RIGHT SIDE: 1:1 Actual 8cm x 8cm Print Preview */}
+              {/* RIGHT SIDE: 1:1 print preview using the configured label stock */}
               <div className="shrink-0 flex flex-col items-center self-center xl:self-start pt-2 xl:pt-0">
                 <div className="flex items-center gap-1.5 text-[11px] font-bold text-subtle uppercase tracking-wider mb-2">
                   <Printer className="w-3.5 h-3.5 text-primary" />
-                  <span>Actual 8cm × 8cm Print Preview</span>
+                  <span>Actual size {paper.widthMm} × {paper.heightMm} mm print preview</span>
                 </div>
-                <div className="rounded-ui-lg shadow-card border border-border/90 bg-white overflow-hidden p-1">
+                <div
+                  className={`rounded-ui-lg shadow-card border bg-page overflow-hidden p-1 ${
+                    overflowing.includes(idx) ? 'border-2 border-danger' : 'border-border/90'
+                  }`}
+                >
                   <LabelCard labelItem={summary} />
                 </div>
+                {overflowing.includes(idx) && (
+                  <p role="alert" data-testid={`label-overflow-${idx}`} className="mt-2 max-w-[80mm] text-xs font-bold text-danger text-center">
+                    Cannot print this label in full: {problemsOf(idx).join('; ')}. Go back and remove an
+                    instruction, or shorten the name.
+                  </p>
+                )}
               </div>
             </div>
           ))}
         </div>
 
+        {typeErrors.length > 0 && (
+          <div role="alert" data-testid="product-type-print-blocked" className="bg-danger-soft border border-danger-border text-danger rounded-ui-lg px-4 py-3 text-sm font-bold">
+            Printing is blocked: {typeErrors.join(' ')}
+          </div>
+        )}
+        {statErrors.length > 0 && <div role="alert" data-testid="stat-validation-blocked" className="text-danger">Saving and printing are blocked: {statErrors.join(' ')}</div>}
+        {eodErrors.length > 0 && <div role="alert" data-testid="eod-validation-blocked" className="text-danger">Saving and printing are blocked: {eodErrors.join(' ')}</div>}
+        {weeklyErrors.length > 0 && <div role="alert" data-testid="weekly-validation-blocked" className="text-danger">Saving and printing are blocked: {weeklyErrors.join(' ')}</div>}
+        {dayErrors.length > 0 && <div role="alert" data-testid="days-validation-blocked" className="text-danger">Saving and printing are blocked: {dayErrors.join(' ')}</div>}
+        {reasonErrors.length > 0 && <div role="alert" data-testid="reasons-validation-blocked" className="text-danger">Saving and printing are blocked: {reasonErrors.join(' ')}</div>}
+        {dailyErrors.length > 0 && <div role="alert" data-testid="daily-validation-blocked" className="text-danger">Saving and printing are blocked: {dailyErrors.join(' ')}</div>}
+        {expiryErrors.length > 0 && <div role="alert" data-testid="expiry-validation-blocked" className="text-danger">Saving and printing are blocked: {expiryErrors.join(' ')}</div>}
+        {eveningErrors.length > 0 && <div role="alert" data-testid="evening-validation-blocked" className="text-danger">Saving and printing are blocked: {eveningErrors.join(' ')}</div>}
+        {digitalErrors.length > 0 && <div role="alert" data-testid="digital-validation-blocked" className="text-danger">Saving and printing are blocked: {digitalErrors.join(' ')}</div>}
+        {intervalErrors.length > 0 && <div role="alert" data-testid="interval-validation-blocked" className="text-danger">Saving and printing are blocked: {intervalErrors.join(' ')}</div>}
+        {usbErrors.length > 0 && <div role="alert" data-testid="usb-validation-blocked" className="text-danger">Saving and printing are blocked: {usbErrors.join(' ')}</div>}
+        {emptyStomachErrors.length > 0 && <div role="alert" data-testid="empty-stomach-validation-blocked" className="text-danger">Saving and printing are blocked: {emptyStomachErrors.join(' ')}</div>}
+        {mouthErrors.length > 0 && <div role="alert" data-testid="keep-in-mouth-validation-blocked" className="text-danger">Saving and printing are blocked: {mouthErrors.join(' ')}</div>}
+        {withFoodErrors.length > 0 && (
+          <div role="alert" data-testid="with-food-validation-blocked" className="bg-danger-soft border border-danger-border text-danger rounded-ui-lg px-4 py-3 text-sm font-bold">
+            Saving and printing are blocked: {withFoodErrors.join(' ')}
+          </div>
+        )}
+        {dissolveErrors.length > 0 && (
+          <div role="alert" data-testid="dissolve-validation-blocked" className="bg-danger-soft border border-danger-border text-danger rounded-ui-lg px-4 py-3 text-sm font-bold">
+            Saving and printing are blocked: {dissolveErrors.join(' ')}
+          </div>
+        )}
+        {chewingErrors.length > 0 && (
+          <div role="alert" data-testid="chewing-print-blocked" className="bg-danger-soft border border-danger-border text-danger rounded-ui-lg px-4 py-3 text-sm font-bold">
+            Printing is blocked: {chewingErrors.join(' ')}
+          </div>
+        )}
+        {overflowing.length > 0 && (
+          <div role="alert" data-testid="print-blocked" className="bg-danger-soft border border-danger-border text-danger rounded-ui-lg px-4 py-3 text-sm font-bold">
+            Printing is blocked: label {overflowing.map((i) => i + 1).join(', ')} has more text than fits on the {paper.widthMm} × {paper.heightMm} mm label,
+            so some of it would be cut off ({fitReport.map((r) => `label ${r.index + 1}: ${r.problems.join(', ')}`).join('; ')}).
+            Go back and remove an instruction, or shorten the name. Save without printing is still available.
+          </div>
+        )}
+
         {/* 4. BOTTOM ACTION BUTTON BAR */}
-        <div className="bg-page rounded-ui-lg border border-border/70 p-3.5 sm:p-4 shadow-card grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {/* 1. SAVE DRAFT */}
+        <div className={`bg-page rounded-ui-lg border border-border/70 p-3.5 sm:p-4 shadow-card grid grid-cols-2 gap-3 ${onPrintOnly ? 'sm:grid-cols-5' : 'sm:grid-cols-4'}`}>
+          {/* 1. SAVE WITHOUT PRINTING. This records the prescription as completed (and dispenses stock
+              for a stocked medicine), exactly like Print & Save without the print. It is not a draft:
+              the API has no draft save yet (docs/PHARMACIST_APPROVAL_REQUIRED.md, B3). */}
           <button
             type="button"
-            onClick={onSave}
-            disabled={isProcessing}
-            className="h-[52px] rounded-ui-lg font-bold text-xs sm:text-sm bg-white hover:bg-surface active:bg-surface-2 text-muted border border-border/90 shadow-2xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-50"
+            onClick={handleSave}
+            disabled={isProcessing || expiryErrors.length > 0 || dissolveErrors.length > 0 || withFoodErrors.length > 0 || mouthErrors.length > 0 || emptyStomachErrors.length > 0 || usbErrors.length > 0 || eodErrors.length > 0 || statErrors.length > 0 || intervalErrors.length > 0 || digitalErrors.length > 0 || eveningErrors.length > 0 || reasonErrors.length > 0 || dayErrors.length > 0 || weeklyErrors.length > 0 || dailyErrors.length > 0}
+            title="Records the prescription as completed, without printing. This is not a draft."
+            className="h-[52px] rounded-ui-lg font-bold text-xs sm:text-sm bg-page hover:bg-surface active:bg-surface-2 text-muted border border-border/90 shadow-2xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-50"
           >
             <Save className="w-4 h-4 text-subtle" />
-            <span>Save Draft</span>
+            <span>Save without printing</span>
           </button>
 
           {/* 2. DELETE */}
@@ -305,34 +487,49 @@ export function LabelActionPage({
             type="button"
             onClick={handleOpenSmsModal}
             disabled={isProcessing}
-            className="h-[52px] rounded-ui-lg font-bold text-xs sm:text-sm bg-white hover:bg-primary-soft text-primary border border-primary-border transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-50"
+            className="h-[52px] rounded-ui-lg font-bold text-xs sm:text-sm bg-page hover:bg-primary-soft text-primary border border-primary-border transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-50"
           >
             <MessageSquare className="w-4 h-4" />
             <span>Send SMS</span>
           </button>
 
-          {/* 4. PRINT AND SAVE (HERO PRIMARY) */}
+          {/* 4. PRINT LABEL ONLY: a standalone instruction label, nothing saved or deducted */}
+          {onPrintOnly && (
+            <button
+              type="button"
+              onClick={handlePrintOnly}
+              disabled={isProcessing || printBlocked}
+              title="Prints the 70 × 50 mm label without saving a prescription, deducting stock or recording the print. Patient and medicine names are optional."
+              className="h-[52px] rounded-ui-lg font-bold text-xs sm:text-sm bg-page hover:bg-primary-soft text-primary border border-primary-border transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-50"
+            >
+              <Printer className="w-4 h-4" />
+              <span>Print label only (not saved)</span>
+            </button>
+          )}
+
+          {/* 5. PRINT AND SAVE (HERO PRIMARY) */}
           <button
             type="button"
-            onClick={onPrintAndSave}
-            disabled={isProcessing}
-            className="h-[52px] rounded-ui-lg font-extrabold text-xs sm:text-sm bg-primary hover:bg-primary-hover text-white transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-50"
+            onClick={handlePrintAndSave}
+            disabled={isProcessing || printBlocked}
+            title={expiryErrors.length || typeErrors.length || chewingErrors.length || dissolveErrors.length || withFoodErrors.length || mouthErrors.length || emptyStomachErrors.length || usbErrors.length || eodErrors.length || statErrors.length || intervalErrors.length || digitalErrors.length || eveningErrors.length || weeklyErrors.length || reasonErrors.length || dayErrors.length || dailyErrors.length ? [...expiryErrors, ...typeErrors, ...chewingErrors, ...dissolveErrors, ...withFoodErrors, ...mouthErrors, ...emptyStomachErrors, ...usbErrors, ...eodErrors, ...statErrors, ...intervalErrors, ...digitalErrors, ...eveningErrors, ...weeklyErrors, ...reasonErrors, ...dayErrors, ...dailyErrors].join(' ') : printBlocked ? `Label ${overflowing.map((i) => i + 1).join(', ')} does not fit; printing would cut off lines` : undefined}
+            className="h-[52px] rounded-ui-lg font-extrabold text-xs sm:text-sm bg-primary hover:bg-primary-hover text-[var(--color-on-solid)] transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-50"
           >
             <Printer className="w-4 h-4" />
-            <span>Print & Save</span>
+            <span>{uiTestEnabled() ? 'Print layout preview' : 'Print & Save'}</span>
           </button>
         </div>
       </div>
 
       {/* 5. SMS MODAL POPUP */}
       {smsModalOpen && (
-        <div className="fixed inset-0 z-50 bg-fg/40 flex items-center justify-center p-4 select-none animate-in fade-in duration-150">
-          <div className="bg-white w-[min(540px,94vw)] border border-border rounded-ui-lg shadow-pop overflow-hidden flex flex-col">
+        <div ref={smsModalRef} role="dialog" aria-modal="true" aria-label="Send label by SMS" className="fixed inset-0 z-50 bg-[var(--color-backdrop)] flex items-center justify-center p-4 select-none animate-in fade-in duration-150">
+          <div className="bg-page w-[min(540px,94vw)] border border-border rounded-ui-lg shadow-pop overflow-hidden flex flex-col">
             {/* Modal Header */}
-            <div className="h-[60px] bg-primary text-white px-5 flex items-center justify-between shrink-0">
+            <div className="h-[60px] bg-primary text-[var(--color-on-solid)] px-5 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center border border-white/30 shadow-2xs">
-                  <MessageSquare className="w-4 h-4 text-white" />
+                <div className="w-8 h-8 rounded-lg bg-page/20 flex items-center justify-center border border-[var(--color-on-solid)]/30 shadow-2xs">
+                  <MessageSquare className="w-4 h-4 text-[var(--color-on-solid)]" />
                 </div>
                 <h2 className="text-base font-bold tracking-tight">
                   Send SMS Prescription to Client
@@ -341,7 +538,7 @@ export function LabelActionPage({
               <button
                 type="button"
                 onClick={() => setSmsModalOpen(false)}
-                className="w-8 h-8 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-colors cursor-pointer"
+                className="w-8 h-8 flex items-center justify-center text-[var(--color-on-solid)]/80 hover:text-[var(--color-on-solid)] hover:bg-page/20 rounded-lg transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -362,7 +559,7 @@ export function LabelActionPage({
                     value={smsRecipient}
                     onChange={(e) => setSmsRecipient(e.target.value)}
                     placeholder="e.g. 0771234567 or 94771234567"
-                    className="w-full h-[44px] pl-10 pr-4 bg-primary-soft hover:bg-white focus:bg-white border border-border focus:border-primary focus:ring-2 focus:ring-primary-border rounded-ui-lg text-sm font-semibold text-fg outline-none transition-all placeholder:text-subtle shadow-2xs"
+                    className="w-full h-[44px] pl-10 pr-4 bg-primary-soft hover:bg-page focus:bg-page border border-border focus:border-primary focus:ring-2 focus:ring-primary-border rounded-ui-lg text-sm font-semibold text-fg outline-none transition-all placeholder:text-subtle shadow-2xs"
                   />
                 </div>
               </div>
@@ -382,7 +579,7 @@ export function LabelActionPage({
                   value={smsMessage}
                   onChange={(e) => setSmsMessage(e.target.value)}
                   placeholder="Enter message..."
-                  className="w-full bg-primary-soft hover:bg-white focus:bg-white border border-border focus:border-primary focus:ring-2 focus:ring-primary-border rounded-ui-lg p-3 text-xs sm:text-sm font-medium text-fg outline-none transition-all resize-none shadow-2xs"
+                  className="w-full bg-primary-soft hover:bg-page focus:bg-page border border-border focus:border-primary focus:ring-2 focus:ring-primary-border rounded-ui-lg p-3 text-xs sm:text-sm font-medium text-fg outline-none transition-all resize-none shadow-2xs"
                 />
               </div>
 
@@ -419,7 +616,7 @@ export function LabelActionPage({
                   type="button"
                   onClick={handleSendSms}
                   disabled={smsLoading || !smsRecipient.trim()}
-                  className="h-[44px] rounded-ui-lg font-bold text-xs sm:text-sm bg-primary hover:bg-primary-hover disabled:opacity-50 text-white shadow-xs transition-all flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer"
+                  className="h-[44px] rounded-ui-lg font-bold text-xs sm:text-sm bg-primary hover:bg-primary-hover disabled:opacity-50 text-[var(--color-on-solid)] shadow-xs transition-all flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer"
                 >
                   {smsLoading ? (
                     <span>Sending SMS...</span>

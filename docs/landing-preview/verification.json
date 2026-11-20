@@ -1,0 +1,117 @@
+{
+  "measurements": [
+    {
+      "width": 375,
+      "height": 812,
+      "overflow": 0,
+      "headings": 1,
+      "font": "LandingInter, Inter, Arial, sans-serif",
+      "robots": "noindex, nofollow, noarchive",
+      "reducedMotion": true
+    },
+    {
+      "width": 430,
+      "height": 932,
+      "overflow": 0,
+      "headings": 1,
+      "font": "LandingInter, Inter, Arial, sans-serif",
+      "robots": "noindex, nofollow, noarchive",
+      "reducedMotion": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "overflow": 0,
+      "headings": 1,
+      "font": "LandingInter, Inter, Arial, sans-serif",
+      "robots": "noindex, nofollow, noarchive",
+      "reducedMotion": true
+    },
+    {
+      "width": 1024,
+      "height": 900,
+      "overflow": 0,
+      "headings": 1,
+      "font": "LandingInter, Inter, Arial, sans-serif",
+      "robots": "noindex, nofollow, noarchive",
+      "reducedMotion": true
+    },
+    {
+      "width": 1440,
+      "height": 1000,
+      "overflow": 0,
+      "headings": 1,
+      "font": "LandingInter, Inter, Arial, sans-serif",
+      "robots": "noindex, nofollow, noarchive",
+      "reducedMotion": true
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "overflow": 0,
+      "headings": 1,
+      "font": "LandingInter, Inter, Arial, sans-serif",
+      "robots": "noindex, nofollow, noarchive",
+      "reducedMotion": true
+    }
+  ],
+  "accessibility": [
+    {
+      "width": 375,
+      "violations": []
+    },
+    {
+      "width": 1440,
+      "violations": []
+    }
+  ],
+  "navigation": [
+    {
+      "route": "/welcome",
+      "anonymousStatus": 307,
+      "destination": "/login"
+    },
+    {
+      "route": "/admin",
+      "anonymousStatus": 307,
+      "destination": "/login"
+    },
+    {
+      "route": "/label",
+      "anonymousStatus": 307,
+      "destination": "/login"
+    },
+    {
+      "route": "/pos",
+      "anonymousStatus": 307,
+      "destination": "/login"
+    },
+    {
+      "route": "/admin/inventory",
+      "anonymousStatus": 307,
+      "destination": "/login"
+    },
+    {
+      "route": "/admin/patients",
+      "anonymousStatus": 307,
+      "destination": "/login"
+    },
+    {
+      "mobileMenu": "PASS",
+      "keyboard": "PASS",
+      "anchor": "#features"
+    }
+  ],
+  "errors": [],
+  "externalRequestsBlocked": [
+    "https://fonts.googleapis.com",
+    "https://fonts.googleapis.com",
+    "https://fonts.googleapis.com",
+    "https://fonts.googleapis.com",
+    "https://fonts.googleapis.com",
+    "https://fonts.googleapis.com",
+    "https://fonts.googleapis.com",
+    "https://fonts.googleapis.com",
+    "https://fonts.googleapis.com"
+  ]
+}

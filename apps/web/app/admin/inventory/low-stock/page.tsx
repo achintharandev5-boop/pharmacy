@@ -37,7 +37,7 @@ export default function LowStockPage() {
           </LinkButton>
         }
       />
-      <Card>
+      <Card className="overflow-hidden">
         <QueryView
           query={low}
           errorTitle="Could not load low stock"

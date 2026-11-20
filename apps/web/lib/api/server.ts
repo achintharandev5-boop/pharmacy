@@ -1,9 +1,12 @@
+import { uiTestEnabled, UI_TEST_UNAVAILABLE, UI_TEST_NOT_SAVED } from '../uiTestMode';
 import { cookies } from 'next/headers';
+import { stagingGatewayHeaders } from '@/lib/server/stagingGateway';
 import { NETWORK_ERROR_MESSAGE, type ApiResult } from './types';
+import { apiBaseUrl, frontendOnlyMode } from '../server/apiConfiguration';
 
 // Server-only helper used by server actions. Do not import from client components.
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const FRONTEND_ONLY_ERROR = 'This operation is unavailable in frontend-only mode. No backend request was made.';
 
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
@@ -43,15 +46,18 @@ function errorMessage(status: number, body: unknown): string {
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<ApiResult<T>> {
   const method = options.method ?? 'GET';
+  if (frontendOnlyMode()) return { ok: false, code: 'FRONTEND_ONLY_MODE', error: FRONTEND_ONLY_ERROR };
+  if (uiTestEnabled()) return { ok: false, code: 'UI_TEST_DISABLED_BACKEND', error: method === 'GET' ? UI_TEST_UNAVAILABLE : UI_TEST_NOT_SAVED };
   const token = (await cookies()).get('sb-access-token')?.value;
 
-  const headers: Record<string, string> = { ...options.headers };
+  const headers: Record<string, string> = { ...options.headers, ...stagingGatewayHeaders() };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+  const apiUrl = apiBaseUrl();
 
   let res: Response;
   try {
-    res = await fetch(`${API_URL}/${path.replace(/^\//, '')}`, {
+    res = await fetch(`${apiUrl}/${path.replace(/^\//, '')}`, {
       method,
       headers,
       body: options.body !== undefined ? JSON.stringify(options.body) : undefined,

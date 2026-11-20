@@ -2,6 +2,8 @@
 
 Date: 2026-10-10 · Branch: `feature/ui-ux-redesign`
 
+**Superseded for staging purposes by `STAGING_READINESS_REPORT.md` (same date, later stage), which has the current test results, decisions and blockers.**
+
 **Status: not production-ready.** Every code-side item below is done and tested locally. Going live still needs four things only the owner can do: rotate the exposed credentials, approve and apply the database migrations, set user roles, and run an end-to-end check against the real Supabase project. See §8.
 
 Related documents: `PHASE0_SAFETY_AND_SECURITY_FINDINGS.md`, `DATABASE_SCHEMA.md`, `DATABASE_ERD.md`, `DATABASE_MIGRATION_PLAN.md`, `SUPABASE_DEPLOYMENT_GUIDE.md` (step-by-step runbook), `DATABASE_SECURITY_AUDIT.md`.

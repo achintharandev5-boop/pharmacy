@@ -41,3 +41,6 @@ done
 
 run -d "$DB" -f "$HERE/10_migration_tests.sql"
 bash "$HERE/20_concurrency_test.sh"
+run -d "$DB" -f "$HERE/30_returns_dispensing_tests.sql"
+bash "$HERE/40_dispensing_concurrency_test.sh"
+run -d "$DB" -f "$HERE/60_reasons_catalogue_tests.sql"

@@ -1,0 +1,12 @@
+ ❯ processTimers node:internal/timers:519:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+ Test Files  17 failed | 56 passed (74)
+      Tests  126 failed | 1847 passed (2166)
+     Errors  23 errors
+   Start at  19:24:58
+   Duration  537.06s (transform 71.07s, setup 1019.19s, collect 563.76s, tests 3589.95s, environment 1443.49s, prepare 33.63s)
+
+WARNING: Some tests are still running when generating the JSON report.This is likely an internal bug in Vitest.Please report it to https://github.com/vitest-dev/vitest/issues
+JSON report written to C:/Users/Achintha/AppData/Local/Temp/claude/c--Users-Achintha-Documents-Pharmacy-label-sass-pharmacy-label/8068491b-9c27-4efc-8537-367127dad3ec/scratchpad/vitest-full-1.json

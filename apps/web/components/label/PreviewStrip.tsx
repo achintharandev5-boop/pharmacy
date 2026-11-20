@@ -13,7 +13,7 @@ export function PreviewStrip({ validationError }: PreviewStripProps) {
   return (
     <div className={`h-16 shrink-0 border-2 rounded-ui-lg flex items-center px-5 text-xl font-black transition-all ${
       validationError
-        ? 'bg-danger text-white border-danger shadow-pop animate-pulse'
+        ? 'bg-danger text-[var(--color-on-solid)] border-danger shadow-pop animate-pulse'
         : 'bg-primary-soft text-primary border-primary shadow-card'
     }`}>
       {validationError

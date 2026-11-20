@@ -5,15 +5,15 @@ import { ChevronDown } from 'lucide-react';
 import { cn } from './cn';
 
 const FIELD_BASE =
-  'w-full rounded-ui border bg-page text-sm text-fg placeholder:text-subtle transition-colors ' +
-  'border-border-strong hover:border-subtle focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft ' +
+  'w-full rounded-ui border bg-[var(--color-input)] text-sm text-fg placeholder:text-subtle transition-colors ' +
+  'border-[var(--color-input-border)] hover:border-primary-border focus:border-primary focus:outline-none focus:ring-[3px] focus:ring-primary-soft ' +
   'disabled:bg-surface disabled:text-subtle disabled:cursor-not-allowed ' +
   'aria-invalid:border-danger aria-invalid:focus:ring-danger-soft';
 
 type InputProps = React.InputHTMLAttributes<HTMLInputElement> & { invalid?: boolean };
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(function Input({ className, invalid, ...rest }, ref) {
-  return <input ref={ref} aria-invalid={invalid || undefined} className={cn(FIELD_BASE, 'h-10 px-3', className)} {...rest} />;
+  return <input ref={ref} aria-invalid={invalid || undefined} className={cn(FIELD_BASE, 'h-11 px-3', className)} {...rest} />;
 });
 
 type TextareaProps = React.TextareaHTMLAttributes<HTMLTextAreaElement> & { invalid?: boolean };
@@ -32,7 +32,7 @@ type SelectProps = React.SelectHTMLAttributes<HTMLSelectElement> & { invalid?: b
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(function Select({ className, invalid, children, ...rest }, ref) {
   return (
     <div className="relative">
-      <select ref={ref} aria-invalid={invalid || undefined} className={cn(FIELD_BASE, 'h-10 pl-3 pr-9 appearance-none', className)} {...rest}>
+      <select ref={ref} aria-invalid={invalid || undefined} className={cn(FIELD_BASE, 'h-11 pl-3 pr-9 appearance-none', className)} {...rest}>
         {children}
       </select>
       <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-subtle" aria-hidden="true" />
@@ -82,7 +82,7 @@ export function FormField({ label, hint, error, required, className, children }:
         </p>
       )}
       {error && (
-        <p id={errorId} className="text-xs font-medium text-danger">
+        <p id={errorId} role="alert" className="text-xs font-medium text-danger">
           {error}
         </p>
       )}

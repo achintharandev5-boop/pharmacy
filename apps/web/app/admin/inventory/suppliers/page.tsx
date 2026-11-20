@@ -37,7 +37,7 @@ export default function SuppliersPage() {
           </Button>
         }
       />
-      <Card>
+      <Card className="overflow-hidden">
         <div className="border-b border-border p-4">
           <SearchInput value={search} onChange={setSearch} label="Search suppliers" placeholder="Name, contact or phone" />
         </div>

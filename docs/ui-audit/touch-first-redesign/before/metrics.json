@@ -1,0 +1,505 @@
+[
+  {
+    "viewport": "1920x1080",
+    "sizes": {
+      "gridTile": [
+        191,
+        179
+      ],
+      "dosagePlus": [
+        76,
+        76
+      ],
+      "dosageMinus": [
+        76,
+        76
+      ],
+      "dosageXY": [
+        120,
+        76
+      ],
+      "adminGive": [
+        162,
+        52
+      ],
+      "qtyPlus": [
+        36,
+        36
+      ],
+      "prevLabel": [
+        44,
+        44
+      ],
+      "done": [
+        711,
+        76
+      ],
+      "gridIcon": 28
+    },
+    "overflowX": 0,
+    "small": [
+      {
+        "n": "INPUT",
+        "w": 381,
+        "h": 15
+      },
+      {
+        "n": "Manual test-product name",
+        "w": 418,
+        "h": 18
+      },
+      {
+        "n": "Focus medicine search for the barcode scanner",
+        "w": 36,
+        "h": 36
+      },
+      {
+        "n": "Alternative product name",
+        "w": 303,
+        "h": 15
+      },
+      {
+        "n": "Decrease product quantity",
+        "w": 36,
+        "h": 36
+      },
+      {
+        "n": "Product quantity not set. Enter quantity",
+        "w": 145,
+        "h": 36
+      },
+      {
+        "n": "Increase product quantity",
+        "w": 36,
+        "h": 36
+      }
+    ],
+    "clipped": [],
+    "headings": [
+      "Selected Instructions",
+      "Dosage Schedule",
+      "Administration"
+    ],
+    "words": 118
+  },
+  {
+    "viewport": "1440x900",
+    "sizes": {
+      "gridTile": [
+        139,
+        134
+      ],
+      "dosagePlus": [
+        76,
+        76
+      ],
+      "dosageMinus": [
+        76,
+        76
+      ],
+      "dosageXY": [
+        120,
+        76
+      ],
+      "adminGive": [
+        117,
+        52
+      ],
+      "qtyPlus": [
+        36,
+        36
+      ],
+      "prevLabel": [
+        44,
+        44
+      ],
+      "done": [
+        530,
+        76
+      ],
+      "gridIcon": 20
+    },
+    "overflowX": 0,
+    "small": [
+      {
+        "n": "INPUT",
+        "w": 261,
+        "h": 15
+      },
+      {
+        "n": "Manual test-product name",
+        "w": 278,
+        "h": 18
+      },
+      {
+        "n": "Focus medicine search for the barcode scanner",
+        "w": 36,
+        "h": 36
+      },
+      {
+        "n": "Alternative product name",
+        "w": 217,
+        "h": 15
+      },
+      {
+        "n": "Decrease product quantity",
+        "w": 36,
+        "h": 36
+      },
+      {
+        "n": "Product quantity not set. Enter quantity",
+        "w": 78,
+        "h": 36
+      },
+      {
+        "n": "Increase product quantity",
+        "w": 36,
+        "h": 36
+      }
+    ],
+    "clipped": [],
+    "headings": [
+      "Selected Instructions",
+      "Dosage Schedule",
+      "Administration"
+    ],
+    "words": 118
+  },
+  {
+    "viewport": "1366x768",
+    "sizes": {
+      "gridTile": [
+        131,
+        101
+      ],
+      "dosagePlus": [
+        76,
+        76
+      ],
+      "dosageMinus": [
+        76,
+        76
+      ],
+      "dosageXY": [
+        120,
+        76
+      ],
+      "adminGive": [
+        110,
+        52
+      ],
+      "qtyPlus": [
+        36,
+        36
+      ],
+      "prevLabel": [
+        44,
+        44
+      ],
+      "done": [
+        502,
+        76
+      ],
+      "gridIcon": 20
+    },
+    "overflowX": 0,
+    "small": [
+      {
+        "n": "INPUT",
+        "w": 242,
+        "h": 15
+      },
+      {
+        "n": "Manual test-product name",
+        "w": 257,
+        "h": 18
+      },
+      {
+        "n": "Focus medicine search for the barcode scanner",
+        "w": 36,
+        "h": 36
+      },
+      {
+        "n": "Alternative product name",
+        "w": 203,
+        "h": 15
+      },
+      {
+        "n": "Decrease product quantity",
+        "w": 36,
+        "h": 36
+      },
+      {
+        "n": "Product quantity not set. Enter quantity",
+        "w": 67,
+        "h": 36
+      },
+      {
+        "n": "Increase product quantity",
+        "w": 36,
+        "h": 36
+      }
+    ],
+    "clipped": [],
+    "headings": [
+      "Selected Instructions",
+      "Dosage Schedule",
+      "Administration"
+    ],
+    "words": 118
+  },
+  {
+    "viewport": "1024x768",
+    "sizes": {
+      "gridTile": [
+        95,
+        101
+      ],
+      "dosagePlus": [
+        56,
+        56
+      ],
+      "dosageMinus": [
+        56,
+        56
+      ],
+      "dosageXY": [
+        72,
+        56
+      ],
+      "adminGive": [
+        81,
+        52
+      ],
+      "qtyPlus": [
+        36,
+        36
+      ],
+      "prevLabel": [
+        44,
+        44
+      ],
+      "done": [
+        372,
+        76
+      ],
+      "gridIcon": 20
+    },
+    "overflowX": 0,
+    "small": [
+      {
+        "n": "INPUT",
+        "w": 156,
+        "h": 15
+      },
+      {
+        "n": "Manual test-product name",
+        "w": 158,
+        "h": 18
+      },
+      {
+        "n": "Focus medicine search for the barcode scanner",
+        "w": 36,
+        "h": 36
+      },
+      {
+        "n": "Alternative product name",
+        "w": 142,
+        "h": 15
+      },
+      {
+        "n": "Decrease product quantity",
+        "w": 36,
+        "h": 36
+      },
+      {
+        "n": "Product quantity not set. Enter quantity",
+        "w": 36,
+        "h": 36
+      },
+      {
+        "n": "Increase product quantity",
+        "w": 36,
+        "h": 36
+      }
+    ],
+    "clipped": [],
+    "headings": [
+      "Selected Instructions",
+      "Dosage Schedule",
+      "Administration"
+    ],
+    "words": 118
+  },
+  {
+    "viewport": "768x1024",
+    "sizes": {
+      "gridTile": [
+        138,
+        72
+      ],
+      "dosagePlus": [
+        56,
+        56
+      ],
+      "dosageMinus": [
+        56,
+        56
+      ],
+      "dosageXY": [
+        72,
+        56
+      ],
+      "adminGive": [
+        138,
+        52
+      ],
+      "qtyPlus": [
+        27,
+        36
+      ],
+      "prevLabel": [
+        44,
+        44
+      ],
+      "done": [
+        277,
+        64
+      ],
+      "gridIcon": 20
+    },
+    "overflowX": 0,
+    "small": [
+      {
+        "n": "INPUT",
+        "w": 89,
+        "h": 15
+      },
+      {
+        "n": "Manual test-product name",
+        "w": 79,
+        "h": 18
+      },
+      {
+        "n": "Focus medicine search for the barcode scanner",
+        "w": 36,
+        "h": 36
+      },
+      {
+        "n": "Alternative product name",
+        "w": 93,
+        "h": 15
+      },
+      {
+        "n": "Decrease product quantity",
+        "w": 27,
+        "h": 36
+      },
+      {
+        "n": "Product quantity not set. Enter quantity",
+        "w": 16,
+        "h": 36
+      },
+      {
+        "n": "Increase product quantity",
+        "w": 27,
+        "h": 36
+      }
+    ],
+    "clipped": [],
+    "headings": [
+      "Selected Instructions",
+      "Dosage Schedule",
+      "Administration"
+    ],
+    "words": 118
+  },
+  {
+    "viewport": "390x844",
+    "sizes": {
+      "gridTile": [
+        80,
+        64
+      ],
+      "dosagePlus": [
+        56,
+        56
+      ],
+      "dosageMinus": [
+        56,
+        56
+      ],
+      "dosageXY": [
+        72,
+        56
+      ],
+      "adminGive": [
+        109,
+        52
+      ],
+      "qtyPlus": [
+        15,
+        36
+      ],
+      "prevLabel": [
+        44,
+        44
+      ],
+      "done": [
+        370,
+        56
+      ],
+      "gridIcon": 20
+    },
+    "overflowX": 0,
+    "small": [
+      {
+        "n": "INPUT",
+        "w": 0,
+        "h": 15
+      },
+      {
+        "n": "Manual test-product name",
+        "w": 0,
+        "h": 18
+      },
+      {
+        "n": "Focus medicine search for the barcode scanner",
+        "w": 36,
+        "h": 36
+      },
+      {
+        "n": "Alternative product name",
+        "w": 22,
+        "h": 15
+      },
+      {
+        "n": "Decrease product quantity",
+        "w": 15,
+        "h": 36
+      },
+      {
+        "n": "Product quantity not set. Enter quantity",
+        "w": 16,
+        "h": 36
+      },
+      {
+        "n": "Increase product quantity",
+        "w": 15,
+        "h": 36
+      },
+      {
+        "n": "Go to home",
+        "w": 26,
+        "h": 108
+      }
+    ],
+    "clipped": [],
+    "headings": [
+      "Selected Instructions",
+      "Dosage Schedule",
+      "Administration"
+    ],
+    "words": 118
+  }
+]

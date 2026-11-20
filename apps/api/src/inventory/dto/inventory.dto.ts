@@ -83,11 +83,17 @@ export class ReceiveStockDto {
   items!: ReceiveStockItemDto[];
 }
 
-export const ADJUSTMENT_TYPES = ['ADJUSTMENT_IN', 'ADJUSTMENT_OUT', 'EXPIRED', 'DAMAGED', 'RETURNED'] as const;
+/**
+ * Stock adjustments. Returns are not adjustments in the old sense:
+ *   SUPPLIER_RETURN  units physically sent back to the supplier; removes them from a batch
+ *   patient returns  recorded separately (PatientReturnDto) and never added back to stock
+ * The former RETURNED type (which added stock) is refused.
+ */
+export const ADJUSTMENT_TYPES = ['ADJUSTMENT_IN', 'ADJUSTMENT_OUT', 'EXPIRED', 'DAMAGED', 'SUPPLIER_RETURN'] as const;
 export type AdjustmentType = (typeof ADJUSTMENT_TYPES)[number];
 
-/** Adjustment types that reduce stock. RETURNED adds stock (unchanged from the existing behaviour). */
-export const DECREASING_TYPES: readonly AdjustmentType[] = ['ADJUSTMENT_OUT', 'EXPIRED', 'DAMAGED'];
+/** Adjustment types that reduce stock. Only ADJUSTMENT_IN (a recount) increases it. */
+export const DECREASING_TYPES: readonly AdjustmentType[] = ['ADJUSTMENT_OUT', 'EXPIRED', 'DAMAGED', 'SUPPLIER_RETURN'];
 
 export class StockAdjustmentDto {
   @IsUUID()
@@ -103,6 +109,51 @@ export class StockAdjustmentDto {
   @IsInt()
   @Min(1)
   @Max(1_000_000)
+  quantity!: number;
+
+  @IsString()
+  @MinLength(3)
+  @MaxLength(500)
+  reason!: string;
+}
+
+/** A reason for a quarantine, release or disposal; kept in the audit history. */
+export class ReasonDto {
+  @IsString()
+  @MinLength(3)
+  @MaxLength(500)
+  reason!: string;
+}
+
+/** Medicine brought back by a patient. Held for review; it does not change stock. */
+export class PatientReturnDto {
+  /** Catalogue medicine, when known. */
+  @IsOptional()
+  @IsUUID()
+  productId?: string;
+
+  /** Required when the medicine is not in the catalogue. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  productName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(60)
+  batchNumber?: string;
+
+  @IsOptional()
+  @IsUUID()
+  prescriptionId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  customerId?: string;
+
+  @IsInt()
+  @Min(1)
+  @Max(100_000)
   quantity!: number;
 
   @IsString()

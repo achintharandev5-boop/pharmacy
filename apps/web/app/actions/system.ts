@@ -1,5 +1,6 @@
 'use server';
 
+import { uiTestEnabled } from '@/lib/uiTestMode';
 import { apiRequest } from '@/lib/api/server';
 
 export type CheckStatus = 'ok' | 'error';
@@ -27,7 +28,7 @@ export async function getSystemStatus(): Promise<SystemStatus> {
     database: dbOk
       ? { status: 'ok' }
       : { status: 'error', detail: db.ok ? 'Database query failed' : db.error },
-    smsConfigured: Boolean(process.env.TEXT_LK_API_TOKEN),
+    smsConfigured: !uiTestEnabled() && Boolean(process.env.TEXT_LK_API_TOKEN),
     checkedAt: new Date().toISOString(),
   };
 }

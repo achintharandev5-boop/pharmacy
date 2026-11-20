@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { AlertTriangle, FileText, Trash2 } from 'lucide-react';
+import { AlertTriangle, FileText, Pencil, Trash2 } from 'lucide-react';
 import { getPatientProfileData } from '@/app/actions/admin';
-import { deletePersonRecord } from '@/app/actions/customers';
+import { deletePersonRecord, type PersonData } from '@/app/actions/customers';
+import { PatientDialog } from '@/components/patients/PatientDialog';
 import {
   Alert,
   Badge,
@@ -67,8 +68,10 @@ export default function PatientDetailPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
 
   const name = profile.data?.patient?.name as string | undefined;
+  const patient = (profile.data?.patient ?? null) as PersonData | null;
 
   const remove = async () => {
     setDeleting(true);
@@ -91,9 +94,14 @@ export default function PatientDetailPage() {
         breadcrumbs={[{ label: 'Patients', href: '/admin/patients' }, { label: name ?? 'Patient' }]}
         actions={
           profile.status === 'success' && (
-            <Button variant="danger-soft" icon={Trash2} onClick={() => setConfirmDelete(true)}>
-              Delete record
-            </Button>
+            <>
+              <Button icon={Pencil} onClick={() => setEditing(true)}>
+                Edit details
+              </Button>
+              <Button variant="danger-soft" icon={Trash2} onClick={() => setConfirmDelete(true)}>
+                Delete record
+              </Button>
+            </>
           )
         }
       />
@@ -168,6 +176,16 @@ export default function PatientDetailPage() {
           );
         }}
       </QueryView>
+      <PatientDialog
+        open={editing}
+        patient={patient}
+        onClose={() => setEditing(false)}
+        onSaved={(p) => {
+          setEditing(false);
+          toast.success(`${p.name}’s details were updated.`);
+          profile.retry();
+        }}
+      />
       <ConfirmDialog
         open={confirmDelete}
         onCancel={() => setConfirmDelete(false)}

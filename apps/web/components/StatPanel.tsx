@@ -1,106 +1,49 @@
 'use client';
 import React from 'react';
+import { dosageText } from '../lib/dosageQuantity';
 import { useLabelStore } from '../store/labelStore';
-import { Zap, Minus, Plus, ChevronDown, Check, X } from 'lucide-react';
+import { Zap } from 'lucide-react';
+import { CompactQuantityEditor } from './label/CompactQuantityEditor';
 
 export function formatDosage(qty: number, isFraction: boolean) {
-  if (!isFraction) return qty.toString();
-  const whole = Math.floor(qty);
-  const frac = qty - whole;
-  let fracStr = '';
-  if (Math.abs(frac - 0.5) < 0.01) fracStr = '½';
-  else if (Math.abs(frac - 0.25) < 0.01) fracStr = '¼';
-  else if (Math.abs(frac - 0.75) < 0.01) fracStr = '¾';
-  else fracStr = frac > 0 ? ` ${frac.toFixed(2).replace('0.', '.')}` : '';
-  
-  if (whole === 0) return fracStr || '0';
-  return `${whole}${fracStr}`;
+  return dosageText(qty, isFraction);
 }
 
 export function StatPanel() {
-  const { stat, incrementDosage, decrementDosage, openNumberPad, cancelStat, doneStat } = useLabelStore();
+  const { stat, incrementDosage, decrementDosage, cancelStat, doneStat } = useLabelStore();
 
   const currentQty = stat?.qty || 0;
   const currentIsFrac = stat?.isFraction || false;
   const displayQty = formatDosage(currentQty, currentIsFrac);
+  const hasQty = Number.isFinite(currentQty) && currentQty > 0;
+
+  // X/Y goes through the existing STAT fraction entry (stat_fraction): the fraction is added to
+  // the whole STAT quantity, or removed with 'clear'.
+  const applyFraction = (fraction: string) => {
+    const store = useLabelStore.getState();
+    store.openNumberPad('stat_fraction');
+    store.setQuickFraction(fraction);
+  };
 
   return (
-    <div className="w-full h-full flex flex-col justify-between p-3 select-none overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center gap-2.5 mb-2 shrink-0">
-        <div className="w-8 h-8 rounded-ui-lg bg-danger-soft border border-danger-border text-danger flex items-center justify-center shadow-sm">
-          <Zap size={18} className="fill-current" />
-        </div>
-        <div>
-          <h3 className="text-base font-bold text-fg leading-tight">
-            STAT Dose
-          </h3>
-          <p className="text-xs text-subtle font-medium leading-tight">
-            Immediate administration single dose
-          </p>
-        </div>
-      </div>
-      
-      {/* Center QTY Box */}
-      <div className="flex-1 bg-surface border border-border rounded-ui-lg p-4 flex flex-col items-center justify-center gap-4 my-1">
-        <div className="flex flex-col items-center justify-center">
-          <span className="text-xs font-bold text-subtle uppercase tracking-wider">
-            STAT Quantity
-          </span>
-          <span className="text-4xl lg:text-5xl font-black text-fg mt-1">
-            {displayQty || '0'}
-          </span>
-        </div>
-        
-        {/* Controls row */}
-        <div className="flex items-center gap-3">
-          <button 
-            type="button"
-            onClick={() => openNumberPad('stat_fraction')}
-            aria-label="Enter STAT fraction"
-            className="h-12 px-4 bg-white border border-border text-muted hover:text-primary hover:border-primary-border rounded-ui-lg font-bold text-sm flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
-          >
-            <span>X / Y</span>
-            <ChevronDown size={15} />
-          </button>
-          <button 
-            type="button"
-            onClick={() => decrementDosage('stat')}
-            aria-label="Decrease STAT quantity"
-            className="w-14 h-12 bg-danger hover:bg-danger active:scale-95 text-white rounded-ui-lg font-bold text-2xl flex items-center justify-center shadow-sm transition-all cursor-pointer"
-          >
-            <Minus size={22} strokeWidth={3} />
-          </button>
-          <button 
-            type="button"
-            onClick={() => incrementDosage('stat')}
-            aria-label="Increase STAT quantity"
-            className="w-14 h-12 bg-[#10B981] hover:bg-success active:scale-95 text-white rounded-ui-lg font-bold text-2xl flex items-center justify-center shadow-sm transition-all cursor-pointer"
-          >
-            <Plus size={22} strokeWidth={3} />
-          </button>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="flex items-center gap-2.5 mt-2 pt-2 border-t border-border shrink-0">
-        <button 
-          type="button"
-          onClick={cancelStat}
-          className="h-12 px-5 bg-surface-2 hover:bg-border text-muted font-bold text-sm rounded-ui-lg active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
-        >
-          <X size={16} />
-          <span>Cancel</span>
-        </button>
-        <button 
-          type="button"
-          onClick={doneStat}
-          className="flex-1 h-12 bg-primary hover:bg-primary-hover active:scale-[0.99] text-white font-bold text-base rounded-ui-lg shadow-sm transition-all cursor-pointer flex items-center justify-center gap-1.5"
-        >
-          <Check size={18} strokeWidth={2.5} />
-          <span>Done (Next)</span>
-        </button>
-      </div>
-    </div>
+    <CompactQuantityEditor
+      icon={Zap}
+      iconClass="bg-coral-soft border-coral-border text-coral-strong"
+      iconSvgClass="fill-current"
+      title="STAT Dose"
+      description="Initial one-time dose before the regular schedule"
+      quantityLabel="STAT Quantity"
+      display={displayQty || '0'}
+      hasQuantity={hasQty}
+      hint="Enter the STAT quantity to continue"
+      ariaName="STAT"
+      testId="stat-qty"
+      fractionTarget="stat_fraction"
+      onIncrement={() => incrementDosage('stat')}
+      onDecrement={() => decrementDosage('stat')}
+      onFraction={applyFraction}
+      onCancel={cancelStat}
+      onConfirm={doneStat}
+    />
   );
 }

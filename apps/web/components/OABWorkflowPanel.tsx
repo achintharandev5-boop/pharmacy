@@ -87,7 +87,7 @@ export function OABWorkflowPanel({ onInstructionGenerated, className = '' }: OAB
   };
 
   return (
-    <div className={`bg-white border-2 border-border rounded-ui-lg p-5 shadow-sm space-y-5 ${className}`}>
+    <div className={`bg-page border-2 border-border rounded-ui-lg p-5 shadow-sm space-y-5 ${className}`}>
       {/* HEADER */}
       <div className="flex items-center justify-between border-b pb-3">
         <div>
@@ -113,7 +113,7 @@ export function OABWorkflowPanel({ onInstructionGenerated, className = '' }: OAB
             onClick={() => handleCategorySelect('chewable')}
             className={`py-3 px-3 rounded-ui-lg font-bold text-sm text-center border-2 transition-all ${
               selectedCategory === 'chewable'
-                ? 'bg-primary text-white border-primary shadow-md scale-[1.02]'
+                ? 'bg-primary text-[var(--color-on-solid)] border-primary shadow-md scale-[1.02]'
                 : 'bg-surface text-muted border-border hover:border-border-strong'
             }`}
           >
@@ -126,7 +126,7 @@ export function OABWorkflowPanel({ onInstructionGenerated, className = '' }: OAB
             onClick={() => handleCategorySelect('dissolveAndDrink')}
             className={`py-3 px-3 rounded-ui-lg font-bold text-sm text-center border-2 transition-all ${
               selectedCategory === 'dissolveAndDrink'
-                ? 'bg-primary text-white border-primary shadow-md scale-[1.02]'
+                ? 'bg-primary text-[var(--color-on-solid)] border-primary shadow-md scale-[1.02]'
                 : 'bg-surface text-muted border-border hover:border-border-strong'
             }`}
           >
@@ -139,7 +139,7 @@ export function OABWorkflowPanel({ onInstructionGenerated, className = '' }: OAB
             onClick={() => handleCategorySelect('withFood')}
             className={`py-3 px-3 rounded-ui-lg font-bold text-sm text-center border-2 transition-all ${
               selectedCategory === 'withFood'
-                ? 'bg-primary text-white border-primary shadow-md scale-[1.02]'
+                ? 'bg-primary text-[var(--color-on-solid)] border-primary shadow-md scale-[1.02]'
                 : 'bg-surface text-muted border-border hover:border-border-strong'
             }`}
           >
@@ -152,7 +152,7 @@ export function OABWorkflowPanel({ onInstructionGenerated, className = '' }: OAB
             onClick={() => handleCategorySelect('emptyStomach')}
             className={`py-3 px-3 rounded-ui-lg font-bold text-sm text-center border-2 transition-all ${
               selectedCategory === 'emptyStomach'
-                ? 'bg-primary text-white border-primary shadow-md scale-[1.02]'
+                ? 'bg-primary text-[var(--color-on-solid)] border-primary shadow-md scale-[1.02]'
                 : 'bg-surface text-muted border-border hover:border-border-strong'
             }`}
           >
@@ -177,7 +177,7 @@ export function OABWorkflowPanel({ onInstructionGenerated, className = '' }: OAB
               className={`py-2.5 px-3 rounded-ui-lg font-bold text-sm text-center border-2 transition-all ${
                 !selectedCategory ? 'opacity-40 cursor-not-allowed bg-surface-2 border-border text-subtle' :
                 selectedAction === 'take'
-                  ? 'bg-success text-white border-success shadow'
+                  ? 'bg-success text-[var(--color-on-solid)] border-success shadow'
                   : 'bg-surface text-muted border-border hover:border-border-strong'
               }`}
             >
@@ -191,7 +191,7 @@ export function OABWorkflowPanel({ onInstructionGenerated, className = '' }: OAB
               className={`py-2.5 px-3 rounded-ui-lg font-bold text-sm text-center border-2 transition-all ${
                 !selectedCategory ? 'opacity-40 cursor-not-allowed bg-surface-2 border-border text-subtle' :
                 selectedAction === 'give'
-                  ? 'bg-success text-white border-success shadow'
+                  ? 'bg-success text-[var(--color-on-solid)] border-success shadow'
                   : 'bg-surface text-muted border-border hover:border-border-strong'
               }`}
             >
@@ -207,7 +207,7 @@ export function OABWorkflowPanel({ onInstructionGenerated, className = '' }: OAB
               3. Timing (BEFORE / AFTER)
             </label>
             {isTimingLocked && (
-              <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-amber-100 text-warning rounded">
+              <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-warning-soft text-warning rounded">
                 Locked / N/A
               </span>
             )}
@@ -221,7 +221,7 @@ export function OABWorkflowPanel({ onInstructionGenerated, className = '' }: OAB
                 isTimingLocked || !selectedCategory
                   ? 'bg-surface-2 border-border text-subtle cursor-not-allowed opacity-50'
                   : selectedTiming === 'before'
-                  ? 'bg-primary text-white border-primary shadow'
+                  ? 'bg-primary text-[var(--color-on-solid)] border-primary shadow'
                   : 'bg-surface text-muted border-border hover:border-border-strong'
               }`}
             >
@@ -236,7 +236,7 @@ export function OABWorkflowPanel({ onInstructionGenerated, className = '' }: OAB
                 isTimingLocked || !selectedCategory
                   ? 'bg-surface-2 border-border text-subtle cursor-not-allowed opacity-50'
                   : selectedTiming === 'after'
-                  ? 'bg-primary text-white border-primary shadow'
+                  ? 'bg-primary text-[var(--color-on-solid)] border-primary shadow'
                   : 'bg-surface text-muted border-border hover:border-border-strong'
               }`}
             >
@@ -251,7 +251,7 @@ export function OABWorkflowPanel({ onInstructionGenerated, className = '' }: OAB
         <button
           type="button"
           onClick={handleGivePrint}
-          className="w-full py-3 px-4 bg-primary hover:bg-primary-hover active:scale-[0.99] text-white font-extrabold rounded-ui-lg text-lg shadow-md transition-all flex items-center justify-center gap-2"
+          className="w-full py-3 px-4 bg-primary hover:bg-primary-hover active:scale-[0.99] text-[var(--color-on-solid)] font-extrabold rounded-ui-lg text-lg shadow-md transition-all flex items-center justify-center gap-2"
         >
           <span>GIVE / PRINT</span>
         </button>
@@ -266,7 +266,7 @@ export function OABWorkflowPanel({ onInstructionGenerated, className = '' }: OAB
 
       {/* OUTPUT PRINTED SENTENCE DISPLAY */}
       {printedSentence && (
-        <div className="p-4 bg-success-soft border-2 border-emerald-400 rounded-ui-lg space-y-1">
+        <div className="p-4 bg-success-soft border-2 border-success-border rounded-ui-lg space-y-1">
           <div className="text-[11px] font-bold uppercase tracking-wider text-success">
             PRINT OUTPUT INSTRUCTION:
           </div>

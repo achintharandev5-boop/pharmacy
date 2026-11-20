@@ -7,10 +7,11 @@ export default defineConfig({
     alias: { '@': fileURLToPath(new URL('./', import.meta.url)) },
   },
   test: {
-    // Logic tests run in Node; React component tests (*.test.tsx) need a DOM.
-    // jsdom is pinned to 26.x because newer releases require Node >= 22.22.
-    environment: 'node',
-    environmentMatchGlobs: [['**/*.test.tsx', 'jsdom']],
     setupFiles: ['./vitest.setup.ts'],
+    // Vitest 4 replaces environmentMatchGlobs with explicit test projects.
+    projects: [
+      { extends: true, test: { name: 'logic', include: ['**/*.test.ts'], environment: 'node' } },
+      { extends: true, test: { name: 'components', include: ['**/*.test.tsx'], environment: 'jsdom' } },
+    ],
   },
 });

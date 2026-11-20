@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useLabelStore } from '../store/labelStore';
@@ -33,15 +33,10 @@ function DosageTestWrapper({ time }: { time: 'morning' | 'lunch' | 'night' }) {
       <button onClick={() => decrementDosage(time)}>-</button>
       {/* Simulate confirming a fraction from the numpad */}
       <button onClick={() => {
-        useLabelStore.setState(state => {
-          const currentWhole = Math.floor(state.dosage[time].qty);
-          return {
-            dosage: {
-              ...state.dosage,
-              [time]: { qty: currentWhole + 0.5, isFraction: true }
-            }
-          };
-        });
+        const store = useLabelStore.getState();
+        store.openNumberPad(`${time}_fraction`);
+        store.appendDigit('1/2');
+        store.confirmNumberPad();
       }}>XY(1/2)</button>
     </div>
   );
@@ -104,18 +99,14 @@ describe('Dosage Row Logic & Constraints', () => {
     expect(screen.getByTestId('qty-display').textContent).toBe('1½');
   });
 
-  it('invalid X/Y -> Plus ordering resets the fraction', async () => {
+  it('X/Y then Plus preserves the fraction', async () => {
     const user = userEvent.setup();
     render(<DosageTestWrapper time="morning" />);
     
     await user.click(screen.getByText('XY(1/2)')); // Gives ½
     expect(screen.getByTestId('qty-display').textContent).toBe('½');
     
-    // SRS Rule 20: X/Y -> Plus must NOT be allowed to produce a combined dosage.
-    // Our implementation resets the fraction to enforce the Plus -> X/Y sequence.
-    await user.click(screen.getByText('+')); 
-    
-    // Instead of 1½, it should discard the fraction and increment the whole number floor (0) -> 1
-    expect(screen.getByTestId('qty-display').textContent).toBe('1');
+    await user.click(screen.getByText('+'));
+    expect(screen.getByTestId('qty-display').textContent).toBe('1\u00bd');
   });
 });

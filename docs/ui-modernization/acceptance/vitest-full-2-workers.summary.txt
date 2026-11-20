@@ -1,0 +1,7 @@
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  components/label/Workstation.test.tsx > instruction tiles > an interval without its quantity blocks nothing silently: the step can be reopened
+ FAIL  components/pos/PosWorkstation.test.tsx > POS workstation > cart > asks before the page is closed or reloaded with items in the cart
+ Test Files  2 failed | 72 passed (74)
+      Tests  2 failed | 2164 passed (2166)
+   Start at  19:35:03
+   Duration  2664.32s (transform 13.33s, setup 74.13s, collect 95.28s, tests 2737.81s, environment 2352.30s, prepare 12.08s)

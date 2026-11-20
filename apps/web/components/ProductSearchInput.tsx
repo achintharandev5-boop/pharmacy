@@ -1,17 +1,21 @@
 'use client';
+import { uiTestEnabled } from '@/lib/uiTestMode';
 import React, { useState, useRef, useEffect } from 'react';
 import { useLabelStore } from '../store/labelStore';
 import { searchProducts, getProductByBarcode } from '../app/actions/products';
 import type { SelectedProduct } from '../store/labelStore';
 import type { ProductSearchResult } from '../app/actions/products';
 import { NETWORK_ERROR_MESSAGE } from '../lib/api/types';
-import { Search, X, ScanBarcode } from 'lucide-react';
+import { PRODUCT_TYPES, resolveProductType, toSelectedProduct } from '../lib/productType';
+import { Search, X, ScanBarcode, Loader2 } from 'lucide-react';
+import { TOOLBAR_FIELD_PROMINENT, TOOLBAR_ICON_BUTTON, TOOLBAR_ICON_BUTTON_ACCENT, TOOLBAR_INPUT_PROMINENT, TOOLBAR_LABEL } from './label/toolbarStyles';
 
 type SearchStatus = 'idle' | 'loading' | 'error' | 'done';
 
 export function ProductSearchInput() {
-  const { product, setProduct, setExpiryDate } = useLabelStore();
-  const [searchTerm, setSearchTerm] = useState('');
+  const { product, setProduct } = useLabelStore();
+  const searchTerm = product?.name ?? '';
+  const productType = product ? resolveProductType(product.product_type) : null;
   const [results, setResults] = useState<ProductSearchResult[]>([]);
   const [searchStatus, setSearchStatus] = useState<SearchStatus>('idle');
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -26,13 +30,6 @@ export function ProductSearchInput() {
   const barcodeBufferRef = useRef<string>('');
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Sync displayed value with store if a product is selected
-  useEffect(() => {
-    if (product) {
-      setSearchTerm(product.name);
-    }
-  }, [product]);
-
   // Click outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -44,21 +41,13 @@ export function ProductSearchInput() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Sets the label's product. An expiry carried over from the previous catalog product is
-  // cleared so it can never be printed against a different medicine; a manually entered
-  // expiry is kept.
-  const applyProduct = (next: SelectedProduct | null) => {
-    const { product: prev, expiryDate } = useLabelStore.getState();
-    setProduct(next);
-    if (next?.expiry_date) {
-      setExpiryDate(next.expiry_date);
-    } else if (prev?.expiry_date && expiryDate === prev.expiry_date && prev.id !== next?.id) {
-      setExpiryDate(null);
-    }
-  };
+  // Sets the label's product. The store removes any batch expiry of the previous medicine; an
+  // expiry is printed only after Add Expiry Date retrieves the GRN batch date (never auto-selected).
+  const applyProduct = (next: SelectedProduct | null) => setProduct(next);
 
   const handleBarcodeLookup = async (barcode: string) => {
     setIsOpen(false);
+    if (uiTestEnabled()) return;
     let res: Awaited<ReturnType<typeof getProductByBarcode>>;
     try {
       res = await getProductByBarcode(barcode);
@@ -66,21 +55,19 @@ export function ProductSearchInput() {
       res = { ok: false, error: NETWORK_ERROR_MESSAGE };
     }
     if (res.ok) {
-      applyProduct({ id: res.data.id, name: res.data.name, expiry_date: res.data.expiry_date ?? null });
-      setSearchTerm(res.data.name);
+      applyProduct(toSelectedProduct(res.data));
       return;
     }
     const notFound = res.status === 404;
     setErrorMsg(notFound ? `Barcode not found: ${barcode}` : `Barcode lookup failed: ${res.error}`);
     setTimeout(() => setErrorMsg(''), notFound ? 3000 : 6000);
-    if (notFound) setSearchTerm('');
+    if (notFound) applyProduct(null);
   };
 
   const handleSelectProduct = (item: ProductSearchResult) => {
     setIsOpen(false);
     setSelectedIndex(-1);
-    applyProduct({ id: item.id, name: item.name, expiry_date: item.expiry_date ?? null });
-    setSearchTerm(item.name);
+    applyProduct(toSelectedProduct(item));
   };
 
   const runSearch = async (term: string) => {
@@ -166,12 +153,12 @@ export function ProductSearchInput() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
-    setSearchTerm(val);
     setSelectedIndex(-1);
 
     // Typed text is used as a manual product name until a catalog result is chosen.
     applyProduct(val.trim() ? { id: 'manual', name: val.trim() } : null);
-    setIsOpen(true);
+    setIsOpen(!uiTestEnabled());
+    if (uiTestEnabled()) return;
 
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     if (val.trim().length > 1) {
@@ -186,7 +173,6 @@ export function ProductSearchInput() {
   };
 
   const handleClear = () => {
-    setSearchTerm('');
     if (product) applyProduct(null);
     resetSearch();
     setIsOpen(false);
@@ -196,15 +182,29 @@ export function ProductSearchInput() {
   return (
     <div ref={containerRef} className="w-full h-full relative flex items-center">
       {/* Product Search Card Container */}
-      <div 
+      <div
         onClick={() => inputRef.current?.focus()}
-        className="w-full h-full bg-white border border-border rounded-ui-lg px-3.5 py-2 flex items-center gap-2.5 shadow-card hover:border-primary-border transition-colors cursor-text"
+        className={TOOLBAR_FIELD_PROMINENT}
       >
-        {/* Blue Search Icon */}
-        <Search size={22} className="text-primary shrink-0" />
+        <span className="shrink-0 text-primary" aria-hidden="true">
+          {searchStatus === 'loading'
+            ? <Loader2 size={18} className="animate-spin" />
+            : <Search size={18} />}
+        </span>
 
-        {/* Text Input Stack */}
         <div className="flex-1 min-w-0 flex flex-col justify-center">
+          <span className={`${TOOLBAR_LABEL} flex items-center gap-1.5`}>
+            Medicine
+            {/* UI testing: the typed name is a manual test product, never catalogue data. */}
+            {uiTestEnabled() && (
+              <span
+                title="UI testing: manual test product, not catalogue data"
+                className="px-1.5 py-0.5 rounded-ui-sm bg-warning-soft border border-warning-border text-warning text-[10px] font-bold uppercase tracking-wide leading-none"
+              >
+                Test<span className="sr-only">: manual test product, not catalogue data</span>
+              </span>
+            )}
+          </span>
           <input
             ref={inputRef}
             type="text"
@@ -212,11 +212,43 @@ export function ProductSearchInput() {
             onChange={handleChange}
             onFocus={handleFocus}
             onKeyDown={handleKeyDown}
-            placeholder="Search product, barcode or brand..."
-            className="w-full bg-transparent text-sm font-bold text-fg outline-none placeholder:text-subtle placeholder:font-normal leading-tight"
+            aria-label={uiTestEnabled() ? "Manual test-product name" : "Medicine search"}
+            placeholder={uiTestEnabled() ? "Type a test medicine" : "Name, barcode or brand"}
+            className={TOOLBAR_INPUT_PROMINENT}
           />
-          <div className="text-[11px] text-subtle font-normal leading-none mt-1 truncate">
-            Search product, barcode or brand...
+          {/* Product type and (UI testing only) the test-type picker share one line to keep the
+              toolbar compact. */}
+          <div className={`flex items-center gap-2 min-w-0 ${productType || (uiTestEnabled() && product?.id === 'manual') ? 'mt-0.5' : ''}`}>
+            <div
+              role={productType?.message ? 'alert' : 'status'}
+              aria-label="Selected product type"
+              title={productType?.message ?? undefined}
+              className={`text-[11px] font-semibold leading-tight truncate min-w-0 ${productType?.message ? 'text-warning' : 'text-subtle'}`}
+            >
+              {productType
+                ? productType.message ?? <><span className="sr-only">Product type: </span>{`${productType.type} · ${productType.sinhala}`}</>
+                : <span className="sr-only">No medicine selected</span>}
+            </div>
+            {/* UI testing only: a typed test product has no catalogue record, so the tester states its
+                type. Marked as a test value; the product-type rules are applied unchanged. */}
+            {uiTestEnabled() && product?.id === 'manual' && (
+              <label
+                className="text-[11px] text-warning font-semibold leading-tight flex items-center gap-1 whitespace-nowrap shrink-0"
+                title="Temporary test product type for UI testing only. Not catalogue data."
+                onClick={(e) => e.stopPropagation()}
+              >
+                Type:
+                <select
+                  aria-label="Temporary test product type (UI testing only)"
+                  value={product.product_type ?? ''}
+                  onChange={(e) => setProduct({ ...product, product_type: e.target.value || null })}
+                  className="bg-page border border-warning-border rounded-ui-sm px-1 text-fg"
+                >
+                  <option value="">Not set</option>
+                  {Object.keys(PRODUCT_TYPES).map((type) => <option key={type} value={type}>{type}</option>)}
+                </select>
+              </label>
+            )}
           </div>
         </div>
 
@@ -228,15 +260,12 @@ export function ProductSearchInput() {
               e.stopPropagation();
               handleClear();
             }}
-            className="w-6 h-6 flex items-center justify-center text-subtle hover:text-fg active:text-black select-none touch-manipulation rounded-full hover:bg-surface-2 shrink-0"
-            title="Clear search"
+            className={TOOLBAR_ICON_BUTTON}
+            aria-label="Clear medicine search"
           >
-            <X size={15} />
+            <X size={16} aria-hidden="true" />
           </button>
         )}
-
-        {/* Vertical Divider */}
-        <div className="h-6 w-px bg-border shrink-0" />
 
         {/* Barcode Scanner Icon */}
         <button
@@ -245,10 +274,11 @@ export function ProductSearchInput() {
             e.stopPropagation();
             inputRef.current?.focus();
           }}
-          className="text-primary hover:text-primary-hover p-1 rounded-lg hover:bg-primary-soft shrink-0 transition-colors"
-          title="Barcode Scanner Ready"
+          className={TOOLBAR_ICON_BUTTON_ACCENT}
+          title="Barcode scanner ready"
+          aria-label="Focus medicine search for the barcode scanner"
         >
-          <ScanBarcode size={22} />
+          <ScanBarcode size={18} aria-hidden="true" />
         </button>
       </div>
       
@@ -261,7 +291,7 @@ export function ProductSearchInput() {
 
       {/* DROPDOWN MENU */}
       {isOpen && searchStatus !== 'idle' && (
-        <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-white border border-border rounded-ui-lg z-50 max-h-[380px] overflow-y-auto shadow-pop py-1">
+        <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-page border border-border rounded-ui-lg z-50 max-h-[380px] overflow-y-auto shadow-pop py-1">
           {searchStatus === 'loading' ? (
             <div role="status" className="p-4 text-center bg-surface">
               <p className="text-xs font-semibold text-subtle">Searching products…</p>
@@ -272,7 +302,7 @@ export function ProductSearchInput() {
               <button
                 type="button"
                 onClick={() => runSearch(searchTerm)}
-                className="px-3 py-1.5 text-xs font-bold bg-white border border-danger-border text-danger rounded-lg hover:bg-danger-soft touch-manipulation"
+                className="px-3 py-1.5 text-xs font-bold bg-page border border-danger-border text-danger rounded-lg hover:bg-danger-soft touch-manipulation"
               >
                 Retry
               </button>
@@ -319,7 +349,7 @@ export function ProductSearchInput() {
           ) : (
             <div className="p-4 text-center bg-surface">
               <p className="text-xs font-semibold text-muted">
-                No products found matching <span className="text-danger font-bold">"{searchTerm}"</span>
+                No products found matching <span className="text-danger font-bold">&quot;{searchTerm}&quot;</span>
               </p>
             </div>
           )}

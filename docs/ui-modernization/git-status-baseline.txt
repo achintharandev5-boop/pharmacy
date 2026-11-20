@@ -1,0 +1,329 @@
+ M apps/api/.env.example
+ M apps/api/package.json
+ M apps/api/src/admin/admin.controller.ts
+ M apps/api/src/admin/admin.service.spec.ts
+ M apps/api/src/admin/admin.service.ts
+ M apps/api/src/app.module.ts
+ M apps/api/src/auth/auth.controller.ts
+ M apps/api/src/auth/auth.guard.spec.ts
+ M apps/api/src/auth/auth.guard.ts
+ M apps/api/src/auth/decorators.ts
+ M apps/api/src/auth/roles.guard.ts
+ M apps/api/src/auth/roles.ts
+ M apps/api/src/config/env.validation.spec.ts
+ M apps/api/src/config/env.validation.ts
+ M apps/api/src/customers/customers.controller.ts
+ M apps/api/src/customers/customers.service.spec.ts
+ M apps/api/src/customers/customers.service.ts
+ M apps/api/src/inventory/dto/inventory.dto.ts
+ M apps/api/src/inventory/inventory.controller.ts
+ M apps/api/src/inventory/inventory.service.spec.ts
+ M apps/api/src/inventory/inventory.service.ts
+ M apps/api/src/prescriptions/dto/create-prescription.dto.ts
+ M apps/api/src/prescriptions/prescriptions.controller.ts
+ M apps/api/src/prescriptions/prescriptions.service.spec.ts
+ M apps/api/src/prescriptions/prescriptions.service.ts
+ M apps/api/src/products/dto/product.dto.ts
+ M apps/api/src/products/products.service.ts
+ M apps/api/src/test-utils/fake-supabase.ts
+ M apps/api/supabase/tests/run-migration-tests.sh
+ M apps/web/.env.example
+ M apps/web/.gitignore
+ M apps/web/app/actions/auth.ts
+ M apps/web/app/actions/customers.ts
+ M apps/web/app/actions/inventory.ts
+ M apps/web/app/actions/labels.ts
+ M apps/web/app/actions/products.ts
+ M apps/web/app/actions/sms.ts
+ M apps/web/app/actions/system.ts
+ M apps/web/app/admin/inventory/adjustments/page.tsx
+ M apps/web/app/admin/inventory/batches/page.tsx
+ M apps/web/app/admin/inventory/movements/page.tsx
+ M apps/web/app/admin/inventory/page.tsx
+ M apps/web/app/admin/layout.tsx
+ M apps/web/app/admin/page.tsx
+ M apps/web/app/admin/patients/[id]/page.tsx
+ M apps/web/app/admin/patients/page.tsx
+ M apps/web/app/admin/prescriptions/[id]/page.tsx
+ M apps/web/app/admin/products/page.tsx
+ M apps/web/app/admin/settings/page.tsx
+ M apps/web/app/globals.css
+ M apps/web/app/label/DaysOfWeekPanel.tsx
+ M apps/web/app/label/ReasonsPanel.tsx
+ M apps/web/app/label/page.tsx
+ M apps/web/app/layout.tsx
+ M apps/web/app/login/page.tsx
+ M apps/web/app/page.tsx
+ M apps/web/components/CustomerSearchInput.tsx
+ M apps/web/components/CustomerSearchPanel.tsx
+ M apps/web/components/DosageRow.test.tsx
+ M apps/web/components/NumberPad.test.tsx
+ M apps/web/components/NumberPad.tsx
+ M apps/web/components/PrintableLabel.tsx
+ M apps/web/components/ProductInfoPopup.tsx
+ M apps/web/components/ProductSearchInput.tsx
+ M apps/web/components/StatFlow.test.tsx
+ M apps/web/components/StatFollowUpPanel.tsx
+ M apps/web/components/StatPanel.tsx
+ M apps/web/components/label/BottomActionBar.tsx
+ M apps/web/components/label/DeleteLabelModal.tsx
+ M apps/web/components/label/DosagePanel.tsx
+ M apps/web/components/label/ExpDateModal.tsx
+ M apps/web/components/label/InstructionGrid.tsx
+ M apps/web/components/label/LabelActionPage.tsx
+ M apps/web/components/label/LabelActions.tsx
+ M apps/web/components/label/ProductToolbar.tsx
+ M apps/web/components/label/SelectedInstructionsPanel.tsx
+ M apps/web/components/label/StatWorkstation.test.tsx
+ M apps/web/components/products/ProductDialog.tsx
+ M apps/web/components/shell/AppShell.tsx
+ M apps/web/components/shell/nav.ts
+ M apps/web/components/ui/Badge.tsx
+ M apps/web/components/ui/Button.tsx
+ M apps/web/components/ui/Page.tsx
+ M apps/web/components/ui/States.tsx
+ M apps/web/constants/instructions.ts
+ M apps/web/constants/oabInstructions.ts
+ M apps/web/lib/api/server.ts
+ M apps/web/lib/labelBuilder.test.ts
+ M apps/web/lib/labelBuilder.ts
+ M apps/web/lib/oabLogic.test.ts
+ D apps/web/middleware.ts
+ M apps/web/next.config.ts
+ M apps/web/store/labelStore.test.ts
+ M apps/web/store/labelStore.ts
+ M apps/web/vitest.setup.ts
+ M docs/DATABASE_MIGRATION_PLAN.md
+ M docs/IMPLEMENTATION_STATUS_REPORT.md
+ M docs/SUPABASE_DEPLOYMENT_GUIDE.md
+ M pnpm-lock.yaml
+?? .feature22-picture11-0.png
+?? .tmp-f21-core.py
+?? .tmp-f21-guards.py
+?? .tmp-f21-panel.py
+?? .tmp-f21-policy.py
+?? PHARMACY_ACCOUNTING_DECISIONS.md
+?? PHARMACY_ADMIN_AUDIT_LOG_VIEWER_REPORT.md
+?? PHARMACY_ADMIN_SETTINGS_COMPLETION_REPORT.md
+?? PHARMACY_ALL_ACTION_INPUT_PANEL_STANDARDIZATION_REPORT.md
+?? PHARMACY_DATABASE_FREE_UI_TESTING_REPORT.md
+?? PHARMACY_DAY_ACTION_UI_REORGANIZATION_REPORT.md
+?? PHARMACY_DEVELOPMENT_ROADMAP.md
+?? PHARMACY_DOSAGE_SCHEDULE_REDESIGN_REPORT.md
+?? PHARMACY_FEATURE_01_DOSAGE_CONTROLS_REPORT.md
+?? PHARMACY_FEATURE_02_PRODUCT_TYPE_REPORT.md
+?? PHARMACY_FEATURE_03_PRODUCT_TYPE_PRINTING_REPORT.md
+?? PHARMACY_FEATURE_04_CHEWING_SAM_REPORT.md
+?? PHARMACY_FEATURE_05_DISSOLVE_AND_DRINK_REPORT.md
+?? PHARMACY_FEATURE_06_WITH_FOOD_REPORT.md
+?? PHARMACY_FEATURE_07_KEEP_IN_MOUTH_REPORT.md
+?? PHARMACY_FEATURE_08_EMPTY_STOMACH_REPORT.md
+?? PHARMACY_FEATURE_09_USB_TAKE_GIVE_REPORT.md
+?? PHARMACY_FEATURE_10_EOD_REPORT.md
+?? PHARMACY_FEATURE_11_STAT_REPORT.md
+?? PHARMACY_FEATURE_12_INTERVALS_REPORT.md
+?? PHARMACY_FEATURE_13_DIGITAL_LABEL_REPORT.md
+?? PHARMACY_FEATURE_14_EVENING_FOUR_TIMES_REPORT.md
+?? PHARMACY_FEATURE_15_DAILY_REPORT.md
+?? PHARMACY_FEATURE_16_WEEKLY_REPORT.md
+?? PHARMACY_FEATURE_17_NAME_OF_DAYS_REPORT.md
+?? PHARMACY_FEATURE_18_TILL_TO_THE_DAY_REPORT.md
+?? PHARMACY_FEATURE_19_REASONS_REPORT.md
+?? PHARMACY_FEATURE_20_ADD_EXPIRY_DATE_REPORT.md
+?? PHARMACY_FEATURE_COMPLETION_MATRIX.md
+?? PHARMACY_FEATURE_DEVELOPMENT_PROGRESS.md
+?? PHARMACY_FULL_SYSTEM_AUDIT_2026.md
+?? PHARMACY_FULL_SYSTEM_INTEGRATION_REPORT.md
+?? PHARMACY_INVENTORY_RECONCILIATION_PLAN.md
+?? PHARMACY_LABEL_PRINT_LAYOUT_REDESIGN_REPORT.md
+?? PHARMACY_LABEL_RIGHT_PANEL_UI_REPORT.md
+?? PHARMACY_LABEL_WORKSTATION_UI_UX_AUDIT.md
+?? PHARMACY_LABEL_WORKSTATION_UI_UX_REMEDIATION_REPORT.md
+?? PHARMACY_LOCAL_UI_TESTING_REPORT.md
+?? PHARMACY_MASTER_FEATURE_COMPLETION_PLAN.md
+?? PHARMACY_MODULE_IMPLEMENTATION_REPORT.md
+?? PHARMACY_PHARMACIST_SIGNOFF.md
+?? PHARMACY_PHASE_1_5_VERIFICATION_REPORT.md
+?? PHARMACY_PHASE_1_6_READINESS_REPORT.md
+?? PHARMACY_PHASE_1_IMPLEMENTATION_REPORT.md
+?? PHARMACY_POS_CASHIER_SECURITY_REPORT.md
+?? PHARMACY_POS_DEVELOPMENT_REPORT.md
+?? PHARMACY_POS_IMPLEMENTATION_PLAN.md
+?? PHARMACY_POS_INTEGRATION_REPORT.md
+?? PHARMACY_POS_MILESTONE_1_5_REPORT.md
+?? PHARMACY_POS_REMAINING_WORK.md
+?? PHARMACY_POS_TECHNICAL_DESIGN.md
+?? PHARMACY_POS_TEST_REPORT.md
+?? PHARMACY_POS_UI_UX_VERIFICATION.md
+?? PHARMACY_PRINTER_ACCEPTANCE_CHECKLIST.md
+?? PHARMACY_PRODUCTION_READINESS_REPORT.md
+?? PHARMACY_SAAS_FULL_AUDIT_AND_ROADMAP.md
+?? PHARMACY_STAGING_ENVIRONMENT_READINESS.md
+?? PHARMACY_STAGING_RUNBOOK.md
+?? PHARMACY_STAGING_VERIFICATION_CHECKLIST.md
+?? PHARMACY_STOCK_RECONCILIATION_SOP.md
+?? PHARMACY_TOUCH_FIRST_UI_REDESIGN_REPORT.md
+?? PHARMACY_UI_BACKEND_MODERNIZATION_REPORT.md
+?? PHARMACY_UI_MODERNIZATION_BASELINE.md
+?? PHARMACY_UI_UX_FULL_SYSTEM_AUDIT.md
+?? PHARMACY_WORKSTATION_TARGETED_UI_REDESIGN_REPORT.md
+?? apps/api/.env.staging.example
+?? apps/api/src/admin/dto/
+?? apps/api/src/audit/
+?? apps/api/src/auth/route-authorization.spec.ts
+?? apps/api/src/customers/dto/customer-dto.spec.ts
+?? apps/api/src/customers/dto/list-customers.dto.ts
+?? apps/api/src/customers/dto/update-customer.dto.ts
+?? apps/api/src/inventory/dto/dashboard-query.dto.ts
+?? apps/api/src/pos/
+?? apps/api/src/prescriptions/daily-label.spec.ts
+?? apps/api/src/prescriptions/digital-label.spec.ts
+?? apps/api/src/prescriptions/dto/ent-administration.spec.ts
+?? apps/api/src/prescriptions/dto/weekday-range.dto.ts
+?? apps/api/src/prescriptions/dto/weekly-dosage.dto.ts
+?? apps/api/src/prescriptions/evening-label.spec.ts
+?? apps/api/src/prescriptions/weekday-range.spec.ts
+?? apps/api/src/prescriptions/weekly-label.spec.ts
+?? apps/api/src/products/product-type.spec.ts
+?? apps/api/src/reasons/
+?? apps/api/src/settings/
+?? apps/api/supabase/diagnostics/
+?? apps/api/supabase/migrations/20261010000500_returns_quarantine_dispensing.sql
+?? apps/api/supabase/migrations/20261025000100_reasons_catalogue.sql
+?? apps/api/supabase/tests/30_returns_dispensing_tests.sql
+?? apps/api/supabase/tests/40_dispensing_concurrency_test.sh
+?? apps/api/supabase/tests/50_inventory_reconciliation_readonly_test.sql
+?? apps/api/supabase/tests/60_reasons_catalogue_tests.sql
+?? apps/api/test/db/
+?? apps/api/test/jest-db.json
+?? apps/web/.env.staging.example
+?? apps/web/app/actions/audit.ts
+?? apps/web/app/actions/pos.ts
+?? apps/web/app/actions/reasons.ts
+?? apps/web/app/actions/settings.ts
+?? apps/web/app/admin/audit-log/
+?? apps/web/app/admin/inventory/returns/
+?? apps/web/app/admin/page.test.tsx
+?? apps/web/app/admin/patients/page.test.tsx
+?? apps/web/app/admin/reasons/
+?? apps/web/app/admin/settings/page.test.tsx
+?? apps/web/app/demo/
+?? apps/web/app/label/expiryFinal.test.tsx
+?? apps/web/app/label/layout.tsx
+?? apps/web/app/label/page.test.tsx
+?? apps/web/app/label/print-check/
+?? apps/web/app/label/printOnly.test.tsx
+?? apps/web/app/login/LoginForm.tsx
+?? apps/web/app/pos/
+?? apps/web/components/LabelPrintLayout.test.tsx
+?? apps/web/components/PrintedInterval.test.tsx
+?? apps/web/components/ProductTypePrinting.test.tsx
+?? apps/web/components/ProductTypeSelection.test.tsx
+?? apps/web/components/ReasonCatalogueLoader.test.tsx
+?? apps/web/components/ReasonCatalogueLoader.tsx
+?? apps/web/components/SettingsLabelIsolation.test.tsx
+?? apps/web/components/StatAdminPanel.tsx
+?? apps/web/components/UiTestControls.tsx
+?? apps/web/components/UiTesting.test.tsx
+?? apps/web/components/label/ActionQuantityPanel.tsx
+?? apps/web/components/label/ActionWorkspace.test.tsx
+?? apps/web/components/label/ActionWorkspace.tsx
+?? apps/web/components/label/AddExpiryDate.test.tsx
+?? apps/web/components/label/ChewingSam.test.tsx
+?? apps/web/components/label/CompactQuantity.test.tsx
+?? apps/web/components/label/CompactQuantityEditor.tsx
+?? apps/web/components/label/Daily.test.tsx
+?? apps/web/components/label/DayActions.test.tsx
+?? apps/web/components/label/DaysPanel.tsx
+?? apps/web/components/label/DigitalLabel.test.tsx
+?? apps/web/components/label/DissolveSam.test.tsx
+?? apps/web/components/label/DosageQuantityControls.test.tsx
+?? apps/web/components/label/DosageScheduleDesign.test.tsx
+?? apps/web/components/label/EmptyStomach.test.tsx
+?? apps/web/components/label/EntPanel.test.tsx
+?? apps/web/components/label/EntPanel.tsx
+?? apps/web/components/label/Eod.test.tsx
+?? apps/web/components/label/Evening.test.tsx
+?? apps/web/components/label/InstructionTile.tsx
+?? apps/web/components/label/Intervals.test.tsx
+?? apps/web/components/label/KeepInMouth.test.tsx
+?? apps/web/components/label/LockedActions.test.tsx
+?? apps/web/components/label/NameOfDays.test.tsx
+?? apps/web/components/label/ProductToolbar.test.tsx
+?? apps/web/components/label/Reasons.test.tsx
+?? apps/web/components/label/ReviewPrintGuard.test.tsx
+?? apps/web/components/label/SelectedStateConsistency.test.tsx
+?? apps/web/components/label/StatWorkflow.test.tsx
+?? apps/web/components/label/TillToDay.test.tsx
+?? apps/web/components/label/UsbAdministration.test.tsx
+?? apps/web/components/label/Weekly.test.tsx
+?? apps/web/components/label/WithFood.test.tsx
+?? apps/web/components/label/WorkflowGuide.test.tsx
+?? apps/web/components/label/Workstation.test.tsx
+?? apps/web/components/label/instructionCategories.ts
+?? apps/web/components/patients/
+?? apps/web/components/pos/
+?? apps/web/components/products/ProductDialog.test.tsx
+?? apps/web/components/shell/AppShell.test.tsx
+?? apps/web/components/shell/nav.test.ts
+?? apps/web/e2e/
+?? apps/web/lib/auditLog.test.ts
+?? apps/web/lib/auditLog.ts
+?? apps/web/lib/batchExpiry.test.ts
+?? apps/web/lib/batchExpiry.ts
+?? apps/web/lib/dailyPolicy.ts
+?? apps/web/lib/digitalSchedule.ts
+?? apps/web/lib/dosageControls.test.ts
+?? apps/web/lib/dosageQuantity.ts
+?? apps/web/lib/ent.ts
+?? apps/web/lib/eod.ts
+?? apps/web/lib/eveningPolicy.ts
+?? apps/web/lib/instructionEngine.test.ts
+?? apps/web/lib/instructionEngine.ts
+?? apps/web/lib/intervalPolicy.ts
+?? apps/web/lib/labelExpiry.ts
+?? apps/web/lib/labelFit.test.ts
+?? apps/web/lib/labelFit.ts
+?? apps/web/lib/labelQuantity.test.ts
+?? apps/web/lib/labelQuantity.ts
+?? apps/web/lib/localReasons.ts
+?? apps/web/lib/nameOfDays.ts
+?? apps/web/lib/ownerPhrases.test.ts
+?? apps/web/lib/pharmacyBranding.ts
+?? apps/web/lib/pharmacySettings.test.ts
+?? apps/web/lib/pharmacySettings.ts
+?? apps/web/lib/pos/
+?? apps/web/lib/productType.ts
+?? apps/web/lib/productTypePrinting.ts
+?? apps/web/lib/reasonCatalogue.ts
+?? apps/web/lib/reasons.ts
+?? apps/web/lib/roles.ts
+?? apps/web/lib/server/
+?? apps/web/lib/statPolicy.ts
+?? apps/web/lib/uiTestMode.test.ts
+?? apps/web/lib/uiTestMode.ts
+?? apps/web/lib/useUnsavedChangesWarning.ts
+?? apps/web/lib/weeklyPolicy.ts
+?? apps/web/proxy.test.ts
+?? apps/web/proxy.ts
+?? apps/web/store/labelStore.buttons.test.ts
+?? apps/web/uiTestProxy.test.ts
+?? docs/BUTTON_LOGIC_AUDIT.md
+?? docs/ENT_ADMINISTRATION.md
+?? docs/FEATURE_21_DATABASE_VERIFICATION.md
+?? docs/LABEL_BUTTON_BEHAVIOR_MATRIX.md
+?? docs/LABEL_WORKFLOW_GAP_ANALYSIS.md
+?? docs/LABEL_WORKFLOW_TEST_REPORT.md
+?? docs/PHARMACIST_APPROVAL_REQUIRED.md
+?? docs/PHARMACY_UI_REDESIGN_PROMPT.md
+?? docs/PRINT_LAYOUT_AND_STAT_OPTIONS.md
+?? docs/SINHALA_INSTRUCTION_MAPPING.md
+?? docs/STAGING_DEPLOYMENT_CHECKLIST.md
+?? docs/STAGING_READINESS_REPORT.md
+?? docs/button-audit/
+?? docs/ui-audit/
+?? docs/ui-modernization/
+?? docs/workflow-audit/
+?? docs/workstation-left-panel/
+?? docs/workstation-ui-redesign/
+?? scripts/

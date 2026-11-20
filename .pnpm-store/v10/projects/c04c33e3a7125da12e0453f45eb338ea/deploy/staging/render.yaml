@@ -1,0 +1,41 @@
+# TEMPLATE ONLY. Do not submit a Blueprint or create a service without authorization.
+# Root directory: repository root (not legacy api/ and not apps/api/).
+services:
+  - type: web
+    name: pharmacy-synthetic-staging-api
+    runtime: node
+    plan: starter
+    autoDeployTrigger: 'off'
+    buildCommand: corepack pnpm install --frozen-lockfile --prod=false --ignore-scripts && corepack pnpm --filter api build
+    startCommand: node deploy/staging/start-api.cjs
+    # No healthCheckPath: TCP probes let every HTTP path, including /health,
+    # require the gateway credential. TCP does not prove database readiness.
+    envVars:
+      - key: NODE_VERSION
+        value: 22.23.4
+      - key: NODE_ENV
+        value: production
+      - key: DEPLOYMENT_PROFILE
+        value: synthetic-staging
+      - key: STAGING_DATA_POLICY
+        value: synthetic-only
+      - key: SMS_ENABLED
+        value: 'false'
+      - key: PHARMACY_TIMEZONE
+        value: Asia/Colombo
+      - key: PRESCRIPTION_WRITE_MODE
+        value: legacy
+      - key: STAGING_GATEWAY_TOKEN
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: STAGING_SUPABASE_URL
+        sync: false
+      - key: PILOT_SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: PILOT_PHARMACY_ID
+        sync: false
+      - key: FRONTEND_URL
+        sync: false

@@ -1,0 +1,242 @@
+[
+  {
+    "name": "desktop-1366: TAKE + AFTER → ගන්න කෑමට පසු",
+    "ok": true,
+    "detail": "LABEL TEXTගන්න කෑමට පසු"
+  },
+  {
+    "name": "desktop-1366: Keep in Mouth + GIVE asks for timing",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: Keep in Mouth + GIVE + BEFORE → දිව මත තබන්න කෑමට පෙර",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: With Food → Chewable → TAKE → කෑමත් සමඟ හපලා කන්න",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: Chewable → With Food refused with a message",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: Morning only → pending-approval notice, no phrase",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: 1/1/1 → දිනපතා 3 වරක් ගන්න",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: 8H locked while a dose row is set",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: STAT Done disabled at quantity 0",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: STAT Enter disabled until TAKE/GIVE",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: STAT + TAKE → පළමුව පමණක් ගන්න",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366 STAT administration step: no horizontal page scroll",
+    "ok": true,
+    "detail": "overflow 0px"
+  },
+  {
+    "name": "desktop-1366 STAT administration step: no overlapping controls",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366 STAT administration step: no clipped button text",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366 STAT administration step: touch targets ≥ 32×32px",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: order STAT → ඉන්පසු → daily → NAB",
+    "ok": true,
+    "detail": "LABEL TEXTMorning: 1 | Lunch: 1 | Night: 1 | STAT 1, then MORNING/LUNCH & NIGHT | පළමුව පමණක් ගන්න • ඉන්පසු • දිනපතා 3 වරක් ගන්න • ගන්න කෑමට පසු"
+  },
+  {
+    "name": "desktop-1366: doses unchanged by STAT",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366 spec workstation: no horizontal page scroll",
+    "ok": true,
+    "detail": "overflow 0px"
+  },
+  {
+    "name": "desktop-1366 spec workstation: no overlapping controls",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366 spec workstation: no clipped button text",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366 spec workstation: touch targets ≥ 32×32px",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: review preview shows පළමුව පමණක් ගන්න, ඉන්පසු, දිනපතා 3 වරක් ගන්න, ගන්න කෑමට පසු",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: review preview keeps STAT quantity line",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: no page errors",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: TAKE + AFTER → ගන්න කෑමට පසු",
+    "ok": true,
+    "detail": "LABEL TEXTගන්න කෑමට පසු"
+  },
+  {
+    "name": "tablet-1024: Keep in Mouth + GIVE asks for timing",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: Keep in Mouth + GIVE + BEFORE → දිව මත තබන්න කෑමට පෙර",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: With Food → Chewable → TAKE → කෑමත් සමඟ හපලා කන්න",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: Chewable → With Food refused with a message",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: Morning only → pending-approval notice, no phrase",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: 1/1/1 → දිනපතා 3 වරක් ගන්න",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: 8H locked while a dose row is set",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: STAT Done disabled at quantity 0",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: STAT Enter disabled until TAKE/GIVE",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: STAT + TAKE → පළමුව පමණක් ගන්න",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024 STAT administration step: no horizontal page scroll",
+    "ok": true,
+    "detail": "overflow 0px"
+  },
+  {
+    "name": "tablet-1024 STAT administration step: no overlapping controls",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024 STAT administration step: no clipped button text",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024 STAT administration step: touch targets ≥ 32×32px",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: order STAT → ඉන්පසු → daily → NAB",
+    "ok": true,
+    "detail": "LABEL TEXTMorning: 1 | Lunch: 1 | Night: 1 | STAT 1, then MORNING/LUNCH & NIGHT | පළමුව පමණක් ගන්න • ඉන්පසු • දිනපතා 3 වරක් ගන්න • ගන්න කෑමට පසු"
+  },
+  {
+    "name": "tablet-1024: doses unchanged by STAT",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024 spec workstation: no horizontal page scroll",
+    "ok": true,
+    "detail": "overflow 0px"
+  },
+  {
+    "name": "tablet-1024 spec workstation: no overlapping controls",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024 spec workstation: no clipped button text",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024 spec workstation: touch targets ≥ 32×32px",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: review preview shows පළමුව පමණක් ගන්න, ඉන්පසු, දිනපතා 3 වරක් ගන්න, ගන්න කෑමට පසු",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: review preview keeps STAT quantity line",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: no page errors",
+    "ok": true,
+    "detail": ""
+  }
+]

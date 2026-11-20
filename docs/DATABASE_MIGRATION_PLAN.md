@@ -12,6 +12,7 @@ The step-by-step runbook (compatibility checks, backup, order, RLS verification,
 | `20261010000200_profiles_settings_sms_audit.sql` | New tables `user_profiles`, `pharmacy_settings` (one row, no invented values), `sms_messages`, `audit_log`; audit triggers; `pharmacy_today()` | No. New objects only |
 | `20261010000300_transactional_functions.sql` | Database functions `receive_stock`, `adjust_stock`, `create_prescription`; execute restricted to `service_role` | No |
 | `20261010000400_row_level_security.sql` | Enables RLS on every application table, with no policies for `anon`/`authenticated` | No data change. **Changes access**: see below |
+| `20261010000500_returns_quarantine_dispensing.sql` | Removes the invented threshold defaults (15/5/500) from `products`; adds `SUPPLIER_RETURN` movements and refuses new `RETURNED` adjustments; new table `patient_returns` (held for review, never added to stock; RLS on); batch quarantine columns and `quarantine_batch` / `release_batch`; replaces `receive_stock` (cannot reactivate a quarantined batch), `adjust_stock` (returns split) and `create_prescription` (eligible batches only: known, unpassed expiry, not quarantined; product locks in fixed order; serialised idempotency keys; patient reference checked; allocations returned) | No. Existing rows and thresholds are not changed. **Changes behaviour**: `RETURNED` adjustments are refused |
 
 Every statement is idempotent (`IF NOT EXISTS`, `CREATE OR REPLACE`, guarded `ADD CONSTRAINT`). Re-running a file is safe; this is tested.
 
@@ -95,23 +96,31 @@ end $$;
 
 The migrations add objects only, so the application keeps working if they are left in place. To undo:
 
-- **RLS** (000400): `alter table <t> disable row level security;` for each table. This re-opens the public REST access described above. Prefer fixing forward.
+- **RLS** (000400): ⚠ **re-opens public access to all patient data.** `alter table <t> disable row level security;` makes every table readable and writable with the public key. Not a valid rollback for an application problem (the API bypasses RLS). See `SUPABASE_DEPLOYMENT_GUIDE.md` §8.1 for every step with this effect.
 - **Functions** (000300): `drop function receive_stock(jsonb,uuid,text); drop function adjust_stock(uuid,uuid,text,numeric,text,uuid,text); drop function create_prescription(jsonb,uuid,text);` Receiving and adjustments then return 503 again.
 - **New tables** (000200): they hold only data created after the migration. Export before dropping.
 - **Columns** (000100): leave in place. Dropping `allergy_status` would discard recorded allergy information.
 
-Restoring the backup is the last resort, because it also discards prescriptions dispensed since the backup.
+- **000500**: re-running 000300 restores the older stock functions. Patient returns stay in their table. Thresholds are not restored to 15/5/500 (the defaults only affected new rows).
+
+Restoring the backup is the last resort, because it also discards prescriptions dispensed since the backup, and ⚠ **a pre-migration backup has RLS off**: re-apply 000400 and 000500 immediately after any restore (guide §8.1).
 
 ## How the migrations were tested
 
-`apps/api/supabase/tests/run-migration-tests.sh` builds a throwaway local PostgreSQL 18 database with Supabase's roles and default grants, applies all seven migrations, re-applies the four new ones, and runs:
+`apps/api/supabase/tests/run-migration-tests.sh` builds a throwaway local PostgreSQL 18 database with Supabase's roles and default grants, applies all eight migrations, re-applies the five new ones, and runs:
 
 - 48 SQL checks: constraints, audit log contents, `receive_stock` (multi-line, idempotent replay, whole-receipt rollback, expired stock, batch/expiry mismatch), `adjust_stock` (over-removal, batch ownership, reason and user required, no silent clamping), `create_prescription` (FEFO order, expired batches never used, idempotency, no partial records), RLS (anon/authenticated cannot read, write or execute; service_role can), and validation of every `NOT VALID` constraint;
-- a concurrency test: two sessions take 10 units each from 15 at the same moment. Exactly one succeeds, and the stock and ledger end up consistent.
+- a concurrency test: two sessions take 10 units each from 15 at the same moment. Exactly one succeeds, and the stock and ledger end up consistent;
+- 40 further checks for 000500 (`30_returns_dispensing_tests.sql`): no threshold defaults, returns split, supplier return against a batch, patient return leaves stock unchanged, quarantine and release (with reason, user and audit), receiving cannot reactivate a quarantined batch, dispensing never uses quarantined, expired or undated stock, allocation across batches, privileges and RLS on the new objects;
+- a second concurrency test (`40_dispensing_concurrency_test.sh`): two requests with the same idempotency key produce one prescription and the same answer; two prescriptions competing for the last units of a batch cannot oversell it.
 
-Result on 2026-10-10: all passed. It never connects to Supabase and refuses a non-local host.
+In addition, `apps/api/test/db/*.db-spec.ts` (`pnpm test:db`) runs the real API over HTTP against the same kind of local database (see `STAGING_READINESS_REPORT.md` §5).
+
+Result on 2026-10-10: all passed (89 SQL checks, both concurrency tests, 42 API end-to-end tests). It never connects to Supabase and refuses a non-local host.
 
 ## Decisions needed (owner / pharmacist)
+
+The current, complete list is in `STAGING_READINESS_REPORT.md` §7. Items 1–3 below are resolved in code as described there, pending pharmacist confirmation.
 
 1. **Switch prescriptions to `create_prescription`.** Today the API writes a prescription as a sequence of checked steps and reverses them if one fails. The database function does it in one transaction and also deducts stock from **batches, earliest expiry first**, which the current code does not do (it only reduces the product total). This changes stock behaviour, so it needs sign-off before the API calls it.
 2. **`RETURNED` adjustments add stock.** That was the existing behaviour and has been kept. Confirm whether "returned" means *returned by a patient to stock* (adds) or *returned to the supplier* (should remove).

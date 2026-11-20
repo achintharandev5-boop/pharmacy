@@ -1,0 +1,552 @@
+[
+  {
+    "name": "desktop-1366 idle: no horizontal page scroll",
+    "ok": true,
+    "detail": "overflow 0px"
+  },
+  {
+    "name": "desktop-1366 idle: no overlapping controls",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366 idle: no clipped button text",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366 idle: touch targets ≥ 32×32px",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: Till Date selects and deselects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: 5H selects and deselects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: Evening selects and deselects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: 6H selects and deselects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: And This Date selects and deselects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: Weekly selects and deselects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: EOD selects and deselects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: Empty Stomach selects and deselects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: With Food selects and deselects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: Chewable selects and deselects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: Daily selects and deselects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: Dissolve and Drink selects and deselects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: Keep in Mouth selects and deselects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: 8H selects and deselects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: TAKE + AFTER → Sinhala on the label text",
+    "ok": true,
+    "detail": "LABEL TEXTකෑමට පසු ගන්න"
+  },
+  {
+    "name": "desktop-1366: WITH FOOD removes AFTER and locks timing",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: WITH FOOD + TAKE → Sinhala",
+    "ok": true,
+    "detail": "LABEL TEXTකෑමත් සමග ගන්න"
+  },
+  {
+    "name": "desktop-1366: EMPTY STOMACH replaces WITH FOOD",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: WEEKLY + DAILY conflict is shown",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: + + then X/Y ½ gives 2½",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: X/Y shows the fraction on one line",
+    "ok": true,
+    "detail": "span height 28px, button 64px"
+  },
+  {
+    "name": "desktop-1366: label text shows Morning: 2½",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: − disabled at 0 (lunch)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366 with selections: no horizontal page scroll",
+    "ok": true,
+    "detail": "overflow 0px"
+  },
+  {
+    "name": "desktop-1366 with selections: no overlapping controls",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366 with selections: no clipped button text",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366 with selections: touch targets ≥ 32×32px",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: Add Label → LABEL 2 OF 2, blank",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: AC clears the entry, both labels kept",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: \"/\" alone is refused with a message",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: STAT Done disabled at 0",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: STAT X/Y ½ stays in the STAT panel with 1½",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: STAT chip shown",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: re-open + Cancel keeps STAT",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: STAT chip ✕ removes STAT",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366 reasons panel: no horizontal page scroll",
+    "ok": true,
+    "detail": "overflow 0px"
+  },
+  {
+    "name": "desktop-1366 reasons panel: no overlapping controls",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366 reasons panel: no clipped button text",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366 reasons panel: touch targets ≥ 32×32px",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: Reasons Done closes the panel and keeps Chewable",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: days shows — until set",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: + days gives 1",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: days-of-week Cancel reverts",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: past expiry refused",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: valid expiry saved",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: keyboard Enter toggles a tile",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: keyboard Space toggles it back",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: label 1 kept its selections",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: Delete removes label 2 only",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: 15 rapid taps → 15",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop-1366: no page errors",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024 idle: no horizontal page scroll",
+    "ok": true,
+    "detail": "overflow 0px"
+  },
+  {
+    "name": "tablet-1024 idle: no overlapping controls",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024 idle: no clipped button text",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024 idle: touch targets ≥ 32×32px",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: Till Date selects and deselects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: 5H selects and deselects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: Evening selects and deselects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: 6H selects and deselects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: And This Date selects and deselects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: Weekly selects and deselects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: EOD selects and deselects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: Empty Stomach selects and deselects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: With Food selects and deselects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: Chewable selects and deselects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: Daily selects and deselects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: Dissolve and Drink selects and deselects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: Keep in Mouth selects and deselects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: 8H selects and deselects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: TAKE + AFTER → Sinhala on the label text",
+    "ok": true,
+    "detail": "LABEL TEXTකෑමට පසු ගන්න"
+  },
+  {
+    "name": "tablet-1024: WITH FOOD removes AFTER and locks timing",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: WITH FOOD + TAKE → Sinhala",
+    "ok": true,
+    "detail": "LABEL TEXTකෑමත් සමග ගන්න"
+  },
+  {
+    "name": "tablet-1024: EMPTY STOMACH replaces WITH FOOD",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: WEEKLY + DAILY conflict is shown",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: + + then X/Y ½ gives 2½",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: X/Y shows the fraction on one line",
+    "ok": true,
+    "detail": "span height 28px, button 56px"
+  },
+  {
+    "name": "tablet-1024: label text shows Morning: 2½",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: − disabled at 0 (lunch)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024 with selections: no horizontal page scroll",
+    "ok": true,
+    "detail": "overflow 0px"
+  },
+  {
+    "name": "tablet-1024 with selections: no overlapping controls",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024 with selections: no clipped button text",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024 with selections: touch targets ≥ 32×32px",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: Add Label → LABEL 2 OF 2, blank",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: AC clears the entry, both labels kept",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: \"/\" alone is refused with a message",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: STAT Done disabled at 0",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: STAT X/Y ½ stays in the STAT panel with 1½",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: STAT chip shown",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: re-open + Cancel keeps STAT",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: STAT chip ✕ removes STAT",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024 reasons panel: no horizontal page scroll",
+    "ok": true,
+    "detail": "overflow 0px"
+  },
+  {
+    "name": "tablet-1024 reasons panel: no overlapping controls",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024 reasons panel: no clipped button text",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024 reasons panel: touch targets ≥ 32×32px",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: Reasons Done closes the panel and keeps Chewable",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: days shows — until set",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: + days gives 1",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: days-of-week Cancel reverts",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: past expiry refused",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: valid expiry saved",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: keyboard Enter toggles a tile",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: keyboard Space toggles it back",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: label 1 kept its selections",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: Delete removes label 2 only",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: 15 rapid taps → 15",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-1024: no page errors",
+    "ok": true,
+    "detail": ""
+  }
+]

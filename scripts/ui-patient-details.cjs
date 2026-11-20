@@ -1,0 +1,4 @@
+﻿const fs=require('fs'),crypto=require('crypto'),h=JSON.parse(fs.readFileSync('docs/ui-modernization/source-baseline.json'));
+function edit(p,fn){const b=fs.readFileSync(p);if(crypto.createHash('sha256').update(b).digest('hex')!==h[p])throw Error('Concurrent source change: '+p);fs.writeFileSync(p,fn(b.toString('utf8')))}
+edit('apps/web/components/ui/DataTable.tsx',s=>s.replace('<div className="overflow-x-auto">','<div className="overflow-x-auto" role="region" aria-label={`${caption} table`} tabIndex={0}>').replace('cursor-pointer hover:bg-surface','cursor-pointer hover:bg-[var(--color-row-hover)]').replace('flex items-center justify-between gap-3 border-t','flex flex-wrap items-center justify-between gap-3 border-t').replace('px-4 py-2.5 text-xs','px-4 py-3 text-xs'));
+edit('apps/web/app/admin/patients/page.tsx',s=>s.replace('<Card>','<Card className="overflow-hidden">'));

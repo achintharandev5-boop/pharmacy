@@ -37,7 +37,7 @@ function toSummary(row: Record<string, any>): ProductSummary {
     batch_number: row.batch_number ?? null,
     retail_price: row.retail_price ?? null,
     pack_size: row.pack_size ?? null,
-    product_type: row.product_type ?? row.dosage_form ?? null,
+    product_type: row.product_type ?? null,
     is_active: row.is_active !== false,
   };
 }

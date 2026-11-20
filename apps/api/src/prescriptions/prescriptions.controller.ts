@@ -1,10 +1,11 @@
 import { Body, Controller, Get, Headers, HttpCode, Param, ParseUUIDPipe, Post } from '@nestjs/common';
 import { PrescriptionsService } from './prescriptions.service';
 import { CreatePrescriptionDto, LogSmsDto } from './dto/create-prescription.dto';
-import { CurrentUser } from '../auth/decorators';
-import type { AuthUser } from '../auth/roles';
+import { CurrentUser, Roles } from '../auth/decorators';
+import { ALL_ROLES, type AuthUser } from '../auth/roles';
 
 @Controller('prescriptions')
+@Roles(...ALL_ROLES)
 export class PrescriptionsController {
   constructor(private readonly prescriptionsService: PrescriptionsService) {}
 

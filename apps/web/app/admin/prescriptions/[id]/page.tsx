@@ -26,7 +26,10 @@ function dosage(item: ApiData): string {
 
 /** The expiry text that was on the label; the date column holds only unambiguous dates. */
 function labelExpiry(item: ApiData): string {
-  return item.instructions_json?.labelExpiryText ?? (item.expiry_date ? formatDate(item.expiry_date) : '—');
+  // Exactly as printed; the GRN batch it came from is recorded with the label (Feature #22).
+  const printed = item.instructions_json?.labelExpiryText ?? (item.expiry_date ? formatDate(item.expiry_date) : '—');
+  const batch = item.instructions_json?.expiryBatch?.batchNumber;
+  return batch ? `${printed} (batch ${batch})` : printed;
 }
 
 export default function PrescriptionDetailPage() {

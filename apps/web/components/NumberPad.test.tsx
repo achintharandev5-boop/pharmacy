@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { NumberPad } from './NumberPad';
@@ -36,7 +36,7 @@ describe('NumberPad Component', () => {
     render(<NumberPad />);
     // Header shows "Entering" above the target name.
     expect(screen.getByText('Entering')).toBeInTheDocument();
-    expect(screen.getByText('MORNING')).toBeInTheDocument();
+    expect(screen.getByText('MORNING QTY')).toBeInTheDocument();
   });
 
   it('digit entry updates the preview live', async () => {

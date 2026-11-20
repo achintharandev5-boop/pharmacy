@@ -1,4 +1,13 @@
-import { BadRequestException, ConflictException, ServiceUnavailableException, ValidationPipe } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ParseUUIDPipe,
+  ServiceUnavailableException,
+  ValidationPipe,
+} from '@nestjs/common';
+import { InventoryController } from './inventory.controller';
+import { ROLES_KEY } from '../auth/decorators';
+import { ALL_ROLES } from '../auth/roles';
 import { ConfigService } from '@nestjs/config';
 import { InventoryService } from './inventory.service';
 import { SupabaseService } from '../supabase/supabase.service';
@@ -108,6 +117,51 @@ describe('InventoryService', () => {
     expect(low[0]).toMatchObject({ status: 'LOW_STOCK', suggestedOrderQty: 47 });
   });
 
+  it('limits dashboard low-stock results after applying pharmacy stock thresholds', async () => {
+    const db = new FakeSupabase({
+      products: [
+        { id: 'a', name: 'A', stock_quantity: 0, reorder_level: 5 },
+        { id: 'b', name: 'B', stock_quantity: 1, reorder_level: 5 },
+      ],
+    });
+    await expect(serviceFor(db).getLowStock(1)).resolves.toHaveLength(1);
+  });
+
+  it('returns a zero-filled, date-filtered movement series', async () => {
+    const db = new FakeSupabase({
+      inventory_movements: [
+        { id: 'today-1', created_at: new Date().toISOString() },
+        { id: 'today-2', created_at: new Date().toISOString() },
+        { id: 'old', created_at: '2020-01-01T00:00:00Z' },
+      ],
+    });
+    const result = await serviceFor(db).getMovementActivity('7d');
+    expect(result).toHaveLength(7);
+    expect(result.reduce((sum, day) => sum + day.movements, 0)).toBe(2);
+    expect(db.calls.filter((call) => call.table === 'inventory_movements')).toHaveLength(1);
+  });
+
+  it('rejects unsupported movement chart ranges and surfaces database errors', async () => {
+    await expect(serviceFor(new FakeSupabase()).getMovementActivity('365d')).rejects.toBeInstanceOf(BadRequestException);
+    await expect(serviceFor(new FakeSupabase().fail('inventory_movements', 'select')).getMovementActivity('7d')).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
+  });
+
+  it('returns only stocked batches expiring in the supported window and caps the result count', async () => {
+    const db = new FakeSupabase({
+      product_batches: [
+        { id: 'soon', quantity_available: 3, expiry_date: addDays(today, 10) },
+        { id: 'expired', quantity_available: 2, expiry_date: addDays(today, -1) },
+        { id: 'empty', quantity_available: 0, expiry_date: addDays(today, 2) },
+        { id: 'later', quantity_available: 1, expiry_date: addDays(today, 45) },
+      ],
+    });
+    const result = await serviceFor(db).getUpcomingExpiryBatches(1);
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('expired');
+  });
+
   describe('receiving and adjustments (transactional database functions)', () => {
     const receipt: ReceiveStockDto = {
       supplierId: SUPPLIER,
@@ -178,5 +232,161 @@ describe('InventoryService', () => {
       expect.objectContaining({ productId: 'b', stockQty: 4, stockValue: 40, lastDispensedAt: null, daysSinceDispensed: null }),
     ]);
     expect(a.stockByCategory).toEqual([{ category: 'Uncategorised', value: 40, percentage: 100 }]);
+  });
+});
+
+describe('Returns and quarantine (migration 20261010000500)', () => {
+  const pipe = new ValidationPipe({ whitelist: true, transform: true });
+  const BATCH = '88888888-8888-4888-8888-888888888888';
+
+  it('no longer accepts the ambiguous RETURNED adjustment type', async () => {
+    await expect(
+      pipe.transform({ productId: PRODUCT, type: 'RETURNED', quantity: 1, reason: 'Came back' }, { type: 'body', metatype: StockAdjustmentDto }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('requires a batch for a supplier return before calling the database', async () => {
+    const db = new FakeSupabase();
+    const called = jest.fn();
+    db.rpcHandlers.adjust_stock = () => {
+      called();
+      return { data: null, error: null };
+    };
+    await expect(
+      serviceFor(db).adjustStock({ productId: PRODUCT, type: 'SUPPLIER_RETURN', quantity: 2, reason: 'Recall notice' }, USER),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(called).not.toHaveBeenCalled();
+  });
+
+  it('sends a supplier return to adjust_stock against the batch, attributed to the user', async () => {
+    const db = new FakeSupabase();
+    let args: any;
+    db.rpcHandlers.adjust_stock = (a) => {
+      args = a;
+      return { data: { movement_id: 'm1', stock_before: 10, stock_after: 8 }, error: null };
+    };
+    await serviceFor(db).adjustStock({ productId: PRODUCT, batchId: BATCH, type: 'SUPPLIER_RETURN', quantity: 2, reason: ' Recall notice ' }, USER);
+    expect(args).toMatchObject({ p_type: 'SUPPLIER_RETURN', p_batch_id: BATCH, p_reason: 'Recall notice', p_user_id: USER });
+  });
+
+  it('records a patient return without touching stock', async () => {
+    const db = new FakeSupabase({ products: [{ id: PRODUCT, name: 'Panadol 500mg', stock_quantity: 10 }] });
+    const saved = await serviceFor(db).recordPatientReturn({ productId: PRODUCT, quantity: 3, reason: 'Treatment stopped' }, USER);
+    expect(saved).toMatchObject({ product_name_text: 'Panadol 500mg', quantity: 3, recorded_by: USER });
+    expect(db.table('products')[0].stock_quantity).toBe(10);
+    expect(db.table('inventory_movements')).toHaveLength(0);
+  });
+
+  it('needs a medicine or a name for a patient return', async () => {
+    await expect(serviceFor(new FakeSupabase()).recordPatientReturn({ quantity: 1, reason: 'Unknown pack' }, USER)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+  });
+
+  it('disposes of a held return once, and refuses a second disposal', async () => {
+    const db = new FakeSupabase({ patient_returns: [{ id: BATCH, status: 'HELD_FOR_REVIEW' }] });
+    await serviceFor(db).disposePatientReturn(BATCH, 'Sent for destruction', USER);
+    expect(db.table('patient_returns')[0]).toMatchObject({ status: 'DISPOSED', disposed_by: USER, disposal_note: 'Sent for destruction' });
+    await expect(serviceFor(db).disposePatientReturn(BATCH, 'Again', USER)).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('passes quarantine and release to the database with the reason and user', async () => {
+    const db = new FakeSupabase();
+    const seen: any[] = [];
+    db.rpcHandlers.quarantine_batch = (a) => (seen.push(a), { data: { status: 'QUARANTINED' }, error: null });
+    db.rpcHandlers.release_batch = () => ({ data: null, error: { code: 'P0001', hint: 'EXPIRED_BATCH', message: 'expired' } as any });
+    await serviceFor(db).quarantineBatch(BATCH, ' Damaged seal ', USER);
+    expect(seen[0]).toEqual({ p_batch_id: BATCH, p_reason: 'Damaged seal', p_user_id: USER });
+    await expect(serviceFor(db).releaseBatch(BATCH, 'Checked', USER)).rejects.toBeInstanceOf(BadRequestException);
+  });
+});
+
+describe('InventoryService.getDispensingBatches (Add Expiry Date, Feature #22)', () => {
+  const OTHER = '22222222-2222-4222-8222-222222222222';
+  const tomorrow = addDays(today, 1);
+  const yesterday = addDays(today, -1);
+  const batch = (id: string, over: Record<string, unknown> = {}) => ({
+    id,
+    product_id: PRODUCT,
+    batch_number: id.toUpperCase(),
+    expiry_date: '2099-08-31',
+    quantity_available: 10,
+    status: 'ACTIVE',
+    received_at: '2026-01-01T00:00:00Z',
+    ...over,
+  });
+
+  function dbWith(batches: Record<string, unknown>[]) {
+    return new FakeSupabase({
+      products: [
+        { id: PRODUCT, name: 'Panadol' },
+        { id: OTHER, name: 'Other' },
+      ],
+      product_batches: batches,
+    });
+  }
+
+  it('returns only dispensable batches of that medicine, with the GRN expiry exactly as recorded', async () => {
+    const db = dbWith([
+      batch('b-late', { expiry_date: '2099-12-31' }),
+      batch('b-early', { expiry_date: tomorrow }),
+      batch('b-today', { expiry_date: today }),
+      batch('b-expired', { expiry_date: yesterday }),
+      batch('b-undated', { expiry_date: null }),
+      batch('b-quarantined', { status: 'QUARANTINED' }),
+      batch('b-marked', { status: 'EXPIRED' }),
+      batch('b-empty', { quantity_available: 0 }),
+      batch('b-other', { product_id: OTHER }),
+    ]);
+    const result = await serviceFor(db).getDispensingBatches(PRODUCT);
+    expect(result.productId).toBe(PRODUCT);
+    expect(result.batches.map((b) => b.id).sort()).toEqual([
+      'b-early',
+      'b-late',
+      'b-today',
+    ]);
+    expect(result.batches.find((b) => b.id === 'b-late')).toEqual({
+      id: 'b-late',
+      batchNumber: 'B-LATE',
+      expiryDate: '2099-12-31',
+      quantityAvailable: 10,
+    });
+    // Eligible-but-excluded batches are counted, never silently presented as usable.
+    expect(result.excludedBatchCount).toBe(4);
+  });
+
+  it('returns an empty list, not an invented batch, when nothing is dispensable', async () => {
+    const result = await serviceFor(
+      dbWith([batch('b1', { expiry_date: null })]),
+    ).getDispensingBatches(PRODUCT);
+    expect(result.batches).toEqual([]);
+  });
+
+  it('reports an unknown medicine and a database failure as errors', async () => {
+    await expect(
+      serviceFor(dbWith([])).getDispensingBatches(
+        '99999999-9999-4999-8999-999999999999',
+      ),
+    ).rejects.toMatchObject({ status: 404 });
+    await expect(
+      serviceFor(
+        dbWith([]).fail('product_batches', 'select'),
+      ).getDispensingBatches(PRODUCT),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+  });
+
+  it('is open to every workstation role and validates the medicine id', async () => {
+    expect(
+      Reflect.getMetadata(
+        ROLES_KEY,
+        InventoryController.prototype.getDispensingBatches,
+      ),
+    ).toEqual(ALL_ROLES);
+    await expect(
+      new ParseUUIDPipe().transform('not-a-uuid', {
+        type: 'query',
+        data: 'productId',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 });

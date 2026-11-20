@@ -1,0 +1,524 @@
+[
+  {
+    "area": "shell",
+    "name": "dashboard hydrated",
+    "ok": true,
+    "detail": "13/13 visible buttons have React handlers"
+  },
+  {
+    "area": "shell",
+    "name": "theme selector switches dark → light and persists",
+    "ok": true,
+    "detail": "dark=dark,dark light=light"
+  },
+  {
+    "area": "shell",
+    "name": "theme preference survives reload (no flash: set before hydration)",
+    "ok": true,
+    "detail": "data-theme at DOMContentLoaded=dark"
+  },
+  {
+    "area": "shell",
+    "name": "account menu opens on click and closes on Escape",
+    "ok": true,
+    "detail": "aria-expanded true → false, popup visible=true"
+  },
+  {
+    "area": "shell",
+    "name": "collapse sidebar toggles",
+    "ok": true,
+    "detail": "sidebar 240px → 64px"
+  },
+  {
+    "area": "shell",
+    "name": "dashboard range control (7/30/90 days) selects",
+    "ok": true,
+    "detail": "aria-checked=true"
+  },
+  {
+    "area": "shell",
+    "name": "no page errors on dashboard",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "area": "shell-mobile",
+    "name": "drawer opens, Escape closes, focus returns to opener",
+    "ok": true,
+    "detail": "opener=\"Open navigation\" open=true closed=true focus=\"Open navigation\""
+  },
+  {
+    "area": "label mouse-1366",
+    "name": "5H: tile -> quantity editor -> + -> Done (Next) -> selected, preview updated",
+    "ok": true,
+    "detail": "qty 0->1 on=true preview=\"LABEL5H: 1 | 5H\""
+  },
+  {
+    "area": "label mouse-1366",
+    "name": "6H: tile -> quantity editor -> + -> Done (Next) -> selected, preview updated",
+    "ok": true,
+    "detail": "qty 0->1 on=true preview=\"LABEL6H: 1 | 6H\""
+  },
+  {
+    "area": "label mouse-1366",
+    "name": "8H: tile -> quantity editor -> + -> Done (Next) -> selected, preview updated",
+    "ok": true,
+    "detail": "qty 0->1 on=true preview=\"LABEL8H: 1 | 8H\""
+  },
+  {
+    "area": "label mouse-1366",
+    "name": "Daily: tile -> quantity editor -> + -> Done (Next) -> selected, preview updated",
+    "ok": true,
+    "detail": "qty 0->1 on=true preview=\"LABELදිනකට 1\""
+  },
+  {
+    "area": "label mouse-1366",
+    "name": "Evening: tile -> quantity editor -> + -> Done (Next) -> selected, preview updated",
+    "ok": true,
+    "detail": "qty 0->1 on=true preview=\"LABEL1 හවසට\""
+  },
+  {
+    "area": "label mouse-1366",
+    "name": "Weekly: tile -> quantity editor -> + -> Done (Next) -> selected, preview updated",
+    "ok": true,
+    "detail": "qty 0->1 on=true preview=\"LABELසතියකට වරක් 1\""
+  },
+  {
+    "area": "label mouse-1366",
+    "name": "EOD: tile selects, then Morning dose + -> EOD wording in preview",
+    "ok": true,
+    "detail": "on=true preview=\"LABELඋදේට 1 | දිනක් හැර දිනක්\""
+  },
+  {
+    "area": "label mouse-1366",
+    "name": "observation: editor start value after Clear All (5H=1, clear, open 6H)",
+    "ok": true,
+    "detail": "Clear All cleared 5H=true; 6H editor opened at qty 1"
+  },
+  {
+    "area": "label mouse-1366",
+    "name": "a standard dose locks interval/STAT tiles (sequencing rule intact)",
+    "ok": true,
+    "detail": "locked(5H,6H,8H,Weekly,EOD,STAT,Daily,Evening)=true,true,true,true,true,true,true,true"
+  },
+  {
+    "area": "label mouse-1366",
+    "name": "workstation hydrated",
+    "ok": true,
+    "detail": "48/48 visible buttons have React handlers"
+  },
+  {
+    "area": "label mouse-1366",
+    "name": "manual product name accepted",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "area": "label mouse-1366",
+    "name": "product type set (required before printing)",
+    "ok": true,
+    "detail": "chose \"Pethi\" of 3"
+  },
+  {
+    "area": "label mouse-1366",
+    "name": "product quantity set via + control",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "area": "label mouse-1366",
+    "name": "Morning dose + and preview updates",
+    "ok": true,
+    "detail": "Morning quantity: 1. Enter quantity"
+  },
+  {
+    "area": "label mouse-1366",
+    "name": "Chewable selects and deselects",
+    "ok": true,
+    "detail": "on=true off=true"
+  },
+  {
+    "area": "label mouse-1366",
+    "name": "With Food selects and deselects",
+    "ok": true,
+    "detail": "on=true off=true"
+  },
+  {
+    "area": "label mouse-1366",
+    "name": "Empty Stomach selects and deselects",
+    "ok": true,
+    "detail": "on=true off=true"
+  },
+  {
+    "area": "label mouse-1366",
+    "name": "Keep in Mouth selects and deselects",
+    "ok": true,
+    "detail": "on=true off=true"
+  },
+  {
+    "area": "label mouse-1366",
+    "name": "Dissolve and Drink selects and deselects",
+    "ok": true,
+    "detail": "on=true off=true"
+  },
+  {
+    "area": "label mouse-1366",
+    "name": "Take medication selects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "area": "label mouse-1366",
+    "name": "After meals selects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "area": "label mouse-1366",
+    "name": "Sinhala instruction text in preview",
+    "ok": true,
+    "detail": "LABELඋදේට 1 | කෑමට පසු ගන්න"
+  },
+  {
+    "area": "label mouse-1366",
+    "name": "Done opens review with Print-only and Print & Save (test-mode preview)",
+    "ok": true,
+    "detail": "printOnly=true printAndSave=true blockers="
+  },
+  {
+    "area": "label mouse-1366",
+    "name": "review preview label measures 70 x 50 mm",
+    "ok": true,
+    "detail": "1 element(s) at 70x50mm"
+  },
+  {
+    "area": "label mouse-1366",
+    "name": "Print only: prints once, shows \"nothing was saved\" notice",
+    "ok": true,
+    "detail": "prints=1 notice=true"
+  },
+  {
+    "area": "label mouse-1366",
+    "name": "Print & Save in test mode: preview prints, reports not saved",
+    "ok": true,
+    "detail": "prints=2 notSavedMessage=true"
+  },
+  {
+    "area": "label mouse-1366",
+    "name": "no page errors on workstation",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "area": "label touch-1024",
+    "name": "5H: tile -> quantity editor -> + -> Done (Next) -> selected, preview updated",
+    "ok": true,
+    "detail": "qty 0->1 on=true preview=\"LABEL5H: 1 | 5H\""
+  },
+  {
+    "area": "label touch-1024",
+    "name": "6H: tile -> quantity editor -> + -> Done (Next) -> selected, preview updated",
+    "ok": true,
+    "detail": "qty 0->1 on=true preview=\"LABEL6H: 1 | 6H\""
+  },
+  {
+    "area": "label touch-1024",
+    "name": "8H: tile -> quantity editor -> + -> Done (Next) -> selected, preview updated",
+    "ok": true,
+    "detail": "qty 0->1 on=true preview=\"LABEL8H: 1 | 8H\""
+  },
+  {
+    "area": "label touch-1024",
+    "name": "Daily: tile -> quantity editor -> + -> Done (Next) -> selected, preview updated",
+    "ok": true,
+    "detail": "qty 0->1 on=true preview=\"LABELදිනකට 1\""
+  },
+  {
+    "area": "label touch-1024",
+    "name": "Evening: tile -> quantity editor -> + -> Done (Next) -> selected, preview updated",
+    "ok": true,
+    "detail": "qty 0->1 on=true preview=\"LABEL1 හවසට\""
+  },
+  {
+    "area": "label touch-1024",
+    "name": "Weekly: tile -> quantity editor -> + -> Done (Next) -> selected, preview updated",
+    "ok": true,
+    "detail": "qty 0->1 on=true preview=\"LABELසතියකට වරක් 1\""
+  },
+  {
+    "area": "label touch-1024",
+    "name": "EOD: tile selects, then Morning dose + -> EOD wording in preview",
+    "ok": true,
+    "detail": "on=true preview=\"LABELඋදේට 1 | දිනක් හැර දිනක්\""
+  },
+  {
+    "area": "label touch-1024",
+    "name": "observation: editor start value after Clear All (5H=1, clear, open 6H)",
+    "ok": true,
+    "detail": "Clear All cleared 5H=true; 6H editor opened at qty 1"
+  },
+  {
+    "area": "label touch-1024",
+    "name": "a standard dose locks interval/STAT tiles (sequencing rule intact)",
+    "ok": true,
+    "detail": "locked(5H,6H,8H,Weekly,EOD,STAT,Daily,Evening)=true,true,true,true,true,true,true,true"
+  },
+  {
+    "area": "label touch-1024",
+    "name": "workstation hydrated",
+    "ok": true,
+    "detail": "48/48 visible buttons have React handlers"
+  },
+  {
+    "area": "label touch-1024",
+    "name": "manual product name accepted",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "area": "label touch-1024",
+    "name": "product type set (required before printing)",
+    "ok": true,
+    "detail": "chose \"Pethi\" of 3"
+  },
+  {
+    "area": "label touch-1024",
+    "name": "product quantity set via + control",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "area": "label touch-1024",
+    "name": "Morning dose + and preview updates",
+    "ok": true,
+    "detail": "Morning quantity: 1. Enter quantity"
+  },
+  {
+    "area": "label touch-1024",
+    "name": "Chewable selects and deselects",
+    "ok": true,
+    "detail": "on=true off=true"
+  },
+  {
+    "area": "label touch-1024",
+    "name": "With Food selects and deselects",
+    "ok": true,
+    "detail": "on=true off=true"
+  },
+  {
+    "area": "label touch-1024",
+    "name": "Empty Stomach selects and deselects",
+    "ok": true,
+    "detail": "on=true off=true"
+  },
+  {
+    "area": "label touch-1024",
+    "name": "Keep in Mouth selects and deselects",
+    "ok": true,
+    "detail": "on=true off=true"
+  },
+  {
+    "area": "label touch-1024",
+    "name": "Dissolve and Drink selects and deselects",
+    "ok": true,
+    "detail": "on=true off=true"
+  },
+  {
+    "area": "label touch-1024",
+    "name": "Take medication selects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "area": "label touch-1024",
+    "name": "After meals selects",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "area": "label touch-1024",
+    "name": "Sinhala instruction text in preview",
+    "ok": true,
+    "detail": "LABELඋදේට 1 | කෑමට පසු ගන්න"
+  },
+  {
+    "area": "label touch-1024",
+    "name": "Done opens review with Print-only and Print & Save (test-mode preview)",
+    "ok": true,
+    "detail": "printOnly=true printAndSave=true blockers="
+  },
+  {
+    "area": "label touch-1024",
+    "name": "review preview label measures 70 x 50 mm",
+    "ok": true,
+    "detail": "1 element(s) at 70x50mm"
+  },
+  {
+    "area": "label touch-1024",
+    "name": "Print only: prints once, shows \"nothing was saved\" notice",
+    "ok": true,
+    "detail": "prints=1 notice=true"
+  },
+  {
+    "area": "label touch-1024",
+    "name": "Print & Save in test mode: preview prints, reports not saved",
+    "ok": true,
+    "detail": "prints=2 notSavedMessage=true"
+  },
+  {
+    "area": "label touch-1024",
+    "name": "no page errors on workstation",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "area": "pos",
+    "name": "POS hydrated",
+    "ok": true,
+    "detail": "5/5 visible buttons have React handlers"
+  },
+  {
+    "area": "pos",
+    "name": "search accepts input and Clear enables",
+    "ok": true,
+    "detail": "typed=\"para\" clearSearch=true after=\"\""
+  },
+  {
+    "area": "pos",
+    "name": "F4 opens customer chooser; Escape closes",
+    "ok": true,
+    "detail": "open=true closed=true"
+  },
+  {
+    "area": "pos",
+    "name": "no enabled checkout / payment control",
+    "ok": true,
+    "detail": "none enabled"
+  },
+  {
+    "area": "pos",
+    "name": "no page errors on POS",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "area": "patients",
+    "name": "add-patient dialog opens, traps focus, Escape closes",
+    "ok": true,
+    "detail": "open=true focusInDialog=true closed=true"
+  },
+  {
+    "area": "patients",
+    "name": "no page errors on patients",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "area": "routes",
+    "name": "/admin/prescriptions hydrates without page errors",
+    "ok": false,
+    "detail": "5/9 visible buttons have React handlers"
+  },
+  {
+    "area": "routes",
+    "name": "/admin/labels hydrates without page errors",
+    "ok": true,
+    "detail": "8/8 visible buttons have React handlers"
+  },
+  {
+    "area": "routes",
+    "name": "/admin/products hydrates without page errors",
+    "ok": true,
+    "detail": "10/10 visible buttons have React handlers"
+  },
+  {
+    "area": "routes",
+    "name": "/admin/inventory hydrates without page errors",
+    "ok": true,
+    "detail": "4/4 visible buttons have React handlers"
+  },
+  {
+    "area": "routes",
+    "name": "/admin/inventory/receiving hydrates without page errors",
+    "ok": true,
+    "detail": "6/6 visible buttons have React handlers"
+  },
+  {
+    "area": "routes",
+    "name": "/admin/inventory/adjustments hydrates without page errors",
+    "ok": true,
+    "detail": "6/6 visible buttons have React handlers"
+  },
+  {
+    "area": "routes",
+    "name": "/admin/inventory/batches hydrates without page errors",
+    "ok": true,
+    "detail": "10/10 visible buttons have React handlers"
+  },
+  {
+    "area": "routes",
+    "name": "/admin/inventory/expiry hydrates without page errors",
+    "ok": true,
+    "detail": "10/10 visible buttons have React handlers"
+  },
+  {
+    "area": "routes",
+    "name": "/admin/inventory/low-stock hydrates without page errors",
+    "ok": true,
+    "detail": "5/5 visible buttons have React handlers"
+  },
+  {
+    "area": "routes",
+    "name": "/admin/inventory/movements hydrates without page errors",
+    "ok": true,
+    "detail": "5/5 visible buttons have React handlers"
+  },
+  {
+    "area": "routes",
+    "name": "/admin/inventory/returns hydrates without page errors",
+    "ok": true,
+    "detail": "8/8 visible buttons have React handlers"
+  },
+  {
+    "area": "routes",
+    "name": "/admin/inventory/suppliers hydrates without page errors",
+    "ok": true,
+    "detail": "6/6 visible buttons have React handlers"
+  },
+  {
+    "area": "routes",
+    "name": "/admin/inventory/analytics hydrates without page errors",
+    "ok": true,
+    "detail": "7/7 visible buttons have React handlers"
+  },
+  {
+    "area": "routes",
+    "name": "/admin/analytics hydrates without page errors",
+    "ok": true,
+    "detail": "7/7 visible buttons have React handlers"
+  },
+  {
+    "area": "routes",
+    "name": "/admin/audit-log hydrates without page errors",
+    "ok": true,
+    "detail": "5/5 visible buttons have React handlers"
+  },
+  {
+    "area": "routes",
+    "name": "/admin/reasons hydrates without page errors",
+    "ok": true,
+    "detail": "7/7 visible buttons have React handlers"
+  },
+  {
+    "area": "routes",
+    "name": "/admin/settings hydrates without page errors",
+    "ok": true,
+    "detail": "8/8 visible buttons have React handlers"
+  },
+  {
+    "area": "routes",
+    "name": "/login hydrates without page errors",
+    "ok": true,
+    "detail": "3/3 visible buttons have React handlers"
+  }
+]

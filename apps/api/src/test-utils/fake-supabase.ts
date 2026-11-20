@@ -70,6 +70,7 @@ class Query implements PromiseLike<{ data: any; error: DbError | null; count?: n
   private filters: ((r: Row) => boolean)[] = [];
   private orderBy: { col: string; asc: boolean }[] = [];
   private limitN: number | null = null;
+  private offset = 0;
   private returning = false;
   private mode: 'many' | 'single' | 'maybe' = 'many';
   private countMode = false;
@@ -135,9 +136,19 @@ class Query implements PromiseLike<{ data: any; error: DbError | null; count?: n
     this.filters.push((r) => (r[col] ?? null) === v);
     return this;
   }
+  /** LIKE semantics: `%` is any run, `_` one character, `\` escapes; case-insensitive, whole value. */
   ilike(col: string, pattern: string) {
-    const needle = pattern.replace(/^%|%$/g, '').replace(/\\([%_])/g, '$1').toLowerCase();
-    this.filters.push((r) => String(r[col] ?? '').toLowerCase().includes(needle));
+    let source = '';
+    for (let i = 0; i < pattern.length; i++) {
+      const c = pattern[i];
+      const literal = c === '\\' && i + 1 < pattern.length ? pattern[++i] : null;
+      if (literal !== null) source += literal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      else if (c === '%') source += '.*';
+      else if (c === '_') source += '.';
+      else source += c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+    const re = new RegExp(`^${source}$`, 'is');
+    this.filters.push((r) => re.test(String(r[col] ?? '')));
     return this;
   }
   /** Supports `a.ilike.%x%,b.ilike.%x%` only. */
@@ -156,6 +167,12 @@ class Query implements PromiseLike<{ data: any; error: DbError | null; count?: n
   }
   limit(n: number) {
     this.limitN = n;
+    this.offset = 0;
+    return this;
+  }
+  range(from: number, to: number) {
+    this.offset = Math.max(0, from);
+    this.limitN = Math.max(0, to - from + 1);
     return this;
   }
   single() {
@@ -190,7 +207,7 @@ class Query implements PromiseLike<{ data: any; error: DbError | null; count?: n
       for (const { col, asc } of [...this.orderBy].reverse()) {
         result.sort((a, b) => (a[col] === b[col] ? 0 : (a[col] ?? '') > (b[col] ?? '') ? 1 : -1) * (asc ? 1 : -1));
       }
-      if (this.limitN !== null) result = result.slice(0, this.limitN);
+      if (this.limitN !== null) result = result.slice(this.offset, this.offset + this.limitN);
       if (this.countMode && this.head) return { data: null, error: null, count: result.length };
     } else if (this.op === 'insert') {
       const incoming = (Array.isArray(this.payload) ? this.payload : [this.payload!]).map((r) => ({

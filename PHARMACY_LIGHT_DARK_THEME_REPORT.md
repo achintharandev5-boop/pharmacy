@@ -1,0 +1,7 @@
+﻿# Light, Dark and System theme report
+
+Implemented on 2026-10-31 and finalized on 2026-11-01. Static pre-paint head script, local preference, system change listeners, cross-tab synchronization and storage-denial fallback are implemented without schema/auth changes. ThemeController mounts once at root; ThemeSwitcher is available in the admin header, workstation, POS, home and login.
+
+Tests: 5 theme component tests pass (explicit modes, persistence, OS changes, cross-tab/cleared storage, denied storage and invalid stored values); 9 shell tests pass. Whole-web TypeScript and ESLint pass. 40 semantic contrast pairs pass. The application sweep captured 276 views across both themes and six viewport sizes, with no overflow or page errors. System preference was verified on page bootstrap. A separate native-drawer focus/Escape check passed. The live application sweep was blocked from confirming client interaction because the existing local dev server did not hydrate account-menu/theme-select handlers; that limitation is recorded in the accessibility report.
+
+Protected source check: all 174 baseline backend/clinical/actions/constants/state/proxy/print files remain unchanged. Sample-label pixel comparisons passed all 56 checks. Print-media measurement confirmed 14 labels per theme at 70×50mm, white with black text; both Sinhala fonts resolved. Physical printer output remains NOT VERIFIED. Print media overrides are light, black-on-white, without changing existing dimensions or margins.

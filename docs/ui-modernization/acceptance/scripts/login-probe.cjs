@@ -1,0 +1,15 @@
+const {chromium}=require('C:/Users/Achintha/node_modules/playwright-core');
+const base=process.argv[2];
+(async()=>{const b=await chromium.launch({executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',headless:true});
+const ctx=await b.newContext({viewport:{width:1366,height:768}});const p=await ctx.newPage();const ev=[];const t0=Date.now();const T=()=>((Date.now()-t0)/1000).toFixed(1);
+p.on('console',m=>ev.push(T()+' console.'+m.type()+': '+m.text().slice(0,250)));
+p.on('pageerror',e=>ev.push(T()+' pageerror: '+e.message.slice(0,250)));
+p.on('request',q=>{if(q.method()==='POST'||q.isNavigationRequest())ev.push(T()+' REQ '+q.method()+' '+q.url().slice(0,100))});
+p.on('response',s=>{const q=s.request();if(q.method()==='POST'||q.isNavigationRequest())ev.push(T()+' RES '+s.status()+' '+s.url().slice(0,100)+' '+(s.headers()['x-action-redirect']||''))});
+p.on('requestfailed',q=>ev.push(T()+' FAIL '+q.url().slice(0,100)+' '+(q.failure()||{}).errorText));
+await p.goto(base+'/login',{waitUntil:'load',timeout:90000});await p.waitForTimeout(5000);ev.push(T()+' loaded');
+await p.click('main form button[type=submit]');ev.push(T()+' clicked');
+await p.waitForTimeout(45000);
+ev.push(T()+' final url '+p.url()+' cookies '+JSON.stringify((await ctx.cookies()).map(c=>c.name)));
+ev.push('button text: '+await p.textContent('main button[type=submit]').catch(()=>'n/a'));
+console.log(ev.join('\n'));await b.close();})().catch(e=>{console.error(e);process.exit(1)});

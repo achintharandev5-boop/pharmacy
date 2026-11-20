@@ -19,8 +19,8 @@ export function TabNav({ tabs, label }: { tabs: { href: string; label: string; e
                 href={tab.href}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'inline-flex h-10 items-center border-b-2 px-3 text-sm font-medium transition-colors',
-                  active ? 'border-primary text-primary' : 'border-transparent text-subtle hover:text-fg hover:border-border-strong',
+                  'inline-flex h-11 items-center border-b-2 px-3 text-sm font-medium transition-colors',
+                  active ? 'border-primary font-semibold text-primary-hover' : 'border-transparent text-subtle hover:text-fg hover:border-primary-border',
                 )}
               >
                 {tab.label}
@@ -54,7 +54,7 @@ export function SegmentedControl({
   className?: string;
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className={cn('inline-flex flex-wrap gap-1 rounded-ui bg-surface-2 p-1', className)}>
+    <div role="radiogroup" aria-label={label} className={cn('inline-flex flex-wrap gap-1 rounded-ui border border-border bg-[var(--color-canvas)] p-1', className)}>
       {options.map((o) => {
         const active = o.id === value;
         return (
@@ -65,13 +65,13 @@ export function SegmentedControl({
             aria-checked={active}
             onClick={() => onChange(o.id)}
             className={cn(
-              'inline-flex h-8 items-center gap-1.5 rounded-ui-sm px-3 text-sm font-medium transition-colors',
-              active ? 'bg-page text-fg shadow-card' : 'text-subtle hover:text-fg',
+              'inline-flex h-11 items-center gap-1.5 rounded-ui-sm px-3 text-sm font-medium transition-colors',
+              active ? 'bg-page text-primary-hover shadow-card ring-1 ring-primary-border' : 'text-subtle hover:text-fg',
             )}
           >
             {o.label}
             {typeof o.count === 'number' && (
-              <span className={cn('tabular rounded-ui-sm px-1.5 text-xs', active ? 'bg-primary-soft text-primary' : 'bg-page text-subtle')}>
+              <span className={cn('tabular rounded-ui-sm px-1.5 text-xs', active ? 'bg-primary-soft text-primary-hover' : 'bg-page text-subtle')}>
                 {o.count}
               </span>
             )}

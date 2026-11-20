@@ -1,7 +1,9 @@
 import React from 'react';
 import Link from 'next/link';
-import { ArrowRight, Boxes, FilePlus2, LayoutDashboard, LogOut, type LucideIcon } from 'lucide-react';
+import { ArrowRight, Boxes, FilePlus2, LayoutDashboard, LogOut, ShoppingCart, type LucideIcon } from 'lucide-react';
 import { handleLogout } from './actions/auth';
+import { redirectCashierToPos } from '@/lib/server/roleRedirect';
+import { ThemeSwitcher } from '@/components/ui';
 
 const DESTINATIONS: { href: string; title: string; description: string; icon: LucideIcon; primary?: boolean }[] = [
   {
@@ -10,6 +12,12 @@ const DESTINATIONS: { href: string; title: string; description: string; icon: Lu
     description: 'Select the patient and medicine, set the Sinhala dosage instructions, then print and save the labels.',
     icon: FilePlus2,
     primary: true,
+  },
+  {
+    href: '/pos',
+    title: 'Point of sale',
+    description: 'Search or scan medicines and build a customer’s cart. Checkout is pending accountant approval.',
+    icon: ShoppingCart,
   },
   {
     href: '/admin',
@@ -25,12 +33,13 @@ const DESTINATIONS: { href: string; title: string; description: string; icon: Lu
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  await redirectCashierToPos();
   return (
-    <div className="flex min-h-screen flex-col bg-surface">
+    <div className="flex min-h-screen flex-col bg-[var(--color-canvas)]">
       <header className="flex h-16 items-center justify-between border-b border-border bg-page px-4 sm:px-6">
         <div className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-ui bg-primary font-serif font-bold italic text-white" aria-hidden="true">
+          <span className="flex h-8 w-8 items-center justify-center rounded-ui bg-primary font-serif font-bold italic text-[var(--color-on-solid)]" aria-hidden="true">
             ℞
           </span>
           <span>
@@ -38,26 +47,29 @@ export default function HomePage() {
             <span className="block text-xs leading-tight text-subtle">Labels &amp; inventory</span>
           </span>
         </div>
+        <div className="flex items-center gap-2">
+        <ThemeSwitcher iconOnly />
         <form action={handleLogout}>
-          <button type="submit" className="inline-flex h-10 items-center gap-2 rounded-ui px-3 text-sm font-medium text-muted hover:bg-surface-2 hover:text-fg">
+          <button type="submit" className="inline-flex h-11 items-center gap-2 rounded-ui px-3 text-sm font-medium text-muted hover:bg-[var(--color-tint)] hover:text-fg">
             <LogOut size={16} aria-hidden="true" />
             Sign out
           </button>
         </form>
+        </div>
       </header>
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center px-4 py-12 sm:px-6">
-        <h1 className="text-2xl font-semibold tracking-tight text-fg">Where would you like to start?</h1>
+        <h1 className="text-[28px] font-semibold tracking-tight text-fg">Where would you like to start?</h1>
         <p className="mt-1 text-sm text-subtle">Choose a workspace.</p>
-        <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {DESTINATIONS.map(({ href, title, description, icon: Icon, primary }) => (
             <Link
               key={href}
               href={href}
-              className={`group flex flex-col rounded-ui-lg border bg-page p-6 shadow-card transition-colors hover:border-primary-border ${
+              className={`group flex flex-col rounded-ui-lg border bg-page p-6 shadow-card transition-[border-color,box-shadow] hover:border-primary-border hover:shadow-pop ${
                 primary ? 'border-primary-border' : 'border-border'
               }`}
             >
-              <span className={`flex h-10 w-10 items-center justify-center rounded-ui ${primary ? 'bg-primary text-white' : 'bg-primary-soft text-primary'}`}>
+              <span className={`flex h-10 w-10 items-center justify-center rounded-ui ${primary ? 'bg-primary text-[var(--color-on-solid)]' : 'bg-primary-soft text-primary'}`}>
                 <Icon size={20} aria-hidden="true" />
               </span>
               <span className="mt-4 text-base font-semibold text-fg">{title}</span>

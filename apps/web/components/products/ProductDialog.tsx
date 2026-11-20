@@ -2,12 +2,13 @@
 
 import React, { useState } from 'react';
 import { createProduct, updateProduct, type ProductInput } from '@/app/actions/products';
-import { Alert, Button, Dialog, FormField, Input, Select } from '@/components/ui';
+import { Alert, Button, Checkbox, Dialog, FormField, Input, Select } from '@/components/ui';
 import type { ApiData } from '@/lib/api/types';
+import { PRODUCT_TYPES } from '@/lib/productType';
 
 const DOSAGE_FORMS = ['Tablet', 'Capsule', 'Syrup', 'Suspension', 'Drops', 'Injection', 'Inhaler', 'Cream', 'Ointment', 'Gel', 'Powder', 'Other'];
 
-const TEXT_FIELDS = ['name', 'barcode', 'generic_name', 'brand_name', 'strength', 'dosage_form', 'category', 'manufacturer', 'unit_of_measure'] as const;
+const TEXT_FIELDS = ['name', 'barcode', 'generic_name', 'brand_name', 'strength', 'dosage_form', 'product_type', 'category', 'manufacturer', 'unit_of_measure'] as const;
 const INT_FIELDS = ['pack_size', 'reorder_level', 'minimum_stock', 'maximum_stock'] as const;
 
 type FormState = Record<(typeof TEXT_FIELDS)[number] | (typeof INT_FIELDS)[number] | 'retail_price', string> & {
@@ -24,6 +25,7 @@ function fromProduct(p?: ApiData): FormState {
     brand_name: s(p?.brand_name),
     strength: s(p?.strength),
     dosage_form: s(p?.dosage_form),
+    product_type: s(p?.product_type),
     category: s(p?.category),
     manufacturer: s(p?.manufacturer),
     unit_of_measure: s(p?.unit_of_measure),
@@ -136,6 +138,19 @@ export function ProductDialog({
           {field('generic_name', 'Generic name')}
           {field('brand_name', 'Brand name')}
           {field('strength', 'Strength', { placeholder: 'e.g. 500 mg' })}
+          <FormField label="Product type" hint="Saved on the medicine record and selected automatically on labels.">
+            {(f) => (
+              <Select {...f} value={form.product_type} onChange={set('product_type')}>
+                <option value="">Not specified</option>
+                {Object.entries(PRODUCT_TYPES).map(([type, sinhala]) => (
+                  <option key={type} value={type}>{type} · {sinhala}</option>
+                ))}
+                {form.product_type && !Object.hasOwn(PRODUCT_TYPES, form.product_type) && (
+                  <option value={form.product_type}>{form.product_type} (existing value)</option>
+                )}
+              </Select>
+            )}
+          </FormField>
           <FormField label="Dosage form">
             {(f) => (
               <Select {...f} value={form.dosage_form} onChange={set('dosage_form')}>
@@ -162,12 +177,12 @@ export function ProductDialog({
           {field('maximum_stock', 'Maximum', { inputMode: 'numeric' }, 'Used to suggest order size')}
         </fieldset>
         <div className="flex flex-col gap-3 sm:flex-row sm:gap-8">
-          <label className="flex items-center gap-2 text-sm text-fg">
-            <input type="checkbox" checked={form.rx_required} onChange={set('rx_required')} className="h-4 w-4 accent-[var(--color-primary)]" />
+          <label className="flex min-h-11 items-center gap-3 text-sm text-fg">
+            <Checkbox checked={form.rx_required} onChange={set('rx_required')} />
             Prescription required
           </label>
-          <label className="flex items-center gap-2 text-sm text-fg">
-            <input type="checkbox" checked={form.is_active} onChange={set('is_active')} className="h-4 w-4 accent-[var(--color-primary)]" />
+          <label className="flex min-h-11 items-center gap-3 text-sm text-fg">
+            <Checkbox checked={form.is_active} onChange={set('is_active')} />
             Active (can be dispensed)
           </label>
         </div>

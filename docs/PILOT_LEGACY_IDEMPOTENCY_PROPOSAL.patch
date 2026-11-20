@@ -1,0 +1,37 @@
+--- a/apps/api/src/prescriptions/prescriptions.service.ts
++++ b/apps/api/src/prescriptions/prescriptions.service.ts
+@@ -119,8 +119,10 @@
+       if (replay) return replay;
+     }
+ 
++    let savedPrescription: PrescriptionCreated | undefined;
+     try {
+       const result = await this.createUnchecked(dto, userId);
++      savedPrescription = result;
+       if (idempotencyKey) {
+         unwrap(
+           await this.db.from('idempotency_keys').update({ response_payload: result }).eq('key', idempotencyKey),
+@@ -129,8 +131,22 @@
+       }
+       return result;
+     } catch (err) {
++      if (idempotencyKey && savedPrescription) {
++        // Business writes completed: retain the pending key and require reconciliation.
++        this.logger.error(`RECONCILIATION REQUIRED: prescription ${savedPrescription.id} saved but retry protection could not be finalized`);
++        throw new InternalServerErrorException({
++          code: 'RECONCILIATION_REQUIRED',
++          prescriptionId: savedPrescription.id,
++          message: 'The prescription was saved but retry protection failed. Do not resubmit. Ask an administrator to reconcile this prescription.',
++        });
++      }
++      const failure = err instanceof InternalServerErrorException ? err.getResponse() : null;
++      if (failure && typeof failure === 'object' && 'code' in failure && failure.code === 'RECONCILIATION_REQUIRED') {
++        // A partial rollback is also an uncertain write: never release its reservation.
++        throw err;
++      }
+       if (idempotencyKey) {
+-        // Release the key so the client can retry with it.
++        // Release the key only after a failure with no unresolved business writes.
+         const { error } = await this.db.from('idempotency_keys').delete().eq('key', idempotencyKey);
+         if (error) this.logger.error(`Could not release idempotency key after failure (${error.code ?? 'NETWORK'})`);
+       }

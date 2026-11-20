@@ -1,0 +1,2 @@
+// Static, trusted source only. Runs in <head> before body paint, independent of React hydration.
+export const themeBootstrap = `(function(){try{var m=localStorage.getItem('pharmacy-theme');if(m!=='light'&&m!=='dark')m='system';var d=m==='dark'||(m==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.themePreference=m;document.documentElement.dataset.theme=d?'dark':'light'}catch(e){document.documentElement.dataset.theme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}})();`;

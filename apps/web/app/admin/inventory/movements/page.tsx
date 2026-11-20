@@ -17,7 +17,8 @@ const TYPES = [
   ['ADJUSTMENT_OUT', 'Adjustment out'],
   ['EXPIRED', 'Expired write-off'],
   ['DAMAGED', 'Damaged'],
-  ['RETURNED', 'Returned'],
+  ['SUPPLIER_RETURN', 'Returned to supplier'],
+  ['RETURNED', 'Returned (legacy)'],
 ];
 
 const columns: Column<ApiData>[] = [
@@ -66,7 +67,7 @@ export default function MovementsPage() {
   return (
     <PageBody>
       <InventoryHeader title="Stock movements" description="The stock ledger: every dispense, receipt and adjustment (500 most recent)." />
-      <Card>
+      <Card className="overflow-hidden">
         <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center">
           <SearchInput value={search} onChange={setSearch} label="Search movements" placeholder="Medicine, batch or RX number" />
           <div className="w-full sm:w-56">

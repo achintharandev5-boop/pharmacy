@@ -42,17 +42,17 @@ export function DataTable<T>({ columns, rows, rowKey, caption, rowHref, pageSize
 
   return (
     <div className={className}>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" role="region" aria-label={`${caption} table`} tabIndex={0}>
         <table className="w-full border-collapse text-sm">
           <caption className="sr-only">{caption}</caption>
           <thead>
-            <tr className="border-b border-border bg-surface">
+            <tr className="border-b border-border bg-[var(--color-canvas)]">
               {columns.map((c) => (
                 <th
                   key={c.key}
                   scope="col"
                   className={cn(
-                    'px-4 py-2.5 text-xs font-semibold text-subtle whitespace-nowrap',
+                    'px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-subtle whitespace-nowrap',
                     ALIGN[c.align ?? 'left'],
                     c.hideOnMobile && 'hidden md:table-cell',
                     c.className,
@@ -70,13 +70,13 @@ export function DataTable<T>({ columns, rows, rowKey, caption, rowHref, pageSize
                 <tr
                   key={rowKey(row)}
                   onClick={href ? () => router.push(href) : undefined}
-                  className={cn('border-b border-border last:border-b-0', href && 'cursor-pointer hover:bg-surface')}
+                  className={cn('border-b border-border transition-colors last:border-b-0', href ? 'cursor-pointer hover:bg-[var(--color-tint)]' : 'hover:bg-[var(--color-row-hover)]')}
                 >
                   {columns.map((c, i) => (
                     <td
                       key={c.key}
                       className={cn(
-                        'px-4 py-3 align-middle text-fg',
+                        'px-4 py-3 align-middle text-[13.5px] text-fg',
                         ALIGN[c.align ?? 'left'],
                         c.hideOnMobile && 'hidden md:table-cell',
                         c.className,
@@ -127,7 +127,7 @@ export function Pagination({
   const from = (page - 1) * pageSize + 1;
   const to = Math.min(page * pageSize, total);
   return (
-    <nav aria-label="Pagination" className="flex items-center justify-between gap-3 border-t border-border px-4 py-3 text-sm text-subtle">
+    <nav aria-label="Pagination" className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 text-sm text-subtle">
       <span className="tabular">
         {from}–{to} of {total}
       </span>

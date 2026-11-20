@@ -31,7 +31,7 @@ export default function LabelHistoryPage() {
   return (
     <PageBody>
       <PageHeader title="Label history" description={`The ${LIMIT} most recent label prints and reprints.`} />
-      <Card>
+      <Card className="overflow-hidden">
         <div className="flex items-center justify-between gap-3 border-b border-border p-4">
           <SegmentedControl
             label="Event type"

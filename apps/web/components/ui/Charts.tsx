@@ -1,17 +1,12 @@
 'use client';
 
 import React from 'react';
-import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
-/**
- * Chart conventions (validated palette, light surface #ffffff):
- * categorical slot 1 #2a78d6, slot 2 #eb6834 — all checks pass (CVD ΔE 24.7, contrast ≥ 3:1).
- * One y-axis only; single-series charts use slot 1; text stays in text colours; every chart
- * has a hover tooltip and an expandable table with the same numbers.
- */
-export const SERIES = ['#2a78d6', '#eb6834'] as const;
-const AXIS = { stroke: '#cbd5e1', tick: { fill: '#64748b', fontSize: 12 } };
-const GRID = '#eef2f6';
+/** Theme-aware count charts; the existing data tables remain the accessible alternative. */
+export const SERIES = ['var(--color-chart-1)', 'var(--color-chart-2)', 'var(--color-chart-3)', 'var(--color-chart-4)'] as const;
+const AXIS = { stroke: 'var(--color-border-strong)', tick: { fill: 'var(--color-subtle)', fontSize: 12 } };
+const GRID = 'var(--color-chart-grid)';
 
 interface TooltipEntry {
   dataKey?: string | number;
@@ -33,11 +28,11 @@ function TooltipBox({
 }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-ui border border-border bg-page px-3 py-2 text-xs shadow-pop">
+    <div className="rounded-ui border border-border bg-page px-3 py-2.5 text-xs shadow-pop">
       <p className="mb-1 font-medium text-subtle">{labelFormatter ? labelFormatter(String(label)) : label}</p>
       {payload.map((p) => (
         <p key={String(p.dataKey)} className="flex items-center gap-2 text-fg">
-          <span className="inline-block h-0.5 w-3" style={{ background: p.color }} aria-hidden="true" />
+          <span className="inline-block h-2 w-2 rounded-full" style={{ background: p.color }} aria-hidden="true" />
           <strong className="tabular">{Number(p.value).toLocaleString()}</strong>
           <span className="text-subtle">{p.name}</span>
         </p>
@@ -99,8 +94,8 @@ export function DailyLineChart({
           <CartesianGrid stroke={GRID} vertical={false} />
           <XAxis dataKey="date" tickFormatter={formatDay} {...AXIS} tickLine={false} minTickGap={24} />
           <YAxis allowDecimals={false} {...AXIS} tickLine={false} axisLine={false} width={44} />
-          <Tooltip content={<TooltipBox labelFormatter={formatDay} />} cursor={{ stroke: '#94a3b8', strokeWidth: 1 }} />
-          <Legend iconType="plainline" wrapperStyle={{ fontSize: 12, color: '#475569' }} />
+          <Tooltip content={<TooltipBox labelFormatter={formatDay} />} cursor={{ stroke: 'var(--color-subtle)', strokeWidth: 1 }} />
+          <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, color: 'var(--color-muted)', paddingTop: 4 }} />
           {series.map((s, i) => (
             <Line
               key={s.key}
@@ -108,9 +103,9 @@ export function DailyLineChart({
               dataKey={s.key}
               name={s.name}
               stroke={SERIES[i]}
-              strokeWidth={2}
+              strokeWidth={2.25}
               dot={false}
-              activeDot={{ r: 4, stroke: '#ffffff', strokeWidth: 2 }}
+              activeDot={{ r: 4, stroke: 'var(--color-page)', strokeWidth: 2 }}
               isAnimationActive={false}
             />
           ))}
@@ -130,16 +125,19 @@ export function HorizontalBarChart({ data, valueName, height }: { data: { name: 
           <CartesianGrid stroke={GRID} horizontal={false} />
           <XAxis type="number" allowDecimals={false} {...AXIS} tickLine={false} />
           <YAxis type="category" dataKey="name" width={140} {...AXIS} tickLine={false} axisLine={false} interval={0} />
-          <Tooltip content={<TooltipBox />} cursor={{ fill: '#f1f5f9' }} />
-          <Bar dataKey="value" name={valueName} fill={SERIES[0]} radius={[0, 4, 4, 0]} maxBarSize={22} isAnimationActive={false} />
+          <Tooltip content={<TooltipBox />} cursor={{ fill: 'var(--color-tint)' }} />
+          <Bar dataKey="value" name={valueName} fill={SERIES[0]} radius={[0, 6, 6, 0]} maxBarSize={20} isAnimationActive={false} />
         </BarChart>
       </ResponsiveContainer>
     </div>
   );
 }
 
-/** One series over ordered categories as vertical bars. */
-export function ColumnChart({ data, valueName, height = 220 }: { data: { name: string; value: number }[]; valueName: string; height?: number }) {
+/**
+ * One series over ordered categories as vertical bars. `colors` (per bar, same order as `data`) is for
+ * categories with a meaning of their own, such as stock status; otherwise every bar uses the first series.
+ */
+export function ColumnChart({ data, valueName, height = 220, colors }: { data: { name: string; value: number }[]; valueName: string; height?: number; colors?: string[] }) {
   return (
     <div style={{ height }} role="img" aria-label={`Column chart of ${valueName}`}>
       <ResponsiveContainer width="100%" height="100%">
@@ -147,8 +145,10 @@ export function ColumnChart({ data, valueName, height = 220 }: { data: { name: s
           <CartesianGrid stroke={GRID} vertical={false} />
           <XAxis dataKey="name" {...AXIS} tickLine={false} interval={0} />
           <YAxis allowDecimals={false} {...AXIS} tickLine={false} axisLine={false} width={44} />
-          <Tooltip content={<TooltipBox />} cursor={{ fill: '#f1f5f9' }} />
-          <Bar dataKey="value" name={valueName} fill={SERIES[0]} radius={[4, 4, 0, 0]} maxBarSize={48} isAnimationActive={false} />
+          <Tooltip content={<TooltipBox />} cursor={{ fill: 'var(--color-tint)' }} />
+          <Bar dataKey="value" name={valueName} fill={SERIES[0]} radius={[6, 6, 0, 0]} maxBarSize={44} isAnimationActive={false}>
+            {colors && data.map((entry, i) => <Cell key={entry.name} fill={colors[i] ?? SERIES[0]} />)}
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </div>

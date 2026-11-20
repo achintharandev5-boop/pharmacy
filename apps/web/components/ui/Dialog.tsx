@@ -75,7 +75,7 @@ export function Dialog({ open, onClose, title, description, children, footer, si
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-fg/40" aria-hidden="true" onClick={busy ? undefined : onClose} />
+      <div className="absolute inset-0 bg-[var(--color-backdrop)]" aria-hidden="true" onClick={busy ? undefined : onClose} />
       <div
         ref={panelRef}
         role="dialog"
@@ -83,8 +83,8 @@ export function Dialog({ open, onClose, title, description, children, footer, si
         aria-labelledby={titleId}
         aria-describedby={description ? descId : undefined}
         className={cn(
-          'relative w-full bg-page shadow-pop border border-border flex flex-col max-h-[92dvh]',
-          'rounded-t-ui-lg sm:rounded-ui-lg',
+          'relative w-full bg-[var(--color-elevated)] shadow-[var(--shadow-modal)] border border-border flex flex-col max-h-[92dvh]',
+          'rounded-t-[var(--radius-dialog)] sm:rounded-[var(--radius-dialog)]',
           SIZES[size],
         )}
       >
@@ -104,7 +104,7 @@ export function Dialog({ open, onClose, title, description, children, footer, si
             onClick={onClose}
             disabled={busy}
             aria-label="Close"
-            className="-mr-1 -mt-1 flex h-9 w-9 items-center justify-center rounded-ui text-subtle hover:bg-surface-2 hover:text-fg disabled:opacity-50"
+            className="-mr-1 -mt-1 flex h-11 w-11 items-center justify-center rounded-ui text-subtle hover:bg-surface-2 hover:text-fg disabled:opacity-50"
           >
             <X size={18} aria-hidden="true" />
           </button>

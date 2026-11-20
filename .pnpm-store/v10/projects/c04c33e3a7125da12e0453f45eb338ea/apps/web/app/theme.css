@@ -1,0 +1,182 @@
+﻿/* Semantic theme layer. Physical label styles are deliberately excluded. */
+:root {
+  color-scheme: light;
+  --color-canvas: #f7f8fa;
+  --color-page: #ffffff;
+  --color-surface: #f1f3f6;
+  --color-surface-2: #e9edf2;
+  --color-elevated: #ffffff;
+  --color-fg: #17191f;
+  --color-muted: #626875;
+  --color-subtle: #656d7b;
+  --color-disabled: #78808e;
+  --color-border: #e3e6ec;
+  --color-border-strong: #8792a2;
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-on-primary: #ffffff;
+  --color-on-solid: #ffffff;
+  --color-primary-soft: #eff6ff;
+  --color-primary-border: #b9d2fc;
+  /* Filled primary controls (selected tiles, DONE, +): white text at >= 5:1 in both themes. */
+  --color-primary-solid: #2563eb;
+  --color-primary-solid-hover: #1d4ed8;
+  --color-on-primary-solid: #ffffff;
+  --color-primary-solid-active: #1e40af;
+  /*
+   * Workstation action tones. Per family: icon (idle accent, >= 3:1 on page), -strong (text on page
+   * or -soft, >= 4.5:1), -soft / -border (chip tint), -solid / -hover / -active (fills under white text,
+   * >= 4.5:1 in both themes). Disabled controls share the neutral surface; focus is always the primary ring.
+   */
+  --color-on-tone-solid: #ffffff;
+  --color-graphite: #374151;
+  --color-teal: #0d9488;
+  --color-teal-strong: #0f766e;
+  --color-teal-soft: #f0fdfa;
+  --color-teal-border: #99d9cf;
+  --color-teal-solid: #0f766e;
+  --color-teal-solid-hover: #115e59;
+  --color-teal-solid-active: #134e4a;
+  --color-green: #16a34a;
+  --color-green-strong: #15803d;
+  --color-green-soft: #f0fdf4;
+  --color-green-border: #a3dcb5;
+  --color-green-solid: #15803d;
+  --color-green-solid-hover: #166534;
+  --color-green-solid-active: #14532d;
+  --color-purple: #8b5cf6;
+  --color-purple-strong: #6d28d9;
+  --color-purple-soft: #f5f3ff;
+  --color-purple-border: #c9b8fb;
+  --color-purple-solid: #7c3aed;
+  --color-purple-solid-hover: #6d28d9;
+  --color-purple-solid-active: #5b21b6;
+  --color-amber: #d97706;
+  --color-amber-strong: #b45309;
+  --color-amber-soft: #fffbeb;
+  --color-amber-border: #f1cf8a;
+  --color-amber-solid: #b45309;
+  --color-amber-solid-hover: #92400e;
+  --color-amber-solid-active: #78350f;
+  --color-coral: #e11d48;
+  --color-coral-strong: #be123c;
+  --color-coral-soft: #fff1f2;
+  --color-coral-border: #f8b4c0;
+  --color-coral-solid: #e11d48;
+  --color-coral-solid-hover: #be123c;
+  --color-coral-solid-active: #9f1239;
+  --color-success: #06744e;
+  --color-success-soft: #ecfdf5;
+  --color-success-border: #9cd8be;
+  --color-on-success: #ffffff;
+  --color-warning: #965606;
+  --color-warning-soft: #fffbeb;
+  --color-warning-border: #e7cb88;
+  --color-danger: #c52222;
+  --color-danger-soft: #fef2f2;
+  --color-danger-border: #f2b2b8;
+  --color-on-danger: #ffffff;
+  --color-info: var(--color-primary-hover);
+  --color-info-soft: var(--color-primary-soft);
+  --color-info-border: var(--color-primary-border);
+  --color-accent: var(--color-muted);
+  --color-accent-soft: var(--color-surface);
+  --color-accent-border: var(--color-border-strong);
+  --color-input: var(--color-page);
+  --color-input-border: var(--color-border-strong);
+  --color-hover: var(--color-surface);
+  --color-selected: var(--color-primary-soft);
+  --color-focus: var(--color-primary);
+  --color-sidebar: var(--color-page);
+  --color-nav-active: var(--color-primary-soft);
+  --color-row-hover: var(--color-surface);
+  --color-backdrop: rgb(13 15 20 / 56%);
+  --color-tooltip: var(--color-elevated);
+  --color-chart-1: #2563eb;
+  --color-chart-2: #64748b;
+  --color-chart-grid: var(--color-border);
+  --color-scrollbar: #8792a2;
+  --radius-ui: 12px;
+  --radius-ui-sm: 8px;
+  --radius-ui-lg: 16px;
+  --radius-dialog: 20px;
+  --shadow-card: 0 2px 8px rgb(23 25 31 / 4%);
+  --shadow-pop: 0 12px 36px rgb(23 25 31 / 14%);
+  --shadow-modal: 0 24px 64px rgb(13 15 20 / 24%);
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px; --space-12: 48px;
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --color-canvas: #0d0f14;
+  --color-page: #171a21;
+  --color-surface: #20242d;
+  --color-surface-2: #292f3b;
+  --color-elevated: #252a34;
+  --color-fg: #f5f7fa;
+  --color-muted: #b1b8c5;
+  --color-subtle: #9aa5b6;
+  --color-disabled: #8b95a5;
+  --color-border: #343a46;
+  --color-border-strong: #626e82;
+  --color-primary: #60a5fa;
+  --color-primary-hover: #93c5fd;
+  --color-on-primary: #0d1729;
+  --color-on-solid: #0d1729;
+  --color-primary-soft: #172b49;
+  --color-primary-border: #3a6599;
+  --color-primary-solid: #2563eb;
+  --color-primary-solid-hover: #1d4ed8;
+  --color-on-primary-solid: #ffffff;
+  --color-primary-solid-active: #1e40af;
+  --color-graphite: #d1d5db;
+  --color-teal: #2dd4bf;
+  --color-teal-strong: #5eead4;
+  --color-teal-soft: #0f2e2c;
+  --color-teal-border: #1f6b63;
+  --color-green: #4ade80;
+  --color-green-strong: #86efac;
+  --color-green-soft: #0f2a1a;
+  --color-green-border: #2a6b42;
+  --color-purple: #a78bfa;
+  --color-purple-strong: #c4b5fd;
+  --color-purple-soft: #221b3a;
+  --color-purple-border: #594a96;
+  --color-amber: #fbbf24;
+  --color-amber-strong: #fcd34d;
+  --color-amber-soft: #342b17;
+  --color-amber-border: #78612c;
+  --color-coral: #fb7185;
+  --color-coral-strong: #fda4af;
+  --color-coral-soft: #3b1d28;
+  --color-coral-border: #864354;
+  --color-success: #34d399;
+  --color-success-soft: #102f27;
+  --color-success-border: #286d56;
+  --color-on-success: #06231b;
+  --color-warning: #fbbf24;
+  --color-warning-soft: #342b17;
+  --color-warning-border: #78612c;
+  --color-danger: #fb7185;
+  --color-danger-soft: #3b1d28;
+  --color-danger-border: #864354;
+  --color-on-danger: #300b16;
+  --color-chart-1: #60a5fa;
+  --color-chart-2: #b1b8c5;
+  --color-backdrop: rgb(0 0 0 / 72%);
+  --color-scrollbar: #626e82;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 12%);
+  --shadow-pop: 0 12px 36px rgb(0 0 0 / 32%);
+}
+html, body { background: var(--color-canvas); }
+body { line-height: 1.5; }
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline-color: var(--color-focus);
+}
+::selection { background: var(--color-selected); color: var(--color-fg); }
+::-webkit-scrollbar-thumb { background: var(--color-scrollbar); }
+@media print {
+  :root, :root[data-theme='dark'] { color-scheme: light; --color-fg: #000000; --color-page: #ffffff; --color-canvas: #ffffff; }
+  html, body { color: #000000 !important; background: #ffffff !important; }
+}
+

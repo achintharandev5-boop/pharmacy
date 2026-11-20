@@ -7,11 +7,13 @@ import {
   Post,
   ServiceUnavailableException,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import { IsEmail, IsString, MaxLength, MinLength } from 'class-validator';
 import { SupabaseService } from '../supabase/supabase.service';
-import { CurrentUser, Public } from './decorators';
+import { AnyAuthenticatedUser, CurrentUser, Public } from './decorators';
 import type { AuthUser } from './roles';
+import { LoginRateLimitGuard } from './login-rate-limit.guard';
 
 export class LoginDto {
   @IsEmail()
@@ -32,16 +34,34 @@ export class AuthController {
 
   @Public()
   @Post('login')
+  @UseGuards(LoginRateLimitGuard)
   @HttpCode(200)
   async login(@Body() body: LoginDto) {
     const client = this.supabaseService.createSessionClient();
-    const { data, error } = await client.auth.signInWithPassword({ email: body.email, password: body.password });
+    let result: Awaited<ReturnType<typeof client.auth.signInWithPassword>>;
+    try {
+      result = await client.auth.signInWithPassword({
+        email: body.email,
+        password: body.password,
+      });
+    } catch {
+      // Provider exceptions may contain request details. Never forward or log them.
+      this.logger.error('Sign-in failed: authentication service unreachable');
+      throw new ServiceUnavailableException(
+        'Authentication service is unavailable. Please try again.',
+      );
+    }
+    const { data, error } = result;
 
     if (error) {
-      const status = (error as { status?: number }).status;
+      const status = error.status;
       if (status === undefined || status >= 500) {
-        this.logger.error(`Sign-in failed: authentication service error (${status ?? 'network'})`);
-        throw new ServiceUnavailableException('Authentication service is unavailable. Please try again.');
+        this.logger.error(
+          `Sign-in failed: authentication service error (${status ?? 'network'})`,
+        );
+        throw new ServiceUnavailableException(
+          'Authentication service is unavailable. Please try again.',
+        );
       }
       // Same message for unknown user and wrong password.
       throw new UnauthorizedException('Invalid email or password');
@@ -59,7 +79,11 @@ export class AuthController {
     };
   }
 
-  /** The signed-in user's identity and role, as the API sees them. */
+  /**
+   * The signed-in user's identity and role, as the API sees them. Open to any signed-in account,
+   * including one without a role, so the interface can explain what access is missing.
+   */
+  @AnyAuthenticatedUser()
   @Get('me')
   me(@CurrentUser() user: AuthUser) {
     return user;

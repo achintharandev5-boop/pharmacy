@@ -1,26 +1,30 @@
 'use client';
 
+import { uiTestEnabled } from '@/lib/uiTestMode';
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { AlertTriangle, ArrowRight, FilePlus2, FileText, Package, PackageX, Printer, Users } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Boxes, FilePlus2, FileText, Package, PackagePlus, Pill, UserPlus, Users, Warehouse, type LucideIcon } from 'lucide-react';
 import { getAdminActivity, getAdminSummary, getAdminTopProducts } from '@/app/actions/admin';
 import { getPrescriptionHistory } from '@/app/actions/prescriptions';
-import { getInventoryLowStock, getInventorySummary } from '@/app/actions/inventory';
+import { getDashboardExpiryBatches, getDashboardMovementActivity, getInventoryLowStock, getInventorySummary } from '@/app/actions/inventory';
 import {
   Card,
   CardHeader,
+  DataTable,
   EmptyState,
   LinkButton,
   PageBody,
   PageHeader,
   QueryView,
+  RefreshButton,
   SegmentedControl,
   StatTile,
   StatusBadge,
+  type Column,
 } from '@/components/ui';
-import { ChartTable, DailyLineChart, HorizontalBarChart } from '@/components/ui/Charts';
+import { ChartTable, ColumnChart, DailyLineChart, HorizontalBarChart } from '@/components/ui/Charts';
 import { useApiQuery } from '@/lib/useApiQuery';
-import { formatDateTime, formatNumber, isNumber } from '@/lib/format';
+import { daysUntil, formatDate, formatDateTime, formatNumber, isNumber } from '@/lib/format';
 import type { ApiData } from '@/lib/api/types';
 
 const RANGES = [
@@ -34,11 +38,52 @@ function dayLabel(ymd: string) {
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 }
 
-/** "+3 vs yesterday" from two real figures; nothing when either is unknown. */
-function versusYesterday(today: unknown, yesterday: unknown) {
-  if (!isNumber(today) || !isNumber(yesterday)) return undefined;
-  const diff = today - yesterday;
-  return diff === 0 ? 'Same as yesterday' : `${diff > 0 ? '+' : ''}${diff.toLocaleString()} vs yesterday (${yesterday.toLocaleString()})`;
+const prescriptionColumns: Column<ApiData>[] = [
+  { key: 'number', header: 'Prescription', cell: (r) => <span className="font-mono">{r.prescription_number}</span> },
+  { key: 'patient', header: 'Patient', cell: (r) => r.customer_name_text || 'Walk-in patient' },
+  { key: 'created', header: 'Created', hideOnMobile: true, cell: (r) => formatDateTime(r.created_at) },
+  { key: 'status', header: 'Status', align: 'right', cell: (r) => <StatusBadge status={r.status} /> },
+];
+
+const expiryColumns: Column<ApiData>[] = [
+  { key: 'medicine', header: 'Medicine', cell: (r) => r.products?.name ?? 'Unknown medicine' },
+  { key: 'batch', header: 'Batch', hideOnMobile: true, cell: (r) => <span className="font-mono">{r.batch_number}</span> },
+  {
+    key: 'expiry',
+    header: 'Expiry',
+    cell: (r) => {
+      const remaining = daysUntil(r.expiry_date);
+      return (
+        <span className="flex flex-col">
+          <span>{formatDate(r.expiry_date)}</span>
+          {remaining !== null && <span className={`text-xs ${remaining < 0 ? 'text-danger' : 'text-warning'}`}>{remaining < 0 ? `${-remaining} day(s) overdue` : `in ${remaining} day(s)`}</span>}
+        </span>
+      );
+    },
+  },
+  { key: 'quantity', header: 'Units left', align: 'right', cell: (r) => <span className="tabular">{formatNumber(r.quantity_available)}</span> },
+];
+
+/** Shortcuts to existing workflows only; each opens the real page or dialog. */
+const QUICK_ACTIONS: { href: string; title: string; description: string; icon: LucideIcon }[] = [
+  { href: '/label', title: 'New prescription label', description: 'Open the label workstation', icon: FilePlus2 },
+  { href: '/admin/patients?new=1', title: 'Add patient', description: 'Register a patient record', icon: UserPlus },
+  { href: '/admin/products?new=1', title: 'Add medicine', description: 'Add to the medicine catalogue', icon: Pill },
+  { href: '/admin/inventory/receiving', title: 'Receive stock', description: 'Record a supplier delivery', icon: PackagePlus },
+  { href: '/admin/inventory', title: 'View inventory', description: 'Stock, batches and expiry', icon: Warehouse },
+];
+
+/** Stock status colours carry meaning: healthy, low, critical, out, not configured. */
+const STOCK_COLORS: Record<string, string> = {
+  Healthy: 'var(--color-chart-2)',
+  Low: 'var(--color-chart-4)',
+  Critical: 'var(--color-chart-danger)',
+  'Out of stock': 'var(--color-danger)',
+  'No threshold': 'var(--color-chart-5)',
+};
+
+function todayLabel() {
+  return new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 export default function DashboardPage() {
@@ -46,231 +91,158 @@ export default function DashboardPage() {
   const summary = useApiQuery(() => getAdminSummary(), []);
   const inventory = useApiQuery(() => getInventorySummary(), []);
   const activity = useApiQuery(() => getAdminActivity(range), [range]);
+  const movements = useApiQuery(() => getDashboardMovementActivity(range), [range]);
   const top = useApiQuery(() => getAdminTopProducts(range, 6), [range]);
   const recent = useApiQuery(() => getPrescriptionHistory(), []);
-  const lowStock = useApiQuery(() => getInventoryLowStock(), []);
+  const lowStock = useApiQuery(() => getInventoryLowStock(6), []);
+  const expiries = useApiQuery(() => getDashboardExpiryBatches(6), []);
 
-  const s = summary.data;
+  const s = summary.status === 'success' ? summary.data : undefined;
+  const inv = inventory.status === 'success' ? inventory.data : undefined;
+  const inventoryError = inventory.status === 'error' ? inventory.error : null;
   const summaryError = summary.status === 'error' ? summary.error : null;
-  const loading = summary.status === 'loading';
+  const inventoryLoading = inventory.status === 'loading';
+  const summaryLoading = summary.status === 'loading';
+  const lowCount = isNumber(s?.inventory?.lowStock) ? s.inventory.lowStock : null;
+  const rangeLabel = RANGES.find((item) => item.id === range)?.label ?? '7 days';
 
   return (
     <PageBody>
       <PageHeader
-        title="Dashboard"
-        description={s?.asOf ? `Today in pharmacy time · updated ${formatDateTime(s.asOf)}` : 'Today’s dispensing and stock at a glance.'}
-        actions={
-          <LinkButton href="/label" variant="primary" icon={FilePlus2}>
-            New prescription label
-          </LinkButton>
+        title={uiTestEnabled() ? "Welcome, UI Tester" : "Dashboard"}
+        description={
+          uiTestEnabled() ? (
+            'Explore and test the pharmacy interface without a database connection.'
+          ) : (
+            <>
+              <span suppressHydrationWarning>{todayLabel()}</span>
+              {s?.asOf ? ` · updated ${formatDateTime(s.asOf)}` : ' · pharmacy operations at a glance'}
+            </>
+          )
         }
+        actions={<LinkButton href="/label" variant="primary" icon={FilePlus2}>{uiTestEnabled() ? "Create Test Label" : "New prescription label"}</LinkButton>}
       />
 
-      {summaryError && (
+      <section aria-label="Pharmacy summary" className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+        <StatTile label="Total medicines" icon={Pill} value={inv?.totalProducts} hint="Medicine catalogue" loading={inventoryLoading} error={inventoryError} href="/admin/products" />
+        <StatTile label="Low-stock medicines" icon={Package} value={lowCount} hint="Active medicines at or below their reorder level" loading={summaryLoading} error={summaryError} tone={lowCount ? 'warning' : 'neutral'} href="/admin/inventory/low-stock" />
+        <StatTile label="Batches expiring ≤ 30 days" icon={AlertTriangle} value={inv?.expiry?.within30Days} hint={isNumber(inv?.expiry?.expired) && inv.expiry.expired > 0 ? `${inv.expiry.expired} expired batch(es) also need review` : 'Stocked batches only'} loading={inventoryLoading} error={inventoryError} tone={inv?.expiry?.within30Days ? 'warning' : 'neutral'} href="/admin/inventory/expiry" />
+        <StatTile label="Total patients" icon={Users} value={s?.totalPatients} hint="Registered patient records" loading={summaryLoading} error={summaryError} href="/admin/patients" />
+        <StatTile label="Prescriptions today" icon={FileText} value={s?.today?.prescriptions} hint={s?.timeZone ? `Today · ${s.timeZone}` : 'Saved prescriptions'} loading={summaryLoading} error={summaryError} href="/admin/prescriptions" />
+        <StatTile label="Inventory movements today" icon={Boxes} value={s?.today?.inventoryMovements} hint="Recorded ledger entries" loading={summaryLoading} error={summaryError} href="/admin/inventory/movements" />
+      </section>
+
+      {summaryError && <Card><QueryView query={summary} errorTitle="Could not load pharmacy totals">{() => null}</QueryView></Card>}
+
+      <section aria-labelledby="quick-actions-title">
+        <h2 id="quick-actions-title" className="mb-3 text-[13px] font-semibold uppercase tracking-[0.08em] text-subtle">Quick actions</h2>
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {QUICK_ACTIONS.map(({ href, title, description, icon: Icon }) => (
+            <li key={href}>
+              <Link
+                href={href}
+                className="group flex h-full items-center gap-3.5 rounded-ui-lg border border-border bg-page p-4 shadow-card transition-[border-color,box-shadow] hover:border-primary-border hover:shadow-pop"
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-ui bg-[var(--color-tint)] text-primary transition-colors group-hover:bg-primary-solid group-hover:text-[var(--color-on-primary-solid)]" aria-hidden="true">
+                  <Icon size={19} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold text-fg">{title}</span>
+                  <span className="block truncate text-xs text-subtle">{description}</span>
+                </span>
+                <ArrowRight size={16} className="shrink-0 text-subtle transition-transform group-hover:translate-x-0.5 group-hover:text-primary" aria-hidden="true" />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <Card>
-          <QueryView query={summary} errorTitle="Could not load today’s figures">
-            {() => null}
-          </QueryView>
-        </Card>
-      )}
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatTile
-          label="Prescriptions today"
-          icon={FileText}
-          value={s?.today?.prescriptions}
-          hint={versusYesterday(s?.today?.prescriptions, s?.yesterday?.prescriptions)}
-          loading={loading}
-          error={summaryError}
-          href="/admin/prescriptions"
-        />
-        <StatTile
-          label="Labels printed today"
-          icon={Printer}
-          value={s?.today?.labelsPrinted}
-          hint={isNumber(s?.today?.printJobs) ? `${s.today.printJobs} print job(s)` : undefined}
-          loading={loading}
-          error={summaryError}
-          href="/admin/labels"
-        />
-        <StatTile
-          label="Patients today"
-          icon={Users}
-          value={s?.today?.registeredPatients}
-          hint={isNumber(s?.today?.walkInPrescriptions) ? `Registered · plus ${s.today.walkInPrescriptions} walk-in prescription(s)` : undefined}
-          loading={loading}
-          error={summaryError}
-          href="/admin/patients"
-        />
-        <StatTile
-          label="Low or out of stock"
-          icon={PackageX}
-          value={isNumber(s?.inventory?.lowStock) && isNumber(s?.inventory?.outOfStock) ? s.inventory.lowStock + s.inventory.outOfStock : null}
-          hint={
-            isNumber(s?.inventory?.noThreshold) && s.inventory.noThreshold > 0
-              ? `${s.inventory.noThreshold} product(s) have no reorder level`
-              : 'At or below reorder level'
-          }
-          tone={isNumber(s?.inventory?.outOfStock) && s.inventory.outOfStock > 0 ? 'danger' : 'neutral'}
-          loading={loading}
-          error={summaryError}
-          href="/admin/inventory/low-stock"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <Card className="xl:col-span-2">
-          <CardHeader
-            title="Dispensing activity"
-            description="Prescriptions saved and labels printed per day"
-            actions={<SegmentedControl label="Time range" options={RANGES} value={range} onChange={setRange} />}
-          />
-          <div className="p-5">
-            <QueryView query={activity} errorTitle="Could not load activity" isEmpty={(d) => d.length === 0}>
+          <CardHeader title="Prescription activity" description={`Saved prescriptions and printed labels · ${rangeLabel}`} actions={<div className="flex items-center gap-1"><SegmentedControl label="Activity date range" options={RANGES} value={range} onChange={setRange} /><RefreshButton onClick={activity.retry} busy={activity.isFetching} /></div>} />
+          <div className="p-4 sm:p-5">
+            <QueryView query={activity} errorTitle="Could not load prescription activity" isEmpty={(rows) => rows.length === 0}>
               {(rows) => {
-                const data = rows.map((r: ApiData) => ({ date: r.date, prescriptions: r.prescriptions, labels: r.labels }));
-                const total = data.reduce((n: number, r: ApiData) => n + (r.prescriptions ?? 0), 0);
-                return (
-                  <>
-                    {total === 0 && <p className="mb-2 text-sm text-subtle">No prescriptions were saved in this period.</p>}
-                    <DailyLineChart
-                      data={data}
-                      formatDay={dayLabel}
-                      series={[
-                        { key: 'prescriptions', name: 'Prescriptions' },
-                        { key: 'labels', name: 'Labels printed' },
-                      ]}
-                    />
-                    <ChartTable
-                      caption="Prescriptions and labels per day"
-                      columns={['Date', 'Prescriptions', 'Labels printed', 'Units dispensed']}
-                      rows={rows.map((r: ApiData) => [dayLabel(r.date), r.prescriptions, r.labels, r.items])}
-                    />
-                  </>
-                );
+                const data = rows.map((row: ApiData) => ({ date: row.date, prescriptions: row.prescriptions, labels: row.labels }));
+                const total = data.reduce((sum: number, row: ApiData) => sum + (isNumber(row.prescriptions) ? row.prescriptions : 0), 0);
+                return <><DailyLineChart data={data} formatDay={dayLabel} series={[{ key: 'prescriptions', name: 'Prescriptions' }, { key: 'labels', name: 'Labels printed' }]} height={230} />{total === 0 && <p className="text-center text-xs text-subtle">No prescriptions recorded in this period.</p>}<ChartTable caption="Prescription activity by day" columns={['Date', 'Prescriptions', 'Labels printed']} rows={rows.map((row: ApiData) => [dayLabel(row.date), row.prescriptions, row.labels])} /></>;
               }}
             </QueryView>
           </div>
         </Card>
 
         <Card>
-          <CardHeader title="Stock status" description="Active products by recorded stock level" actions={<Link href="/admin/inventory" className="text-sm font-medium text-primary hover:underline">Inventory</Link>} />
-          <QueryView query={inventory} errorTitle="Could not load stock">
-            {(inv) => (
-              <dl className="divide-y divide-border">
-                {[
-                  ['Products in catalogue', inv.totalProducts, 'neutral'],
-                  ['In stock', inv.stock?.healthy, 'success'],
-                  ['Low or critical', isNumber(inv.stock?.low) && isNumber(inv.stock?.critical) ? inv.stock.low + inv.stock.critical : null, 'warning'],
-                  ['Out of stock', inv.stock?.outOfStock, 'danger'],
-                  ['No reorder level set', inv.stock?.unclassified, 'neutral'],
-                  ['Batches expired, still in stock', inv.expiry?.expired, 'danger'],
-                  ['Batches expiring ≤ 30 days', inv.expiry?.within30Days, 'warning'],
-                ].map(([label, value, tone]) => (
-                  <div key={label as string} className="flex items-center justify-between px-5 py-2.5">
-                    <dt className="text-sm text-muted">{label as string}</dt>
-                    <dd className={`text-sm font-semibold tabular ${tone === 'danger' && Number(value) > 0 ? 'text-danger' : tone === 'warning' && Number(value) > 0 ? 'text-warning' : 'text-fg'}`}>
-                      {formatNumber(value)}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            )}
-          </QueryView>
+          <CardHeader title="Inventory movement trend" description={`Ledger entries by day · ${rangeLabel}`} actions={<RefreshButton onClick={movements.retry} busy={movements.isFetching} />} />
+          <div className="p-4 sm:p-5">
+            <QueryView query={movements} errorTitle="Could not load inventory movement activity" isEmpty={(rows) => rows.length === 0}>
+              {(rows) => {
+                const data = rows.map((row: ApiData) => ({ date: row.date, movements: row.movements }));
+                const total = data.reduce((sum: number, row: ApiData) => sum + (isNumber(row.movements) ? row.movements : 0), 0);
+                return <><DailyLineChart data={data} formatDay={dayLabel} series={[{ key: 'movements', name: 'Inventory movements' }]} height={230} />{total === 0 && <p className="text-center text-xs text-subtle">No inventory ledger entries recorded in this period.</p>}<ChartTable caption="Inventory movement count by day" columns={['Date', 'Movements']} rows={rows.map((row: ApiData) => [dayLabel(row.date), row.movements])} /></>;
+              }}
+            </QueryView>
+          </div>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <Card>
-          <CardHeader title="Most dispensed" description={`Units dispensed, last ${RANGES.find((r) => r.id === range)?.label}`} />
-          <div className="p-5">
-            <QueryView
-              query={top}
-              errorTitle="Could not load dispensing totals"
-              isEmpty={(d) => d.length === 0}
-              empty={<EmptyState icon={Package} title="Nothing dispensed in this period" />}
-            >
-              {(rows) => {
-                const data = rows.filter((r: ApiData) => isNumber(r.dispensed)).map((r: ApiData) => ({ name: r.name, value: r.dispensed }));
-                return (
-                  <>
-                    <HorizontalBarChart data={data} valueName="Units dispensed" />
-                    <ChartTable caption="Units dispensed by medicine" columns={['Medicine', 'Units']} rows={data.map((d: ApiData) => [d.name, d.value])} />
-                  </>
-                );
+          <CardHeader title="Medicine stock status" description="Catalogue products grouped by recorded stock level" actions={<RefreshButton onClick={inventory.retry} busy={inventory.isFetching} />} />
+          <div className="p-4 sm:p-5">
+            <QueryView query={inventory} errorTitle="Could not load stock status">
+              {(data) => {
+                const chart = [
+                  { name: 'Healthy', value: data.stock?.healthy },
+                  { name: 'Low', value: data.stock?.low },
+                  { name: 'Critical', value: data.stock?.critical },
+                  { name: 'Out of stock', value: data.stock?.outOfStock },
+                  { name: 'No threshold', value: data.stock?.unclassified },
+                ].filter((entry): entry is { name: string; value: number } => isNumber(entry.value));
+                return chart.length ? <><ColumnChart data={chart} valueName="Medicines" height={210} colors={chart.map((entry) => STOCK_COLORS[entry.name])} /><ChartTable caption="Medicine stock status" columns={['Stock status', 'Medicines']} rows={chart.map(({ name, value }) => [name, value])} /></> : <EmptyState icon={Pill} title="Stock status unavailable" />;
               }}
             </QueryView>
           </div>
         </Card>
 
-        <Card className="xl:col-span-2">
-          <CardHeader title="Recent prescriptions" actions={<Link href="/admin/prescriptions" className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">All prescriptions <ArrowRight size={14} aria-hidden="true" /></Link>} />
-          <QueryView
-            query={recent}
-            errorTitle="Could not load recent prescriptions"
-            isEmpty={(d) => d.length === 0}
-            empty={<EmptyState icon={FileText} title="No prescriptions yet" description="Prescriptions saved from the label workstation appear here." />}
-          >
-            {(rows) => (
-              <ul className="divide-y divide-border">
-                {rows.slice(0, 6).map((rx: ApiData) => (
-                  <li key={rx.id}>
-                    <Link href={`/admin/prescriptions/${rx.id}`} className="flex items-center justify-between gap-4 px-5 py-3 hover:bg-surface">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-fg">{rx.customer_name_text || 'Unnamed patient'}</p>
-                        <p className="text-xs text-subtle">
-                          <span className="font-mono">{rx.prescription_number}</span> · {Array.isArray(rx.prescription_items) ? rx.prescription_items.length : 0} label(s) · {formatDateTime(rx.created_at)}
-                        </p>
-                      </div>
-                      <StatusBadge status={rx.status} />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </QueryView>
+        <Card>
+          <CardHeader title="Most dispensed medicines" description={`Recorded dispensed units · ${rangeLabel}`} actions={<RefreshButton onClick={top.retry} busy={top.isFetching} />} />
+          <div className="p-4 sm:p-5">
+            <QueryView query={top} errorTitle="Could not load dispensing totals" isEmpty={(rows) => rows.length === 0} empty={<EmptyState icon={Package} title="Nothing dispensed in this period" />}>
+              {(rows) => {
+                const data = rows.filter((row: ApiData) => isNumber(row.dispensed)).map((row: ApiData) => ({ name: row.name, value: row.dispensed }));
+                return data.length ? <><HorizontalBarChart data={data} valueName="Units dispensed" height={Math.max(180, data.length * 34 + 24)} /><ChartTable caption="Units dispensed by medicine" columns={['Medicine', 'Units']} rows={data.map((row) => [row.name, row.value])} /></> : <EmptyState title="No dispensing totals available" />;
+              }}
+            </QueryView>
+          </div>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader
-          title="Needs reordering"
-          description="Products at or below their own reorder level"
-          actions={<Link href="/admin/inventory/low-stock" className="text-sm font-medium text-primary hover:underline">View all</Link>}
-        />
-        <QueryView
-          query={lowStock}
-          errorTitle="Could not load low stock"
-          isEmpty={(d) => d.length === 0}
-          empty={<EmptyState icon={Package} title="Nothing is below its reorder level" description="Products without a reorder level are not checked." />}
-        >
-          {(rows) => (
-            <ul className="grid grid-cols-1 divide-y divide-border sm:grid-cols-2 sm:divide-y-0">
-              {rows.slice(0, 6).map((p: ApiData) => (
-                <li key={p.id} className="flex items-center justify-between gap-3 px-5 py-3">
-                  <Link href={`/admin/products/${p.id}`} className="min-w-0 truncate text-sm font-medium text-fg hover:text-primary">
-                    {p.name}
-                  </Link>
-                  <span className="flex items-center gap-3 shrink-0">
-                    <span className="text-sm tabular text-muted">{formatNumber(p.stock_quantity)} left</span>
-                    <StatusBadge status={p.status} />
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </QueryView>
-      </Card>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
+        <Card className="xl:col-span-3">
+          <CardHeader title="Recent prescriptions" description="Latest saved prescriptions" actions={<div className="flex items-center gap-2"><RefreshButton onClick={recent.retry} busy={recent.isFetching} /><Link href="/admin/prescriptions" className="inline-flex h-9 items-center gap-1 text-sm font-medium text-primary hover:underline">All prescriptions <ArrowRight size={14} aria-hidden="true" /></Link></div>} />
+          <QueryView query={recent} errorTitle="Could not load recent prescriptions" isEmpty={(rows) => rows.length === 0} empty={<EmptyState icon={FileText} title="No prescriptions yet" description="Saved prescriptions appear here." />}>
+            {(rows) => <DataTable caption="Recent prescriptions" columns={prescriptionColumns} rows={rows.slice(0, 6)} rowKey={(row) => row.id} rowHref={(row) => `/admin/prescriptions/${row.id}`} />}
+          </QueryView>
+        </Card>
 
-      {s?.inventory && isNumber(s.inventory.expiring30Days) && s.inventory.expiring30Days > 0 && (
-        <Link href="/admin/inventory/expiry" className="flex items-center gap-3 rounded-ui-lg border border-warning-border bg-warning-soft px-4 py-3 text-sm text-fg hover:brightness-[0.98]">
-          <AlertTriangle size={18} className="text-warning shrink-0" aria-hidden="true" />
-          <span className="flex-1">
-            <strong>{s.inventory.expiring30Days}</strong> product(s) have stock that is expired or expires within 30 days.
-          </span>
-          <ArrowRight size={16} aria-hidden="true" />
-        </Link>
-      )}
+        <div className="space-y-4 xl:col-span-2">
+          <Card>
+            <CardHeader title="Low-stock alerts" description="Medicines at or below their reorder level" actions={<div className="flex items-center gap-2"><RefreshButton onClick={lowStock.retry} busy={lowStock.isFetching} /><Link href="/admin/inventory/low-stock" className="text-sm font-medium text-primary hover:underline">View all</Link></div>} />
+            <QueryView query={lowStock} errorTitle="Could not load low-stock medicines" isEmpty={(rows) => rows.length === 0} empty={<EmptyState icon={Package} title="No low-stock medicines" />}>
+              {(rows) => <ul className="divide-y divide-border">{rows.slice(0, 6).map((row: ApiData) => <li key={row.id} className="flex items-center justify-between gap-3 px-4 py-3"><Link href={`/admin/products/${row.id}`} className="min-w-0 truncate text-sm font-medium text-fg hover:text-primary">{row.name}</Link><span className="flex shrink-0 items-center gap-2"><span className="text-sm tabular text-muted">{formatNumber(row.stock_quantity)} left</span><StatusBadge status={row.status} /></span></li>)}</ul>}
+            </QueryView>
+          </Card>
+
+          <Card>
+            <CardHeader title="Expiry alerts" description="Stocked batches already expired or expiring within 30 days" actions={<Link href="/admin/inventory/expiry" className="text-sm font-medium text-primary hover:underline">Review batches</Link>} />
+            <QueryView query={expiries} errorTitle="Could not load expiring batches" isEmpty={(rows) => rows.length === 0} empty={<EmptyState icon={AlertTriangle} title="No expiry alerts" />}>
+              {(rows) => <DataTable caption="Expired or soon-to-expire medicine batches" columns={expiryColumns} rows={rows} rowKey={(row) => row.id} rowHref={() => '/admin/inventory/expiry'} />}
+            </QueryView>
+          </Card>
+        </div>
+      </div>
+
+      <p className="sr-only" role="status">{uiTestEnabled() ? 'UI testing mode: No backend data has been loaded.' : 'Dashboard data reflects confirmed API results.'} {s?.asOf ? `Last refreshed ${formatDateTime(s.asOf)}.` : ''}</p>
     </PageBody>
   );
 }

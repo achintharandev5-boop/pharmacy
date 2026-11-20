@@ -1,0 +1,9 @@
+﻿# UI component library report
+
+Foundation extends the existing Tailwind/React library without dependencies. Existing implementations reused: Button/IconButton/LinkButton, Input/Select/Textarea/FormField, Card, StatTile, StatusBadge, Alert, Toast, Dialog/ConfirmDialog, DataTable/Pagination, TabNav/SegmentedControl, PageHeader/SearchInput and states. New: ThemeSwitcher, ThemeController, native-modal Drawer, native input/checkbox/radio/switch/FormSection primitives. Public aliases reuse Button/StatTile/ConfirmDialog/Skeleton for requested AppButton/MetricCard/ConfirmationDialog/LoadingSkeleton names.
+
+Button variants add outline and success; touch size is 56px, standard 44px. Text inputs/selects are 44px. Solid actions use dedicated contrast-safe foregrounds in each theme. Cards use 16px corners and larger headings; page titles 28–32px. Dialogs use semantic backdrop/elevated surfaces. Charts now use semantic series, grid, tick, cursor and tooltip colors while retaining all data and accessible tables. No chart data/calculation changes.
+
+Files: components/ui/{Button,Form,Card,Page,Dialog,Charts,index}.tsx (index.ts), new Controls.tsx, Drawer.tsx, ThemeSwitcher.tsx and its tests; app/theme.css and root layout; AppShell and two heading assertions in its existing test. Existing globals retain print/Sinhala CSS and disable animation for reduced motion.
+
+Verification: foundation 20/20 component/navigation tests; whole-web tsc, production build and ESLint pass; 40 contrast checks pass. The full sequential web run reported 2165/2166, with one load-sensitive review-print guard timeout; the isolated guard suite passed 8/8. Existing domain search comboboxes and custom panels were retained and migrated where needed. A local dev-server hydration issue prevents declaring the final browser interaction sweep complete; see the accessibility report. Native title hints remain on collapsed links and icon buttons; no competing tooltip package added.

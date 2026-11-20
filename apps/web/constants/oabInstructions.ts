@@ -8,7 +8,11 @@ export interface InstructionParams {
   timing?: MealTiming;
 }
 
-export const INSTRUCTION_CONFIG: Record<InstructionCategory, any> = {
+type InstructionCategoryConfig =
+  | { take: Record<MealTiming, string>; give: Record<MealTiming, string> }
+  | { take: string; give: string };
+
+export const INSTRUCTION_CONFIG: Record<InstructionCategory, InstructionCategoryConfig> = {
   chewable: {
     take: {
       before: 'සපලා කන්න කෑමට පෙර',
@@ -21,17 +25,17 @@ export const INSTRUCTION_CONFIG: Record<InstructionCategory, any> = {
   },
   dissolveAndDrink: {
     take: {
-      before: 'දියකර බොන්න කෑමට පෙර',
-      after: 'දියකර බොන්න කෑමට පසු'
+      before: 'දිය කර බොන්න කෑමට පෙර',
+      after: 'දිය කර බොන්න කෑමට පසු'
     },
     give: {
-      before: 'දියකර බොන්න දෙන්න කෑමට පෙර',
-      after: 'දියකර බොන්න දෙන්න කෑමට පසු'
+      before: 'දිය කර බොන්න දෙන්න කෑමට පෙර',
+      after: 'දිය කර බොන්න දෙන්න කෑමට පසු'
     }
   },
   withFood: {
-    take: 'කෑමත් සමග ගන්න',
-    give: 'කෑමත් සමග දෙන්න.'
+    take: 'කෑමත් සමඟ ගන්න',
+    give: 'කෑමත් සමඟ දෙන්න'
   },
   emptyStomach: {
     take: 'හිස් බඩ ගන්න',
@@ -63,11 +67,14 @@ export function getInstruction(
   if (!categoryConfig || !action) return null;
 
   if (category === 'withFood' || category === 'emptyStomach') {
-    return categoryConfig[action] || null;
+    const instruction = categoryConfig[action as AdminAction];
+    return typeof instruction === 'string' ? instruction : null;
   }
 
-  if (!timing || !categoryConfig[action]) return null;
-  return categoryConfig[action][timing] || null;
+  if (!timing) return null;
+  const instruction = categoryConfig[action as AdminAction];
+  if (!instruction || typeof instruction === 'string') return null;
+  return instruction[timing as MealTiming] || null;
 }
 
 /**

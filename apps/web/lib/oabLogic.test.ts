@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getInstruction, getNormalInstruction, validateBeforePrint, INSTRUCTION_CONFIG } from '../constants/oabInstructions';
+import { getInstruction, getNormalInstruction, validateBeforePrint } from '../constants/oabInstructions';
 
 describe('Software Logic For OAB - getInstruction', () => {
   describe('Chewable Logic', () => {
@@ -22,34 +22,34 @@ describe('Software Logic For OAB - getInstruction', () => {
 
   describe('Dissolve and Drink Logic', () => {
     it('returns correct instruction for Dissolve & Drink -> Take -> Before Food', () => {
-      expect(getInstruction('dissolveAndDrink', 'take', 'before')).toBe('දියකර බොන්න කෑමට පෙර');
+      expect(getInstruction('dissolveAndDrink', 'take', 'before')).toBe('දිය කර බොන්න කෑමට පෙර');
     });
 
     it('returns correct instruction for Dissolve & Drink -> Give -> Before Food', () => {
-      expect(getInstruction('dissolveAndDrink', 'give', 'before')).toBe('දියකර බොන්න දෙන්න කෑමට පෙර');
+      expect(getInstruction('dissolveAndDrink', 'give', 'before')).toBe('දිය කර බොන්න දෙන්න කෑමට පෙර');
     });
 
     it('returns correct instruction for Dissolve & Drink -> Take -> After Food', () => {
-      expect(getInstruction('dissolveAndDrink', 'take', 'after')).toBe('දියකර බොන්න කෑමට පසු');
+      expect(getInstruction('dissolveAndDrink', 'take', 'after')).toBe('දිය කර බොන්න කෑමට පසු');
     });
 
     it('returns correct instruction for Dissolve & Drink -> Give -> After Food', () => {
-      expect(getInstruction('dissolveAndDrink', 'give', 'after')).toBe('දියකර බොන්න දෙන්න කෑමට පසු');
+      expect(getInstruction('dissolveAndDrink', 'give', 'after')).toBe('දිය කර බොන්න දෙන්න කෑමට පසු');
     });
   });
 
   describe('With Food Logic', () => {
     it('returns correct instruction for With Food -> Take', () => {
-      expect(getInstruction('withFood', 'take')).toBe('කෑමත් සමග ගන්න');
+      expect(getInstruction('withFood', 'take')).toBe('කෑමත් සමඟ ගන්න');
     });
 
     it('returns correct instruction for With Food -> Give', () => {
-      expect(getInstruction('withFood', 'give')).toBe('කෑමත් සමග දෙන්න.');
+      expect(getInstruction('withFood', 'give')).toBe('කෑමත් සමඟ දෙන්න');
     });
 
     it('ignores timing parameter for With Food category', () => {
-      expect(getInstruction('withFood', 'take', 'before')).toBe('කෑමත් සමග ගන්න');
-      expect(getInstruction('withFood', 'give', 'after')).toBe('කෑමත් සමග දෙන්න.');
+      expect(getInstruction('withFood', 'take', 'before')).toBe('කෑමත් සමඟ ගන්න');
+      expect(getInstruction('withFood', 'give', 'after')).toBe('කෑමත් සමඟ දෙන්න');
     });
   });
 

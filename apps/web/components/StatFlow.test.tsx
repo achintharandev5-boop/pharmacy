@@ -34,7 +34,7 @@ function StatTestWrapper() {
         </>
       )}
 
-      {activeControl === 'stat_followup' && (
+      {activeControl === 'idle' && stat && (
         <>
           <button onClick={() => setStatFollowUp('8H')}>FollowUp 8H</button>
           {/* Method 1: Tapping Morning directly */}
@@ -49,10 +49,8 @@ function StatTestWrapper() {
 
 describe('STAT Flow Logic', () => {
   beforeEach(() => {
-    useLabelStore.setState({
-      activeControl: 'idle',
-      stat: null,
-    });
+    // Reset the labels too: STAT is stored on the active label, and re-opening STAT edits it.
+    useLabelStore.getState().allClear();
   });
 
   it('enters STAT dose end-to-end', async () => {
@@ -69,13 +67,13 @@ describe('STAT Flow Logic', () => {
     
     // 3. DONE
     await user.click(screen.getByText('Done STAT'));
-    expect(screen.getByTestId('active-control').textContent).toBe('stat_followup');
+    expect(screen.getByTestId('active-control').textContent).toBe('idle');
     
     // 4. Pick followUp
     await user.click(screen.getByText('FollowUp 8H'));
     
-    // 5. Verify outcome
-    expect(screen.getByTestId('active-control').textContent).toBe('idle');
+    // 5. The follow-up has its own quantity pad.
+    expect(screen.getByTestId('active-control').textContent).toBe('frequency');
     expect(useLabelStore.getState().stat?.qty).toBe(1);
     expect(useLabelStore.getState().stat?.followUp).toBe('8H');
   });
@@ -112,6 +110,7 @@ describe('STAT Flow Logic', () => {
     expect(outsideBtn).toBeDisabled();
     
     // Stat FollowUp -> enabled
+    await user.click(screen.getByText('Stat Plus'));
     await user.click(screen.getByText('Done STAT'));
     expect(outsideBtn).not.toBeDisabled();
   });
@@ -121,12 +120,16 @@ describe('STAT Flow Logic', () => {
     render(<StatTestWrapper />);
     
     await user.click(screen.getByText('Start STAT'));
+    // A STAT dose needs a quantity before DONE moves on (a 0 dose would print nothing).
     await user.click(screen.getByText('Done STAT'));
-    
+    expect(screen.getByTestId('active-control').textContent).toBe('stat');
+    await user.click(screen.getByText('Stat Plus'));
+    await user.click(screen.getByText('Done STAT'));
+
     // Pick using Morning Row
     await user.click(screen.getByText('Morning Row'));
     
     expect(useLabelStore.getState().stat?.followUp).toBe('MORNING');
-    expect(screen.getByTestId('active-control').textContent).toBe('idle');
+    expect(screen.getByTestId('active-control').textContent).toBe('morning');
   });
 });

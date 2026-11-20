@@ -1,8 +1,23 @@
-import { Body, Controller, DefaultValuePipe, Get, HttpCode, Param, ParseIntPipe, ParseUUIDPipe, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  DefaultValuePipe,
+  Get,
+  HttpCode,
+  Param,
+  ParseIntPipe,
+  ParseUUIDPipe,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { IsString, MaxLength, MinLength } from 'class-validator';
 import { AdminService } from './admin.service';
-import { CurrentUser } from '../auth/decorators';
-import type { AuthUser } from '../auth/roles';
+import { CurrentUser, Roles } from '../auth/decorators';
+import { ALL_ROLES, type AuthUser } from '../auth/roles';
+import {
+  DashboardRangeQueryDto,
+  DashboardTopProductsQueryDto,
+} from './dto/dashboard-query.dto';
 
 export class ReprintDto {
   @IsString()
@@ -16,35 +31,40 @@ export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
   @Get('dashboard/summary')
+  @Roles(...ALL_ROLES)
   async getSummary() {
     return this.adminService.getSummary();
   }
 
   @Get('dashboard/activity')
-  async getActivity(@Query('range') range?: string) {
-    return this.adminService.getActivity(range);
+  @Roles(...ALL_ROLES)
+  async getActivity(@Query() query: DashboardRangeQueryDto) {
+    return this.adminService.getActivity(query.range);
   }
 
   @Get('dashboard/status-breakdown')
-  async getStatusBreakdown(@Query('range') range?: string) {
-    return this.adminService.getStatusBreakdown(range);
+  @Roles(...ALL_ROLES)
+  async getStatusBreakdown(@Query() query: DashboardRangeQueryDto) {
+    return this.adminService.getStatusBreakdown(query.range);
   }
 
   @Get('dashboard/top-products')
-  async getTopProducts(
-    @Query('range') range?: string,
-    @Query('limit', new DefaultValuePipe(5), ParseIntPipe) limit = 5,
-  ) {
-    return this.adminService.getTopProducts(range, limit);
+  @Roles(...ALL_ROLES)
+  async getTopProducts(@Query() query: DashboardTopProductsQueryDto) {
+    return this.adminService.getTopProducts(query.range, query.limit ?? 5);
   }
 
   @Get('dashboard/alerts')
+  @Roles(...ALL_ROLES)
   async getAlerts() {
     return this.adminService.getAlerts();
   }
 
   @Get('dashboard/recent-activity')
-  async getRecentActivity(@Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit = 10) {
+  @Roles(...ALL_ROLES)
+  async getRecentActivity(
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit = 10,
+  ) {
     return this.adminService.getRecentActivity(limit);
   }
 
@@ -59,7 +79,10 @@ export class AdminController {
   }
 
   @Get('prescriptions')
-  async getPrescriptions(@Query('query') query?: string, @Query('status') status?: string) {
+  async getPrescriptions(
+    @Query('query') query?: string,
+    @Query('status') status?: string,
+  ) {
     return this.adminService.getPrescriptions(query, status);
   }
 
@@ -103,7 +126,9 @@ export class AdminController {
   }
 
   @Get('labels/logs')
-  async getLabelLogs(@Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit = 20) {
+  async getLabelLogs(
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit = 20,
+  ) {
     return this.adminService.getLabelLogs(limit);
   }
 }

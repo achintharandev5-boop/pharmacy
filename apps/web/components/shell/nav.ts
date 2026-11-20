@@ -1,6 +1,7 @@
 import {
   LayoutDashboard,
   FilePlus2,
+  ShoppingCart,
   Users,
   FileText,
   Package,
@@ -9,8 +10,10 @@ import {
   History,
   BarChart3,
   Settings,
+  ScrollText,
   type LucideIcon,
 } from 'lucide-react';
+import { ADMIN_ROLES, POS_ROLES, STAFF_ROLES, type AppRole } from '@/lib/roles';
 
 export interface NavItem {
   label: string;
@@ -20,6 +23,8 @@ export interface NavItem {
   exact?: boolean;
   /** Sub-paths that belong to another item. */
   excludes?: string[];
+  /** Roles that see this item. Defaults to the pharmacy staff roles. Display only: the API enforces access. */
+  roles?: readonly AppRole[];
 }
 
 export interface NavSection {
@@ -33,6 +38,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { label: 'Dashboard', href: '/admin', icon: LayoutDashboard, exact: true },
       { label: 'Label workstation', href: '/label', icon: FilePlus2 },
+      { label: 'Point of sale', href: '/pos', icon: ShoppingCart, roles: POS_ROLES },
     ],
   },
   {
@@ -57,9 +63,25 @@ export const NAV_SECTIONS: NavSection[] = [
   },
   {
     title: 'System',
-    items: [{ label: 'Settings', href: '/admin/settings', icon: Settings }],
+    items: [
+      { label: 'Edit Reasons', href: '/admin/reasons', icon: Settings },
+      { label: 'Audit log', href: '/admin/audit-log', icon: ScrollText, roles: ADMIN_ROLES },
+      { label: 'Settings', href: '/admin/settings', icon: Settings },
+    ],
   },
 ];
+
+/**
+ * The navigation a role may see. An unknown role (still loading, no role, or the lookup failed)
+ * sees nothing rather than everything.
+ */
+export function navSectionsFor(role: AppRole | null | undefined): NavSection[] {
+  if (!role) return [];
+  return NAV_SECTIONS.map((section) => ({
+    ...section,
+    items: section.items.filter((item) => (item.roles ?? STAFF_ROLES).includes(role)),
+  })).filter((section) => section.items.length > 0);
+}
 
 export function isActive(item: NavItem, pathname: string): boolean {
   if (item.exact) return pathname === item.href;
@@ -75,5 +97,6 @@ export const INVENTORY_TABS = [
   { href: '/admin/inventory/movements', label: 'Movements' },
   { href: '/admin/inventory/receiving', label: 'Receive stock' },
   { href: '/admin/inventory/adjustments', label: 'Adjustments' },
+  { href: '/admin/inventory/returns', label: 'Returns' },
   { href: '/admin/inventory/analytics', label: 'Analytics' },
 ];

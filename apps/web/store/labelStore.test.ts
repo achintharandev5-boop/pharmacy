@@ -105,6 +105,8 @@ describe('parseQty helper', () => {
 describe('labelStore Multi-reason Logic', () => {
   beforeEach(() => {
     useLabelStore.getState().allClear();
+    useLabelStore.getState().setReasonCatalogue(['වමනයට', 'කැස්සට', 'සෙමට']);
+    useLabelStore.getState().openReasonsPanel();
   });
 
   it('allows selecting multiple reasons and toggles them off', () => {
@@ -141,12 +143,15 @@ describe('labelStore Multi-reason Logic', () => {
     useLabelStore.getState().toggleReason('වමනයට');
     useLabelStore.getState().toggleReason('කැස්සට');
 
+    useLabelStore.getState().closeReasonsPanel();
     // Add a second label
     useLabelStore.getState().addLabel();
     expect(useLabelStore.getState().reasons).toEqual([]);
     expect(useLabelStore.getState().reason).toBeNull();
 
+    useLabelStore.getState().openReasonsPanel();
     useLabelStore.getState().toggleReason('සෙමට');
+    useLabelStore.getState().closeReasonsPanel();
     expect(useLabelStore.getState().reasons).toEqual(['සෙමට']);
 
     // Switch back to label 0
@@ -166,20 +171,23 @@ describe('labelStore Expiry Date Direct Logic', () => {
     useLabelStore.getState().allClear();
   });
 
-  it('populates expiry date from the selected product record when ADD EXP DATE is toggled without opening modal', () => {
-    // Select a product whose API record includes an expiry date
+  it('never prints the medicine record expiry: ADD EXP DATE opens the GRN batch lookup (Feature #22)', () => {
+    // A legacy expiry on the medicine record is not the dispensing batch's GRN expiry.
     useLabelStore.getState().setProduct({ id: 'prod_lasix_40', name: "Lasix 40mg Tabs 500's", expiry_date: '8/31/2027' });
 
-    // Toggle ADD EXP DATE
     useLabelStore.getState().toggleAdditionalInstruction('ADD EXP DATE');
 
-    expect(useLabelStore.getState().expDateModalVisible).toBe(false);
-    expect(useLabelStore.getState().expiryDate).toBe('8/31/2027');
-    expect(useLabelStore.getState().additionalInstructions).toContain('ADD EXP DATE');
+    expect(useLabelStore.getState().expDateModalVisible).toBe(true);
+    expect(useLabelStore.getState().expiryDate).toBeNull();
+    expect(useLabelStore.getState().additionalInstructions).not.toContain('ADD EXP DATE');
 
-    // Toggle ADD EXP DATE off
+    // The retrieved batch is applied, then tapping again removes it.
+    expect(useLabelStore.getState().setExpiryBatch({ id: 'b1', productId: 'prod_lasix_40', batchNumber: 'L1', expiryDate: '2099-08-31', source: 'inventory' })).toBe(true);
+    expect(useLabelStore.getState().expiryDate).toBe('2099-08-31');
+    expect(useLabelStore.getState().additionalInstructions).toContain('ADD EXP DATE');
     useLabelStore.getState().toggleAdditionalInstruction('ADD EXP DATE');
     expect(useLabelStore.getState().expiryDate).toBeNull();
+    expect(useLabelStore.getState().expiryBatch).toBeNull();
     expect(useLabelStore.getState().additionalInstructions).not.toContain('ADD EXP DATE');
   });
 
